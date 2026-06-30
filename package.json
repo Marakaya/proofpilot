@@ -1,0 +1,28 @@
+{
+  "name": "proofpilot",
+  "version": "0.1.0",
+  "description": "Open-source AI skill router for turning raw ideas into validated ventures, MVPs, pitches, and submissions.",
+  "type": "module",
+  "license": "MIT",
+  "private": false,
+  "bin": {
+    "proofpilot": "./scripts/cli.js"
+  },
+  "scripts": {
+    "validate": "node scripts/validate.js",
+    "test": "npm run validate"
+  },
+  "keywords": [
+    "startup",
+    "founder",
+    "hackathon",
+    "mvp",
+    "ai-skills",
+    "agent",
+    "venture",
+    "validation"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

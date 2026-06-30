@@ -1,0 +1,154 @@
+{
+  "tools": [
+    {
+      "id": "solana_new",
+      "label": "solana.new",
+      "tracks": [
+        "web3",
+        "hackathon"
+      ],
+      "credential_class": "no_secret",
+      "decision": "Use as scaffold recommendation, not as an execution connector."
+    },
+    {
+      "id": "ethglobal_skills",
+      "label": "ETHGlobal Skills",
+      "tracks": [
+        "web3",
+        "hackathon"
+      ],
+      "credential_class": "no_secret_or_payment",
+      "decision": "Use as public intelligence connector with rate limits."
+    },
+    {
+      "id": "colosseum_copilot",
+      "label": "Colosseum Copilot",
+      "tracks": [
+        "web3",
+        "hackathon"
+      ],
+      "credential_class": "api_key_or_pat",
+      "decision": "Optional read connector for Solana project research."
+    },
+    {
+      "id": "scaffold_eth",
+      "label": "Scaffold-ETH 2",
+      "tracks": [
+        "web3"
+      ],
+      "credential_class": "no_secret_first_wallet_later",
+      "decision": "Use for planning; defer deploy automation."
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "tracks": [
+        "startup",
+        "web2",
+        "web3",
+        "ai_app",
+        "hackathon"
+      ],
+      "credential_class": "api_key_or_pat",
+      "decision": "First-wave read connector for repository readiness."
+    },
+    {
+      "id": "kaggle",
+      "label": "Kaggle",
+      "tracks": [
+        "data_ml",
+        "ai_app"
+      ],
+      "credential_class": "api_key_or_pat",
+      "decision": "Optional data/ML connector."
+    },
+    {
+      "id": "hugging_face",
+      "label": "Hugging Face",
+      "tracks": [
+        "ai_app",
+        "data_ml"
+      ],
+      "credential_class": "api_key_or_pat",
+      "decision": "Optional model, dataset, and Space connector."
+    },
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "tracks": [
+        "ai_app",
+        "startup",
+        "web2"
+      ],
+      "credential_class": "paid_api",
+      "decision": "Platform-owned first; BYOK optional for local/open-source usage."
+    },
+    {
+      "id": "gemini",
+      "label": "Google Gemini",
+      "tracks": [
+        "ai_app",
+        "web2"
+      ],
+      "credential_class": "paid_api",
+      "decision": "Optional provider adapter."
+    },
+    {
+      "id": "vercel",
+      "label": "Vercel",
+      "tracks": [
+        "web2",
+        "ai_app",
+        "hackathon"
+      ],
+      "credential_class": "oauth_or_service_principal",
+      "decision": "Use later for deployment checks; verify public URL first."
+    },
+    {
+      "id": "cloudflare",
+      "label": "Cloudflare",
+      "tracks": [
+        "web2",
+        "ai_app"
+      ],
+      "credential_class": "oauth_or_service_principal",
+      "decision": "Optional provider connector with scoped tokens."
+    },
+    {
+      "id": "solana_agent_kit",
+      "label": "Solana Agent Kit",
+      "tracks": [
+        "web3"
+      ],
+      "credential_class": "wallet_private_key_or_mnemonic",
+      "decision": "Defer execution until wallet policy exists."
+    },
+    {
+      "id": "coinbase_agentkit",
+      "label": "Coinbase AgentKit",
+      "tracks": [
+        "web3"
+      ],
+      "credential_class": "wallet_private_key_or_mnemonic",
+      "decision": "Defer until permission gates and sandbox wallets exist."
+    },
+    {
+      "id": "openzeppelin",
+      "label": "OpenZeppelin Skills",
+      "tracks": [
+        "web3"
+      ],
+      "credential_class": "no_secret",
+      "decision": "Enable by default for security readiness."
+    },
+    {
+      "id": "trail_of_bits",
+      "label": "Trail of Bits Skills",
+      "tracks": [
+        "web3"
+      ],
+      "credential_class": "no_secret",
+      "decision": "Enable as optional security review guidance."
+    }
+  ]
+}

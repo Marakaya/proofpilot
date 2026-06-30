@@ -1,0 +1,64 @@
+{
+  "sources": [
+    {
+      "id": "local_archive",
+      "label": "Local Community Archive",
+      "scope": "Past local projects, event history, mentor feedback, judging outcomes, and community needs.",
+      "credential": "platform"
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "scope": "Public and connected repositories, activity, README quality, issue signals, and implementation proof.",
+      "credential": "optional_read_token"
+    },
+    {
+      "id": "yc_library",
+      "label": "YC Library and Startup School",
+      "scope": "Startup basics, customer discovery, MVP scope, launch, fundraising, and founder discipline.",
+      "credential": "none"
+    },
+    {
+      "id": "founder_institute",
+      "label": "Founder Institute Frameworks",
+      "scope": "Founder readiness, idea validation, market sizing, and structured startup curriculum.",
+      "credential": "none"
+    },
+    {
+      "id": "ethglobal_skills",
+      "label": "ETHGlobal Skills",
+      "scope": "Ethereum hackathon projects, sponsor docs, bounties, winners, and project patterns.",
+      "credential": "none_or_x402_overage"
+    },
+    {
+      "id": "colosseum_copilot",
+      "label": "Colosseum Copilot",
+      "scope": "Solana project archive search, winners, gap analysis, and ecosystem project patterns.",
+      "credential": "user_pat"
+    },
+    {
+      "id": "devpost",
+      "label": "Devpost",
+      "scope": "Public hackathon pages, submission formats, project examples, prizes, and judging criteria.",
+      "credential": "none_for_public_pages"
+    },
+    {
+      "id": "kaggle",
+      "label": "Kaggle",
+      "scope": "Datasets, competitions, notebooks, and ML benchmark examples.",
+      "credential": "optional_user_api_key"
+    },
+    {
+      "id": "hugging_face",
+      "label": "Hugging Face",
+      "scope": "Models, datasets, Spaces, competitions, and AI app examples.",
+      "credential": "optional_user_token"
+    },
+    {
+      "id": "security_guides",
+      "label": "OpenZeppelin and Trail of Bits",
+      "scope": "Smart contract safety, readiness reviews, audit checklists, and secure development patterns.",
+      "credential": "none"
+    }
+  ]
+}
