@@ -64,6 +64,12 @@ Default rollout:
 
 See [docs/credential-model.md](docs/credential-model.md).
 
+## Included Tools
+
+ProofPilot includes internal skills, public source catalogs, optional API connectors, and gated wallet/action tools.
+
+Start with [docs/included-tools.md](docs/included-tools.md) for the full tool map: what each tool does, when ProofPilot uses it, which tracks it supports, and whether it needs credentials.
+
 ## Repository Layout
 
 ```text

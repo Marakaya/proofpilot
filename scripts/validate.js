@@ -12,6 +12,7 @@ const requiredFiles = [
   "docs/workflow.md",
   "docs/runtime.md",
   "docs/credential-model.md",
+  "docs/included-tools.md",
   "data/tracks.json",
   "data/tool-registry.json",
   "data/credential-matrix.json",
