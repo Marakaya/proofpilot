@@ -1,0 +1,166 @@
+{
+  "lenses": [
+    {
+      "id": "startup",
+      "validation_checks": [
+        "specific customer and painful job-to-be-done",
+        "current workaround and urgency",
+        "willingness to pay or strong usage pull",
+        "distribution path to first users",
+        "founder-market fit and team capability"
+      ],
+      "mvp_defaults": [
+        "manual or concierge proof before automation",
+        "one narrow customer segment",
+        "one measurable user outcome"
+      ],
+      "red_flags": [
+        "broad audience",
+        "feature list without a painful problem",
+        "no believable path to first conversations"
+      ]
+    },
+    {
+      "id": "web2",
+      "validation_checks": [
+        "workflow pain and frequency",
+        "buyer or user clarity",
+        "current spreadsheet, manual, or incumbent workaround",
+        "pricing and willingness to pay",
+        "integration, privacy, and operational constraints"
+      ],
+      "mvp_defaults": [
+        "thin web app or no-code workflow",
+        "manual backend if it proves demand faster",
+        "analytics for activation and retention"
+      ],
+      "red_flags": [
+        "no buyer",
+        "nice-to-have dashboard",
+        "heavy platform build before proving one workflow"
+      ]
+    },
+    {
+      "id": "web3",
+      "validation_checks": [
+        "why onchain state, wallets, ownership, settlement, identity, or composability is necessary",
+        "wallet friction and onboarding path",
+        "contract, custody, oracle, bridge, and permission risks",
+        "token or incentive design if present",
+        "ecosystem fit, sponsor fit, and comparable protocols"
+      ],
+      "mvp_defaults": [
+        "minimize onchain surface area",
+        "use testnet or localnet until value is proven",
+        "separate read-only research from wallet or paid actions",
+        "ship a verifier, receipt, or narrow settlement primitive before a full protocol"
+      ],
+      "red_flags": [
+        "blockchain added only for marketing",
+        "token before utility",
+        "private keys or paid actions without explicit gates",
+        "contract deployment before threat modeling"
+      ]
+    },
+    {
+      "id": "ai_app",
+      "validation_checks": [
+        "model capability for the task",
+        "eval criteria and failure cases",
+        "data access and permissions",
+        "latency and cost per completed task",
+        "provider dependence and fallback path"
+      ],
+      "mvp_defaults": [
+        "single workflow",
+        "human review loop",
+        "small eval set before broader launch"
+      ],
+      "red_flags": [
+        "demo-only chatbot",
+        "no evals",
+        "unclear cost per user action"
+      ]
+    },
+    {
+      "id": "data_ml",
+      "validation_checks": [
+        "dataset availability and rights",
+        "benchmark or evaluation method",
+        "baseline comparison",
+        "reproducibility",
+        "distribution of the resulting model, notebook, or report"
+      ],
+      "mvp_defaults": [
+        "notebook or reproducible script",
+        "small clean dataset",
+        "baseline before complex modeling"
+      ],
+      "red_flags": [
+        "unclear target metric",
+        "unlicensed data",
+        "model training before baseline"
+      ]
+    },
+    {
+      "id": "hackathon",
+      "validation_checks": [
+        "rules and deadline fit",
+        "sponsor bounty fit",
+        "demo clarity",
+        "technical proof",
+        "submission completeness"
+      ],
+      "mvp_defaults": [
+        "demo-first scope",
+        "one sponsor integration done well",
+        "clear judging narrative"
+      ],
+      "red_flags": [
+        "too many integrations",
+        "no working demo path",
+        "pitch does not match prize criteria"
+      ]
+    },
+    {
+      "id": "grant",
+      "validation_checks": [
+        "ecosystem fit",
+        "milestones and budget clarity",
+        "public-good or ecosystem impact",
+        "maintainer credibility",
+        "measurable deliverables"
+      ],
+      "mvp_defaults": [
+        "milestone plan",
+        "public artifact",
+        "clear maintenance owner"
+      ],
+      "red_flags": [
+        "vague impact",
+        "budget disconnected from deliverables",
+        "no post-grant maintenance plan"
+      ]
+    },
+    {
+      "id": "community",
+      "validation_checks": [
+        "member segment and motivation",
+        "repeat participation loop",
+        "status, learning, or economic incentive",
+        "moderation and operations",
+        "distribution through existing networks"
+      ],
+      "mvp_defaults": [
+        "manual cohort",
+        "one repeatable event or workflow",
+        "simple reputation or progress record"
+      ],
+      "red_flags": [
+        "community before purpose",
+        "no repeat loop",
+        "operations too heavy for the team"
+      ]
+    }
+  ]
+}

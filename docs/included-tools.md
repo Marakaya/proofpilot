@@ -20,11 +20,11 @@ These are the core modules included in the repository.
 | Skill | What It Does | When To Use | Output |
 |---|---|---|---|
 | `proofpilot` | Main router. Reads the user's goal, constraints, team, timeline, and target outcome, then selects the right focused skill. | Every session starts here. | Track recommendation, selected workflow, required sources, credential needs. |
-| `idea-discovery` | Helps a user who does not know what to build. Turns skills, interests, constraints, and trends into possible venture directions. | "I do not know what to build." | 3 to 5 directions, ranked recommendation, first validation task, what not to build yet. |
-| `venture-validation` | Tests an idea against customer pain, alternatives, market logic, comparable projects, and feasibility. | User has an idea but does not know if it is worth building. | Customer hypothesis, alternatives, evidence map, risk list, go/pivot/pause recommendation. |
-| `mvp-planner` | Converts a direction into the smallest credible MVP and build path. | User chose an idea and needs a realistic plan. | MVP promise, non-goals, feature scope, timeline, dependencies, demo script. |
-| `readiness-review` | Scores an idea, MVP, pitch, grant, repo, or submission using ProofPilot's rubric. | Before mentor review, launch, grant application, or hackathon deadline. | Red/yellow/green scorecard, blockers, quick wins, missing evidence. |
-| `submission-builder` | Drafts pitches, grant applications, accelerator answers, Devpost/Colosseum-style submissions, and demo narratives. | User needs a structured application or pitch. | Draft answers, missing fields, asset checklist, final-submit warning. |
+| `proofpilot-idea-discovery` | Helps a user who does not know what to build. Turns skills, interests, constraints, and trends into possible venture directions. | "I do not know what to build." | 3 to 5 directions, ranked recommendation, first validation task, what not to build yet. |
+| `proofpilot-venture-validation` | Tests an idea against customer pain, alternatives, market logic, comparable projects, and feasibility. | User has an idea but does not know if it is worth building. | Customer hypothesis, alternatives, evidence map, risk list, go/pivot/pause recommendation. |
+| `proofpilot-mvp-planner` | Converts a direction into the smallest credible MVP and build path. | User chose an idea and needs a realistic plan. | MVP promise, non-goals, feature scope, timeline, dependencies, demo script. |
+| `proofpilot-readiness-review` | Scores an idea, MVP, pitch, grant, repo, or submission using ProofPilot's rubric. | Before mentor review, launch, grant application, or hackathon deadline. | Red/yellow/green scorecard, blockers, quick wins, missing evidence. |
+| `proofpilot-submission-builder` | Drafts pitches, grant applications, accelerator answers, Devpost/Colosseum-style submissions, and demo narratives. | User needs a structured application or pitch. | Draft answers, missing fields, asset checklist, final-submit warning. |
 
 ## Core Source Catalog
 

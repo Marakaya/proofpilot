@@ -15,6 +15,8 @@ ProofPilot routes a user's request through focused skills:
 - prepare a pitch, application, demo script, or hackathon submission
 - review readiness with a rubric before a founder talks to users, mentors, judges, or investors
 
+ProofPilot uses subskills by workflow stage, not by market. Web2, web3, AI, data, grant, hackathon, and community are tracks defined in `data/tracks.json` and checked with `data/track-lenses.json`.
+
 ## Example Request
 
 ```text
@@ -85,10 +87,20 @@ scripts/                Validation and CLI helpers
 
 ```bash
 npm test
+npm run install:skills
 node scripts/cli.js
 ```
 
-To use ProofPilot in an agent runtime, start with [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md), then load the focused skill that matches the user's current stage.
+`npm run install:skills` installs discoverable skill folders into `${CODEX_HOME:-~/.codex}/skills` using symlinks by default. To overwrite copied or manually edited installed folders, run `npm run install:skills -- --force`. New Codex sessions can then see:
+
+- `proofpilot`
+- `proofpilot-idea-discovery`
+- `proofpilot-venture-validation`
+- `proofpilot-mvp-planner`
+- `proofpilot-readiness-review`
+- `proofpilot-submission-builder`
+
+To use ProofPilot in a portable/manual agent runtime, start with [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md), then load the focused skill that matches the user's current stage.
 
 ## Status
 

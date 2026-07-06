@@ -21,4 +21,5 @@ for (const dimension of rubric.readiness_rubric.dimensions) {
   console.log(`- ${dimension.id}: ${dimension.label}`);
 }
 console.log("");
-console.log("Start with skills/proofpilot/SKILL.md in your agent runtime.");
+console.log("Install into Codex with: npm run install:skills");
+console.log("Start with skills/proofpilot/SKILL.md in portable/manual runtimes.");

@@ -10,7 +10,9 @@
   },
   "scripts": {
     "validate": "node scripts/validate.js",
-    "test": "npm run validate"
+    "validate:install": "node scripts/validate-install.js",
+    "install:skills": "node scripts/install-skills.js",
+    "test": "npm run validate && npm run validate:install"
   },
   "keywords": [
     "startup",

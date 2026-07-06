@@ -2,6 +2,8 @@
 
 ProofPilot uses a staged workflow instead of a single giant prompt.
 
+Stages are implemented as focused subskills. Markets are not separate subskills: `web2`, `web3`, `ai_app`, `data_ml`, `hackathon`, `grant`, and `community` are tracks selected from `data/tracks.json` and applied through `data/track-lenses.json`.
+
 ## 1. Intake
 
 Capture the minimum context:
