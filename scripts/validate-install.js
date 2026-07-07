@@ -35,9 +35,19 @@ try {
     const skillFile = path.join(skillDir, "SKILL.md");
     const tracksFile = path.join(skillDir, "data", "tracks.json");
     const lensesFile = path.join(skillDir, "data", "track-lenses.json");
+    const playbooksFile = path.join(skillDir, "data", "source-playbooks.json");
+    const judgmentFile = path.join(skillDir, "data", "judgment-policy.json");
+    const acceleratorProgramsFile = path.join(skillDir, "data", "accelerator-programs.json");
+    const presentationDecksFile = path.join(skillDir, "data", "presentation-decks.json");
+    const presentationRubricsFile = path.join(skillDir, "data", "presentation-rubrics.json");
+    const honestEvaluationFile = path.join(skillDir, "references", "honest-evaluation.md");
+    const acceleratorsFile = path.join(skillDir, "references", "accelerators.md");
+    const presentationsFile = path.join(skillDir, "references", "presentations.md");
+    const orchestrationFile = path.join(skillDir, "references", "source-orchestration.md");
+    const discoverScript = path.join(skillDir, "scripts", "discover-sources.js");
     const workflowFile = path.join(skillDir, "docs", "workflow.md");
 
-    for (const required of [skillFile, tracksFile, lensesFile, workflowFile]) {
+    for (const required of [skillFile, tracksFile, lensesFile, playbooksFile, judgmentFile, acceleratorProgramsFile, presentationDecksFile, presentationRubricsFile, honestEvaluationFile, acceleratorsFile, presentationsFile, orchestrationFile, discoverScript, workflowFile]) {
       if (!fs.existsSync(required)) {
         throw new Error(`Installed skill is missing required path: ${required}`);
       }

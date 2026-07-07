@@ -22,4 +22,5 @@ for (const dimension of rubric.readiness_rubric.dimensions) {
 }
 console.log("");
 console.log("Install into Codex with: npm run install:skills");
+console.log("Inspect local source packs with: node scripts/discover-sources.js");
 console.log("Start with skills/proofpilot/SKILL.md in portable/manual runtimes.");

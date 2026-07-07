@@ -28,6 +28,42 @@
       "decision": "Use as inspiration/source, not as a dependency."
     },
     {
+      "id": "accelerator_programs",
+      "label": "YC / Techstars / 500 Global / Antler / EF / Sequoia Arc",
+      "category": "accelerator_readiness",
+      "tracks": ["startup", "web2", "ai_app", "data_ml", "accelerator"],
+      "credential_class": "no_secret",
+      "use_for": "Program fit, application readiness, interview prep, official deadline/terms checks, and non-web3 accelerator strategy.",
+      "decision": "Use as the default non-web3 accelerator source family; verify official pages before final submission advice."
+    },
+    {
+      "id": "create_pitch_deck",
+      "label": "create-pitch-deck",
+      "category": "presentation_generation",
+      "tracks": ["startup", "web2", "web3", "ai_app", "hackathon", "grant", "accelerator", "presentation"],
+      "credential_class": "no_secret",
+      "use_for": "Narrative interview, pitch deck structure, HTML deck artifact, scorecard, and objection prep.",
+      "decision": "Use for pitch narrative and deck content before creating PPTX or Google Slides."
+    },
+    {
+      "id": "presentations_runtime",
+      "label": "Presentations plugin",
+      "category": "presentation_generation",
+      "tracks": ["presentation", "startup", "web2", "web3", "ai_app", "hackathon", "grant", "accelerator"],
+      "credential_class": "no_secret",
+      "use_for": "Create or edit local PowerPoint decks with visual QA.",
+      "decision": "Use for high-quality local PPTX generation and template-following."
+    },
+    {
+      "id": "google_slides",
+      "label": "Google Slides connector",
+      "category": "presentation_generation",
+      "tracks": ["presentation", "startup", "web2", "web3", "ai_app", "hackathon", "grant", "accelerator"],
+      "credential_class": "oauth_or_service_principal",
+      "use_for": "Create, import, copy, edit, and verify native Google Slides decks.",
+      "decision": "Use when the user wants native Google Slides or provides a Google Slides template/reference deck."
+    },
+    {
       "id": "devpost",
       "label": "Devpost",
       "category": "hackathon_platform",
@@ -129,11 +165,11 @@
     {
       "id": "solana_new",
       "label": "solana.new",
-      "category": "web3_scaffold",
-      "tracks": ["web3", "hackathon"],
+      "category": "web3_source_pack",
+      "tracks": ["web3", "hackathon", "grant", "community"],
       "credential_class": "no_secret",
-      "use_for": "Solana starter templates and scaffold discovery.",
-      "decision": "Use as scaffold recommendation, not as execution connector."
+      "use_for": "Solana journey skills, shared knowledge, idea datasets, guides, starter repos, scaffold discovery, skill routing, and ecosystem build planning.",
+      "decision": "Use as the first source pack for Solana tasks. Prefer local installed solana.new skills/data; refresh with upstream GitHub or official Solana docs when recommendations depend on current state."
     },
     {
       "id": "colosseum_copilot",
@@ -152,6 +188,15 @@
       "credential_class": "no_secret_or_payment",
       "use_for": "Ethereum hackathon project corpus, sponsor docs, bounties, and winner patterns.",
       "decision": "Use as public intelligence connector with strict rate limits."
+    },
+    {
+      "id": "defillama",
+      "label": "DefiLlama",
+      "category": "web3_market_data",
+      "tracks": ["web3", "data_ml"],
+      "credential_class": "no_secret",
+      "use_for": "Protocol health checks, TVL, category trends, chain comparisons, and DeFi opportunity validation.",
+      "decision": "Use before recommending DeFi protocols or claiming market traction."
     },
     {
       "id": "scaffold_eth",

@@ -1,6 +1,6 @@
 ---
 name: proofpilot-idea-discovery
-description: Use when a user has no clear idea and needs ProofPilot to generate promising startup, web2, web3, AI, data, grant, community, or hackathon directions from their skills, constraints, interests, timeline, and target outcome.
+description: Use when a user has no clear idea and needs ProofPilot to generate promising startup, web2, web3, AI, data, grant, community, accelerator, or hackathon directions from their skills, constraints, interests, timeline, and target outcome, with blunt non-flattering judgment.
 ---
 
 # ProofPilot Idea Discovery
@@ -10,6 +10,10 @@ description: Use when a user has no clear idea and needs ProofPilot to generate 
 - Load `data/tracks.json` to choose candidate tracks.
 - Load `data/track-lenses.json` for track-specific idea filters.
 - Load `data/source-catalog.json` to name evidence sources that should be checked next.
+- Load `data/source-playbooks.json` to pick sources by track.
+- Load `data/judgment-policy.json` and apply `references/honest-evaluation.md`.
+- Load `data/accelerator-programs.json` when the user wants YC, Techstars, 500 Global, Antler, EF, Sequoia Arc, or non-web3 accelerator paths.
+- For Solana/web3 idea discovery, read `references/solana-new.md` and use local solana.new skills/data when available.
 
 ## Process
 
@@ -17,8 +21,10 @@ description: Use when a user has no clear idea and needs ProofPilot to generate 
 2. Ask up to five clarifying questions only if the missing information blocks useful recommendations.
 3. Generate 3 to 5 directions across suitable tracks.
 4. For each direction, state customer, pain, why now, first MVP, proof needed, and what not to build yet.
-5. Rank by feasibility, evidence potential, urgency, distribution, and fit with the user.
-6. Recommend one direction and explain why.
+5. Select sources from `data/source-playbooks.json`; use local/no-secret sources first.
+6. Reject or downgrade ideas with weak evidence, vague customers, or fake accelerator fit.
+7. Rank by feasibility, evidence potential, urgency, distribution, and fit with the user.
+8. Recommend one direction and explain why.
 
 ## Track Handling
 
@@ -26,6 +32,7 @@ Do not create separate workflows for web2 and web3. Use the same discovery proce
 
 - For web2, prefer workflow pain, buyer clarity, pricing, distribution, and integration simplicity.
 - For web3, require a reason onchain state or wallets are necessary; otherwise recommend a web2 MVP first.
+- For accelerator, prefer ideas that can produce user proof quickly; do not recommend applying to YC or similar programs just because the idea sounds ambitious.
 
 ## Output
 
@@ -35,3 +42,4 @@ Do not create separate workflows for web2 and web3. Use the same discovery proce
 - first validation task
 - what not to build yet
 - sources to check next
+- local source packs used or skipped

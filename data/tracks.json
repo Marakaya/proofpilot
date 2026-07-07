@@ -39,6 +39,16 @@
       "id": "community",
       "label": "Community Venture",
       "goal": "Build events, learning, membership, reputation, credentials, and community operating loops."
+    },
+    {
+      "id": "accelerator",
+      "label": "Accelerator Readiness",
+      "goal": "Prepare and judge a startup for YC, Techstars, 500 Global, Antler, Entrepreneur First, Sequoia Arc, and other non-web3 accelerator or founder programs."
+    },
+    {
+      "id": "presentation",
+      "label": "Presentation Deck",
+      "goal": "Create and review decks for hackathons, investors, angels, accelerators, grants, demo days, and partner pitches."
     }
   ]
 }

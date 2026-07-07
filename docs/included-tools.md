@@ -13,6 +13,16 @@ ProofPilot has four tool types:
 
 The product rule is simple: **users can get value before connecting any key**.
 
+## Source Playbooks
+
+Use `data/source-playbooks.json` before choosing sources. It defines source priority by stage, track, credential policy, and reference file.
+
+For Solana tasks, use `references/solana-new.md` and the local solana.new source pack first. Then add Colosseum Copilot, DefiLlama, GitHub, ETHGlobal, or official docs when the task needs current evidence.
+
+For accelerator tasks, use `references/honest-evaluation.md`, `references/accelerators.md`, `data/accelerator-programs.json`, and `data/accelerator-rubrics.json`. The default goal is a truthful readiness verdict, not a flattering application draft.
+
+For presentation tasks, use `references/presentations.md`, `data/presentation-decks.json`, and `data/presentation-rubrics.json`. Pick the audience first: hackathon, investor, angel, accelerator, grant, or partner.
+
 ## Internal ProofPilot Skills
 
 These are the core modules included in the repository.
@@ -33,12 +43,16 @@ These sources make ProofPilot useful before credentials are connected.
 | Source | Used For | Tracks | Credential |
 |---|---|---|---|
 | Local community archive | Past projects, event history, mentor feedback, judging outcomes, recurring local needs. | `startup`, `community`, `hackathon`, `grant` | Platform-owned in hosted deployments |
+| YC / Techstars / 500 Global / Antler / EF / Sequoia Arc | Program fit, application readiness, deadlines, terms, interview prep, and founder profile checks. | `startup`, `web2`, `ai_app`, `data_ml`, `accelerator` | None for public pages |
+| Presentation and deck frameworks | Hackathon, investor, angel, accelerator, grant, and partner deck structure and review. | `presentation`, `startup`, `web2`, `web3`, `ai_app`, `hackathon`, `grant`, `accelerator` | None |
+| solana.new / superstack | Solana journey skills, shared knowledge, guides, ideas, scaffold paths, and ecosystem build planning. | `web3`, `hackathon`, `grant`, `community` | None for local data and guidance |
 | GitHub public repos | Similar projects, README quality, implementation proof, traction signals, open-source patterns. | All technical tracks | None for public repos; token for private repos or higher limits |
 | YC Library and Startup School | Startup basics, customer discovery, MVP scope, launch, founder discipline. | `startup` | None |
 | `garrytan/gstack` | Founder/operator skill-pack reference, specialist role patterns, startup workflow primitives. | `startup` | None |
 | Founder Institute frameworks | Founder readiness, idea validation, market sizing, structured startup curriculum. | `startup` | None |
 | Sequoia Arc / First Round / a16z / Techstars / 500 / Antler / EF frameworks | PMF thinking, go-to-market, fundraising readiness, founder-market fit, cofounder formation. | `startup`, `grant` | None |
 | Public hackathon pages | Rules, judging criteria, deadlines, prizes, required assets, sponsor tracks. | `hackathon` | None |
+| DefiLlama | TVL, protocol health, chain/category trends, and DeFi market validation. | `web3`, `data_ml` | None |
 | Security guides | OpenZeppelin and Trail of Bits readiness practices. | `web3` | None |
 
 ## Startup And Founder Tools
@@ -50,6 +64,8 @@ These tools shape founder-quality output even when the user is not technical.
 | `garrytan/gstack` | Reference for founder roles, operating cadence, and startup assistant workflows. | Include as inspiration/source, not as a hard dependency. |
 | YC Startup School | Customer discovery, MVP discipline, launch basics, fundraising context. | Use as general startup framework source. |
 | YC Library | Founder lessons, startup heuristics, pitch clarity, market reasoning. | Use for validation and pitch review. |
+| YC / Techstars / 500 Global / Antler / EF / Sequoia Arc profiles | Accelerator fit, application readiness, interview risks, and apply/wait/pivot verdicts. | Use as default non-web3 accelerator readiness layer; verify official terms/deadlines before final advice. |
+| Presentation deck profiles | Hackathon, investor, angel, accelerator, grant, and partner deck structures and readiness rubric. | Use before deck drafting or presentation review. |
 | Founder Institute | Structured founder/idea validation and curriculum-style progress. | Use for beginner founder guidance. |
 | Sequoia Arc PMF Framework | PMF diagnosis and market clarity. | Use in readiness review for startup track. |
 | First Round PMF Method | Early customer signal and product-market fit thinking. | Use in validation prompts and rubric checks. |
@@ -100,9 +116,10 @@ ProofPilot includes web3 tools, but wallet/action tools are gated by default.
 | Tool | What It Is For | ProofPilot Use | Credential Policy |
 |---|---|---|---|
 | Colosseum Copilot | Solana project archive, winners, project search, gap analysis. | Solana/hackathon research and differentiation. | User PAT; read-only connector. |
-| `solana.new` | Solana starter templates and scaffold discovery. | Recommend starter path. | No key for scaffold selection. |
+| `solana.new` | Solana journey skills, knowledge base, ideas, guides, scaffold discovery, skill routing, and ecosystem build planning. | First source pack for Solana idea, validation, MVP, readiness, and submission work. | No key for local guidance/data. |
 | Solana Agent Kit | Agentic Solana actions, wallet/RPC/plugin workflows. | Future action connector. | Requires wallet/private key or wallet interface; deferred. |
 | ETHGlobal Skills | Ethereum project corpus, sponsor docs, bounties, winner context. | EVM/hackathon research. | Free limited lookup; x402 paid overage possible. |
+| DefiLlama | Public market data for DeFi protocols, chains, and categories. | Protocol health and market validation before DeFi recommendations. | No key. |
 | Scaffold-ETH 2 | EVM dapp scaffold and learning path. | EVM stack planning. | No key for local planning; deploy needs wallet/RPC/Etherscan keys. |
 | Base Skills / OnchainKit | Base app patterns, app config, onchain UX. | Base app planning and UI stack recommendation. | Some app integrations need Coinbase Developer Platform key. |
 | Coinbase AgentKit | Agentic wallet/onchain actions across Coinbase-supported flows. | Future wallet/action track. | CDP keys plus wallet provider credentials; deferred. |

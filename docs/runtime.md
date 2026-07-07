@@ -6,12 +6,14 @@ ProofPilot is a skill/router package. A hosted implementation can add connectors
 
 1. `context_bundle`: user goals, constraints, team, timeline, assets, and selected track
 2. `skill_router`: chooses the focused skill for the current stage
-3. `source_catalog`: picks public or connected sources to check
-4. `credential_resolver`: determines whether a connector needs a key
-5. `permission_gate`: blocks paid, write, wallet, deploy, and final-submit actions until approved
-6. `evidence_normalizer`: turns external results into comparable notes
-7. `reviewer`: applies the relevant rubric
-8. `artifact_writer`: writes plans, pitches, submissions, reports, or checklists
+3. `judgment_policy`: enforces blunt, non-flattering evaluation before recommendations
+4. `source_catalog`: picks public or connected sources to check
+5. `source_playbooks`: orders sources by track, stage, priority, and credential policy
+6. `credential_resolver`: determines whether a connector needs a key
+7. `permission_gate`: blocks paid, write, wallet, deploy, and final-submit actions until approved
+8. `evidence_normalizer`: turns external results into comparable notes
+9. `reviewer`: applies the relevant rubric
+10. `artifact_writer`: writes plans, pitches, submissions, reports, or checklists
 
 ## Permission Classes
 

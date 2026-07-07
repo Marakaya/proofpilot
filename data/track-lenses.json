@@ -161,6 +161,59 @@
         "no repeat loop",
         "operations too heavy for the team"
       ]
+    },
+    {
+      "id": "accelerator",
+      "validation_checks": [
+        "founder-market fit and founder edge",
+        "clear one-sentence company description",
+        "specific customer pain and current workaround",
+        "evidence that people want this: users, usage, revenue, LOIs, pilots, waitlist quality, or credible founder access",
+        "speed of execution and recent progress",
+        "market size and venture-scale outcome",
+        "sharp differentiation from incumbents and adjacent startups",
+        "program fit: YC, Techstars, 500 Global, Antler, Entrepreneur First, Sequoia Arc, or another target"
+      ],
+      "mvp_defaults": [
+        "working demo or concierge proof before polished deck",
+        "one narrow customer segment",
+        "clear traction metric or learning milestone",
+        "application answers written plainly, with no marketing-speak"
+      ],
+      "red_flags": [
+        "vague idea with no user evidence",
+        "founder story does not explain why this team should win",
+        "large market claim without wedge",
+        "deck polish replacing customer proof",
+        "application answers that flatter the idea instead of proving it"
+      ]
+    },
+    {
+      "id": "presentation",
+      "validation_checks": [
+        "audience clarity: hackathon judges, investors, angels, accelerators, grants, or partners",
+        "one-sentence narrative hook",
+        "problem specificity and urgency",
+        "solution clarity with demo or product proof",
+        "traction or evidence appropriate to stage",
+        "competition and differentiation",
+        "specific ask and next milestone",
+        "deck length and density fit the audience"
+      ],
+      "mvp_defaults": [
+        "hackathon deck: demo-first, 6 to 8 slides, working proof over market theory",
+        "investor deck: venture narrative, 10 to 12 slides, market, traction, business model, team, ask",
+        "angel deck: concise 5 to 8 slides, founder story, proof, simple terms, specific use of funds",
+        "accelerator deck: execution speed, founder edge, evidence, interview risks"
+      ],
+      "red_flags": [
+        "generic startup deck that ignores audience",
+        "too many slides before the product/demo",
+        "traction claims without numbers",
+        "ask is missing, vague, or disconnected from milestones",
+        "visual polish hiding a weak story",
+        "no honest objection handling"
+      ]
     }
   ]
 }

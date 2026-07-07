@@ -25,6 +25,24 @@
       "credential": "none"
     },
     {
+      "id": "accelerator_programs",
+      "label": "Non-web3 Accelerator Programs",
+      "scope": "YC, Techstars, 500 Global, Antler, Entrepreneur First, Sequoia Arc, and other accelerator program fit, readiness, applications, interviews, and official deadlines/terms.",
+      "credential": "none_for_public_pages"
+    },
+    {
+      "id": "presentation_frameworks",
+      "label": "Presentation and Deck Frameworks",
+      "scope": "Hackathon demo decks, investor decks, angel decks, accelerator decks, grant decks, slide rubrics, narrative structure, and deck tooling.",
+      "credential": "none"
+    },
+    {
+      "id": "solana_new",
+      "label": "solana.new / superstack",
+      "scope": "Solana journey skills, local knowledge base, shared guides, idea datasets, scaffold choices, skill routing, and ecosystem build planning.",
+      "credential": "none_for_local_data"
+    },
+    {
       "id": "ethglobal_skills",
       "label": "ETHGlobal Skills",
       "scope": "Ethereum hackathon projects, sponsor docs, bounties, winners, and project patterns.",
@@ -35,6 +53,12 @@
       "label": "Colosseum Copilot",
       "scope": "Solana project archive search, winners, gap analysis, and ecosystem project patterns.",
       "credential": "user_pat"
+    },
+    {
+      "id": "defillama",
+      "label": "DefiLlama",
+      "scope": "Public DeFi protocol, TVL, chain, and category data for market and protocol-health checks.",
+      "credential": "none"
     },
     {
       "id": "devpost",

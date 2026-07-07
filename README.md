@@ -17,6 +17,12 @@ ProofPilot routes a user's request through focused skills:
 
 ProofPilot uses subskills by workflow stage, not by market. Web2, web3, AI, data, grant, hackathon, and community are tracks defined in `data/tracks.json` and checked with `data/track-lenses.json`.
 
+Sources are selected with `data/source-playbooks.json`. For Solana tasks, ProofPilot uses `solana.new` as a source pack: local journey skills, shared knowledge, guides, idea datasets, and scaffold guidance first; connected sources only when they add evidence.
+
+ProofPilot uses `data/judgment-policy.json` as a core rule: it must be honest before it is encouraging. For accelerator work, it adds `data/accelerator-programs.json`, `data/accelerator-rubrics.json`, and `references/accelerators.md` to judge YC, Techstars, 500 Global, Antler, Entrepreneur First, Sequoia Arc, and similar applications.
+
+For presentation work, ProofPilot uses `data/presentation-decks.json`, `data/presentation-rubrics.json`, and `references/presentations.md` to choose between hackathon, investor, angel, accelerator, grant, and partner decks before drafting or generating slides.
+
 ## Example Request
 
 ```text
@@ -78,6 +84,7 @@ Start with [docs/included-tools.md](docs/included-tools.md) for the full tool ma
 skills/                 Agent skill definitions
 data/                   Source, tool, track, credential, and rubric registries
 docs/                   Runtime, workflow, and security model
+references/             Source orchestration and ecosystem-specific guidance
 examples/               Example user requests and expected responses
 schemas/                JSON schema for registries
 scripts/                Validation and CLI helpers
@@ -87,6 +94,7 @@ scripts/                Validation and CLI helpers
 
 ```bash
 npm test
+node scripts/discover-sources.js
 npm run install:skills
 node scripts/cli.js
 ```

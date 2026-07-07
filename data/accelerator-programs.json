@@ -1,0 +1,155 @@
+{
+  "last_verified": "2026-07-08",
+  "freshness_policy": "Before final application advice, verify deadlines, terms, batch format, geography, and application links from official program pages.",
+  "programs": [
+    {
+      "id": "yc",
+      "label": "Y Combinator",
+      "official_url": "https://www.ycombinator.com/",
+      "apply_url": "https://www.ycombinator.com/apply",
+      "program_url": "https://www.ycombinator.com/about",
+      "advice_url": "https://www.ycombinator.com/howtoapply",
+      "stage_fit": ["idea", "pre_seed", "seed", "early_revenue"],
+      "default_fit": "High-potential startups with strong founders, a clear product, a large market, fast execution, and evidence that people want the product.",
+      "current_public_terms": "YC states it invests $500k per company: $125k for 7% on a post-money SAFE and $375k on an uncapped SAFE with MFN.",
+      "program_shape": "Three-month program, currently run four times a year, with in-person San Francisco components and Demo Day.",
+      "optimizes_for": [
+        "clarity",
+        "strong founders",
+        "speed",
+        "user pull",
+        "large market",
+        "plain-spoken application answers",
+        "ability to build something people want"
+      ],
+      "red_flags": [
+        "marketing-speak",
+        "unclear product",
+        "no customer evidence",
+        "slow execution",
+        "outsourced technical core without a credible build path",
+        "founder achievements that do not explain why this team has an edge"
+      ]
+    },
+    {
+      "id": "techstars",
+      "label": "Techstars",
+      "official_url": "https://www.techstars.com/",
+      "apply_url": "https://apply.techstars.com/",
+      "stage_fit": ["pre_seed", "seed", "early_revenue"],
+      "default_fit": "Early-stage startups that benefit from a mentorship-driven accelerator, a focused program vertical or geography, and the global Techstars network.",
+      "current_public_terms": "Verify current investment terms on official Techstars investment/program pages before final advice.",
+      "program_shape": "Techstars describes its accelerator as a 3-month, mentorship-driven program with capital investment and access to the global Techstars network.",
+      "optimizes_for": [
+        "mentor fit",
+        "program vertical fit",
+        "team coachability",
+        "early traction",
+        "network leverage",
+        "post-program fundraising readiness"
+      ],
+      "red_flags": [
+        "no clear program fit",
+        "founder not coachable",
+        "weak market or customer specificity",
+        "using Techstars as validation instead of having validation"
+      ]
+    },
+    {
+      "id": "500_global",
+      "label": "500 Global Flagship Accelerator",
+      "official_url": "https://500.co/",
+      "apply_url": "https://500.co/founders/flagship",
+      "stage_fit": ["functional_prototype", "early_revenue", "seed"],
+      "default_fit": "Globally ambitious startups with a functional product, early growth signals, and a need for growth, fundraising, and Silicon Valley network support.",
+      "current_public_terms": "500 Global's Flagship page states accepted companies are offered $150,000 for a 6% stake, subject to terms and diligence.",
+      "program_shape": "Four-month in-person Silicon Valley program focused on founder programming, growth, development curriculum, and tailored support.",
+      "optimizes_for": [
+        "early revenue or growth",
+        "functional prototype",
+        "global market potential",
+        "growth discipline",
+        "cross-functional team",
+        "VC-backable trajectory"
+      ],
+      "red_flags": [
+        "no prototype",
+        "no early revenue or credible usage",
+        "local-only market without expansion path",
+        "growth claims without data"
+      ]
+    },
+    {
+      "id": "antler",
+      "label": "Antler Residency",
+      "official_url": "https://www.antler.co/",
+      "apply_url": "https://www.antler.co/apply",
+      "stage_fit": ["founder_profile", "idea", "cofounder_search", "pre_seed"],
+      "default_fit": "Exceptional founders, often before a fully formed company, who need a residency, cofounder/community access, and long-term investor support.",
+      "current_public_terms": "Antler says it invests in less than 0.2% of applicants and can invest up to $30M as companies scale; local terms vary by location and must be verified.",
+      "program_shape": "Residency-style founder program with local cohorts, application review, founder evaluation, and long-term investment relationship.",
+      "optimizes_for": [
+        "outlier founder profile",
+        "trajectory",
+        "ambition",
+        "founder-market fit",
+        "cofounder or team potential",
+        "speed in residency"
+      ],
+      "red_flags": [
+        "average founder profile with no standout proof",
+        "unclear commitment",
+        "weak ambition",
+        "idea-only application without founder edge"
+      ]
+    },
+    {
+      "id": "entrepreneur_first",
+      "label": "Entrepreneur First",
+      "official_url": "https://www.joinef.com/",
+      "apply_url": "https://apply.joinef.com/",
+      "stage_fit": ["founder_profile", "cofounder_search", "idea", "pre_seed"],
+      "default_fit": "Exceptional individuals who may have an idea, may be testing a cofounder, or may have neither, but show rare founder potential and ambition.",
+      "current_public_terms": "EF current funding and local program terms vary by geography and should be verified from official FAQ/application pages.",
+      "program_shape": "Founder-first program focused on matching exceptional cofounders, shaping ideas, and moving from emerging idea to first revenue.",
+      "optimizes_for": [
+        "individual edge",
+        "technical or domain excellence",
+        "cofounder fit",
+        "ambition",
+        "ability to test quickly",
+        "U.S. or global market ambition"
+      ],
+      "red_flags": [
+        "no evidence of outperformance",
+        "poor cofounder fit",
+        "low risk tolerance",
+        "weak commercial instinct"
+      ]
+    },
+    {
+      "id": "sequoia_arc",
+      "label": "Sequoia Arc",
+      "official_url": "https://www.sequoiacap.com/arc/",
+      "apply_url": "https://www.sequoiacap.com/arc/",
+      "stage_fit": ["pre_seed", "seed"],
+      "default_fit": "Pre-seed and seed founders with high ambition, strong customer insight, credible team-building ability, and venture-scale narrative.",
+      "current_public_terms": "Verify current investment/program terms on Sequoia's official Arc page before final advice.",
+      "program_shape": "Sequoia describes Arc as an intensive for pre-seed and seed founders focused on customer understanding, competitive positioning, team building, and growth strategy.",
+      "optimizes_for": [
+        "category ambition",
+        "company story",
+        "customer insight",
+        "competitive positioning",
+        "team quality",
+        "growth strategy"
+      ],
+      "red_flags": [
+        "small ambition",
+        "unclear category narrative",
+        "weak customer understanding",
+        "team not ready for elite seed-stage scrutiny"
+      ]
+    }
+  ]
+}

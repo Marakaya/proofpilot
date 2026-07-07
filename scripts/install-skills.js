@@ -16,7 +16,7 @@ const skillNames = [
   "proofpilot-submission-builder"
 ];
 
-const sharedDirs = ["data", "docs", "schemas", "examples"];
+const sharedDirs = ["data", "docs", "references", "schemas", "examples", "scripts"];
 
 function parseArgs(argv) {
   const args = {
