@@ -23,6 +23,16 @@ ProofPilot uses `data/judgment-policy.json` as a core rule: it must be honest be
 
 For presentation work, ProofPilot uses `data/presentation-decks.json`, `data/presentation-rubrics.json`, and `references/presentations.md` to choose between hackathon, investor, angel, accelerator, grant, and partner decks before drafting or generating slides.
 
+## Recent Upgrade
+
+The current version is stronger in five practical ways:
+
+- **Installable skills:** `npm run install:skills` installs six discoverable `proofpilot-*` skills into Codex, with shared `data/`, `references/`, `docs/`, and `scripts/` available beside each skill.
+- **Source playbooks:** `data/source-playbooks.json` tells the agent which sources to use by stage and track, so it can prioritize local/no-secret sources before asking for credentials.
+- **Solana-first web3 research:** Solana tasks now use `solana.new` as a local source pack first: journey skills, shared knowledge, guides, idea datasets, Colosseum notes, DefiLlama notes, and scaffold guidance.
+- **Blunt evaluation:** `data/judgment-policy.json` and `references/honest-evaluation.md` make honest, non-flattering assessment a core rule. The agent should say `wait`, `pivot`, `stop`, or `do not apply yet` when the evidence calls for it.
+- **Accelerator and deck readiness:** ProofPilot now includes program profiles and rubrics for YC, Techstars, 500 Global, Antler, Entrepreneur First, and Sequoia Arc, plus deck profiles for hackathon, investor, angel, accelerator, grant, and partner presentations.
+
 ## Example Request
 
 ```text
@@ -56,6 +66,8 @@ ProofPilot supports these default tracks:
 - `hackathon`: rules, rubric, bounty fit, submission quality, demo readiness
 - `grant`: ecosystem fit, milestones, budget, impact proof
 - `community`: events, learning, memberships, reputation, achievements
+- `accelerator`: YC, Techstars, 500 Global, Antler, Entrepreneur First, Sequoia Arc readiness
+- `presentation`: hackathon, investor, angel, accelerator, grant, and partner decks
 
 ## Credential Policy
 
