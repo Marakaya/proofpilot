@@ -67,6 +67,22 @@
       "last_verified_at": "2026-07-11"
     },
     {
+      "id": "defillama",
+      "label": "DefiLlama",
+      "source_type": "public_catalog",
+      "official_url": "https://defillama.com/",
+      "authority": "medium",
+      "access": "public",
+      "stages": ["discover", "validate", "plan", "review"],
+      "domains": ["web3", "data_ml"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "credential_class": "no_secret",
+      "status": "available_public",
+      "query_strategy": "Compare current protocol, chain, category, TVL, fee, and volume data, then confirm decision-critical implementation and security facts in official protocol sources.",
+      "evidence_use": "DeFi market health, protocol traction, chain comparison, and ecosystem context.",
+      "last_verified_at": "2026-07-11"
+    },
+    {
       "id": "yc_library",
       "label": "YC Library and Startup School",
       "source_type": "official_docs",

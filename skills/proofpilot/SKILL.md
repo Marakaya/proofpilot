@@ -36,7 +36,13 @@ Ask at most three high-impact questions when their answers would materially chan
 5. Select public sources first from [source-registry.json](references/source-registry.json). Consult [tool-registry.json](references/tool-registry.json) only when a tool unlocks a concrete task.
 6. Apply the relevant rubric from [rubrics.json](references/rubrics.json) for review or evaluator work.
 7. Read [safety.md](references/safety.md) before handling confidential artifacts, credentials, paid tools, deployment, wallets, or final submission.
-8. Return a concise human-readable answer. When structured output is requested, conform to [response.schema.json](references/response.schema.json).
+8. Load a focused extension only when its trigger applies:
+   - [honest-evaluation.md](references/honest-evaluation.md) for validation, formal review, or an application-readiness verdict
+   - [accelerators.md](references/accelerators.md) and [accelerator-programs.json](references/accelerator-programs.json) for accelerator selection, applications, or interviews
+   - [presentations.md](references/presentations.md) and [presentation-decks.json](references/presentation-decks.json) for pitch, demo, investor, angel, grant, or partner decks
+   - [solana-new.md](references/solana-new.md) for Solana-specific discovery, validation, build planning, or submission work
+   - [source-orchestration.md](references/source-orchestration.md) when source selection spans several ecosystems or installed local skill packs
+9. Return a concise human-readable answer. When structured output is requested, conform to [response.schema.json](references/response.schema.json).
 
 ## Evidence Rules
 

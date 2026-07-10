@@ -655,16 +655,37 @@
       "category": "web3_scaffold",
       "domains": ["web3"],
       "program_contexts": ["none", "hackathon", "grant"],
-      "stages": ["plan"],
-      "integration_types": ["public_web"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web", "local_skill"],
       "official_url": "https://solana.new/",
       "docs_url": "https://solana.new/",
       "capabilities": [
+        { "id": "source_pack", "label": "Use installed Solana journey skills, knowledge, guides, and idea data", "permission_class": "read_only", "credential_class": "no_secret", "status": "catalogued" },
         { "id": "scaffold_selection", "label": "Select a Solana starter template", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
       ],
-      "use_for": "Solana starter template and scaffold discovery.",
-      "decision": "Recommend a starter path; do not treat it as an execution connector.",
+      "use_for": "Solana idea discovery, ecosystem research, local source-pack routing, starter templates, and scaffold selection.",
+      "decision": "Discover installed local skills and data first, refresh decision-relevant claims from current official sources, and keep execution in separately gated tools.",
       "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "defillama",
+      "label": "DefiLlama",
+      "category": "web3_intelligence",
+      "domains": ["web3", "data_ml"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": ["discover", "validate", "plan", "review"],
+      "integration_types": ["public_web", "api", "local_skill"],
+      "official_url": "https://defillama.com/",
+      "docs_url": "https://defillama.com/docs/api",
+      "capabilities": [
+        { "id": "public_market_data", "label": "Inspect public protocol, chain, TVL, fee, and volume data", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "research_skill", "label": "Use an installed DefiLlama research skill", "permission_class": "read_only", "credential_class": "no_secret", "status": "catalogued" }
+      ],
+      "use_for": "DeFi market health, chain and category comparison, protocol traction, and integration risk context.",
+      "decision": "Check current public data before recommending a DeFi integration; treat TVL as one signal rather than proof of product demand or safety.",
+      "usage_basis": "api_terms",
       "license": null,
       "last_verified_at": "2026-07-11"
     },

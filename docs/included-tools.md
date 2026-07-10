@@ -23,6 +23,7 @@ ProofPilot distinguishes public references from connector specifications and imp
 | Current official target program | runtime_selected | `runtime_input` | Eligibility, deadlines, judging criteria, required assets, bounties, and submission format. |
 | Local community archive | platform | `platform_only` | Local demand, repeated project patterns, prior feedback, and ecosystem-specific context. |
 | [GitHub](https://github.com/) | public_or_connected | `available_public` | Comparable implementations, repository activity, shipped proof, documentation quality, issues, and licenses. |
+| [DefiLlama](https://defillama.com/) | public | `available_public` | DeFi market health, protocol traction, chain comparison, and ecosystem context. |
 | [YC Library and Startup School](https://www.ycombinator.com/library) | public | `available_public` | Founder operating principles, customer discovery, MVP discipline, launch, and fundraising context. |
 | [garrytan/gstack](https://github.com/garrytan/gstack) | public | `available_public` | Founder-role decomposition and specialist workflow patterns. |
 | [Founder Institute](https://fi.co/) | public | `available_public` | Founder readiness, idea validation, market framing, and structured progression. |
@@ -121,7 +122,7 @@ ProofPilot distinguishes public references from connector specifications and imp
 
 | Tool | Used For | Capabilities | Decision |
 |---|---|---|---|
-| [solana.new](https://solana.new/) | Solana starter template and scaffold discovery. | `scaffold_selection`: available_public; no_secret; read_only | Recommend a starter path; do not treat it as an execution connector. |
+| [solana.new](https://solana.new/) | Solana idea discovery, ecosystem research, local source-pack routing, starter templates, and scaffold selection. | `source_pack`: catalogued; no_secret; read_only<br>`scaffold_selection`: available_public; no_secret; read_only | Discover installed local skills and data first, refresh decision-relevant claims from current official sources, and keep execution in separately gated tools. |
 | [Scaffold-ETH 2](https://scaffoldeth.io/) | EVM application scaffolding, learning, local development, and demo planning. | `scaffold_guidance`: available_public; no_secret; write_nonfinal<br>`deploy`: deferred; wallet_session; wallet_or_paid_action | Enable local planning and scaffolding; keep deployment behind wallet and cost approval. |
 | [Base and OnchainKit](https://github.com/coinbase/onchainkit) | Base application architecture, wallet UX, identity, payments, and Coinbase ecosystem integration. | `stack_guidance`: available_public; no_secret; read_only<br>`connected_app`: deferred; api_token; write_nonfinal | Use guidance first; request developer credentials only for a selected integration. |
 | [Sui developer tools](https://docs.sui.io/) | Sui architecture, Move development, local testing, and ecosystem-specific planning. | `developer_guidance`: available_public; no_secret; read_only<br>`deploy`: deferred; wallet_session; wallet_or_paid_action | Use official guidance; keep signing and deployment external and gated. |
@@ -135,6 +136,7 @@ ProofPilot distinguishes public references from connector specifications and imp
 
 | Tool | Used For | Capabilities | Decision |
 |---|---|---|---|
+| [DefiLlama](https://defillama.com/) | DeFi market health, chain and category comparison, protocol traction, and integration risk context. | `public_market_data`: available_public; no_secret; read_only<br>`research_skill`: catalogued; no_secret; read_only | Check current public data before recommending a DeFi integration; treat TVL as one signal rather than proof of product demand or safety. |
 | [Colosseum Copilot](https://docs.colosseum.com/copilot/getting-started) | Solana project similarity, winner patterns, archive research, gap analysis, and ecosystem context. | `project_research`: connector_spec; api_token; read_only | First-wave optional read connector. Use the documented read scope and honor rate and concurrency limits. |
 | [ETHGlobal Skills](https://ethglobal.com/) | Ethereum hackathon project research, event requirements, sponsor tracks, and winner context. | `public_research`: available_public; no_secret; read_only<br>`external_skill`: connector_spec; no_secret; read_only | Use official event pages as the authority for current rules. Treat external skill availability as optional. |
 | [BNB Chain AI and MCP tools](https://docs.bnbchain.org/) | BNB Chain research, architecture, and future agent or MCP workflows. | `official_guidance`: available_public; no_secret; read_only<br>`mcp_read`: catalogued; no_secret; read_only<br>`mcp_write`: deferred; wallet_session; wallet_or_paid_action | Use official docs now. Require source verification before enabling a third-party MCP and keep write actions deferred. |

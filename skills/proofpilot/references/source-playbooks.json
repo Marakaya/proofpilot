@@ -1,0 +1,197 @@
+{
+  "playbooks": [
+    {
+      "id": "local_archive",
+      "label": "Local Community Archive",
+      "priority": "platform_first_when_available",
+      "lenses": ["startup", "community", "hackathon", "grant"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "credential_policy": "platform_owned",
+      "use_for": ["past local projects", "mentor feedback", "judging outcomes", "community needs"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "solana_new",
+      "label": "solana.new / superstack",
+      "priority": "first_for_solana",
+      "lenses": ["web3", "hackathon", "grant", "community"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "credential_policy": "no_secret_for_local_data_and_guidance",
+      "use_for": [
+        "Solana idea discovery",
+        "Solana competitor and gap research",
+        "Solana scaffold, stack, protocol integration, and MCP recommendations",
+        "Solana hackathon, grant, and launch readiness"
+      ],
+      "local_detection": {
+        "script": "scripts/discover-sources.js",
+        "skill_roots": ["~/.codex/skills", "~/.agents/skills", "~/.claude/skills"],
+        "shared_data": [
+          "data/solana-knowledge/",
+          "data/ideas/",
+          "data/guides/",
+          "data/colosseum/",
+          "data/defi/",
+          "data/specs/"
+        ],
+        "important_skills": [
+          "navigate-skills",
+          "find-next-crypto-idea",
+          "validate-idea",
+          "competitive-landscape",
+          "defillama-research",
+          "colosseum-copilot",
+          "scaffold-project",
+          "build-with-claude",
+          "virtual-solana-incubator",
+          "build-defi-protocol",
+          "build-data-pipeline",
+          "build-mobile",
+          "launch-token",
+          "review-and-iterate",
+          "debug-program",
+          "deploy-to-mainnet",
+          "submit-to-hackathon"
+        ]
+      },
+      "freshness_policy": "Use local catalog/knowledge first, then refresh with GitHub/web/official docs when recommendations affect spend, build stack, or current protocol health.",
+      "reference": "solana-new.md"
+    },
+    {
+      "id": "colosseum_copilot",
+      "label": "Colosseum Copilot",
+      "priority": "first_for_solana_hackathon_precedents",
+      "lenses": ["web3", "hackathon"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "credential_policy": "read_only_pat_optional",
+      "use_for": ["Solana project archive search", "winner patterns", "gap analysis", "similar project checks"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "ethglobal_skills",
+      "label": "ETHGlobal Skills",
+      "priority": "first_for_evm_hackathon_precedents",
+      "lenses": ["web3", "hackathon"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "credential_policy": "free_rate_limit_then_x402",
+      "use_for": ["Ethereum hackathon projects", "sponsors", "bounties", "winner and finalist patterns"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "defillama",
+      "label": "DefiLlama",
+      "priority": "first_for_defi_market_health",
+      "lenses": ["web3", "data_ml"],
+      "stages": ["discover", "validate", "plan", "review"],
+      "credential_policy": "no_secret_for_public_api",
+      "use_for": ["TVL and protocol health", "chain/category comparison", "DeFi opportunity validation"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "priority": "default_for_implementation_and_competitors",
+      "lenses": ["startup", "web2", "web3", "ai_app", "data_ml", "hackathon"],
+      "stages": ["discover", "validate", "plan", "review"],
+      "credential_policy": "public_first_token_only_for_private_or_rate_limits",
+      "use_for": ["active OSS", "starter repos", "implementation proof", "activity and issue signals"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "yc_library",
+      "label": "YC Library and Startup School",
+      "priority": "default_for_startup_discipline",
+      "lenses": ["startup", "web2", "ai_app"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "credential_policy": "no_secret",
+      "use_for": ["customer discovery", "MVP discipline", "launch and founder operating principles"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "founder_institute",
+      "label": "Founder Institute Frameworks",
+      "priority": "supporting_for_founder_readiness",
+      "lenses": ["startup", "grant", "community"],
+      "stages": ["discover", "validate", "review"],
+      "credential_policy": "no_secret",
+      "use_for": ["founder-market fit", "idea validation", "market sizing", "structured curriculum framing"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "accelerator_programs",
+      "label": "Non-web3 Accelerator Programs",
+      "priority": "first_for_accelerator_readiness",
+      "lenses": ["startup", "web2", "ai_app", "data_ml", "accelerator"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "credential_policy": "public_official_pages_first",
+      "use_for": [
+        "YC application readiness",
+        "Techstars program fit",
+        "500 Global growth-stage fit",
+        "Antler and Entrepreneur First founder-profile fit",
+        "Sequoia Arc seed-stage story and company-building fit",
+        "accelerator interview preparation"
+      ],
+      "freshness_policy": "Always verify deadlines, terms, batch format, geography, and application links from official pages before final application advice.",
+      "reference": "accelerators.md"
+    },
+    {
+      "id": "presentation_frameworks",
+      "label": "Presentation and Deck Frameworks",
+      "priority": "first_for_deck_work",
+      "lenses": ["presentation", "startup", "web2", "web3", "ai_app", "hackathon", "grant", "accelerator"],
+      "stages": ["plan", "review", "submit"],
+      "credential_policy": "no_secret_for_local_deck_guidance",
+      "use_for": [
+        "hackathon demo deck structure",
+        "investor deck structure",
+        "angel deck structure",
+        "accelerator deck structure",
+        "grant and partner deck structure",
+        "deck readiness scoring",
+        "presentation tooling selection"
+      ],
+      "reference": "presentations.md"
+    },
+    {
+      "id": "devpost",
+      "label": "Devpost",
+      "priority": "default_for_public_hackathon_examples",
+      "lenses": ["hackathon", "web2", "ai_app"],
+      "stages": ["discover", "validate", "submit"],
+      "credential_policy": "public_pages_only",
+      "use_for": ["submission fields", "public examples", "demo and judging patterns"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "kaggle",
+      "label": "Kaggle",
+      "priority": "default_for_data_ml",
+      "lenses": ["data_ml", "ai_app", "hackathon"],
+      "stages": ["discover", "validate", "plan", "review"],
+      "credential_policy": "public_first_optional_api_key",
+      "use_for": ["datasets", "competitions", "notebooks", "benchmark examples"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "hugging_face",
+      "label": "Hugging Face",
+      "priority": "default_for_ai_and_model_discovery",
+      "lenses": ["ai_app", "data_ml"],
+      "stages": ["discover", "validate", "plan", "review"],
+      "credential_policy": "public_first_optional_read_token",
+      "use_for": ["models", "datasets", "Spaces", "AI demos and baselines"],
+      "reference": "source-orchestration.md"
+    },
+    {
+      "id": "security_guides",
+      "label": "OpenZeppelin, Trail of Bits, and local security guides",
+      "priority": "required_for_web3_readiness",
+      "lenses": ["web3"],
+      "stages": ["plan", "review"],
+      "credential_policy": "no_secret",
+      "use_for": ["smart contract safety", "audit checklist", "threat modeling", "deployment readiness"],
+      "reference": "source-orchestration.md"
+    }
+  ]
+}

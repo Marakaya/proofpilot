@@ -33,6 +33,8 @@ Domains and program context do not replace stages. A project can be `ai + web3`,
 
 Choose only sources that can affect the current decision. Start with user artifacts and public primary sources. Add a connector only when it unlocks a named task.
 
+Use focused source playbooks for Solana, accelerator, presentation, or multi-ecosystem research. Treat local installed skill packs as optional sources and refresh current rules, terms, protocol health, and technical recommendations from official sources before final advice.
+
 For every material claim, record the source, direct URL, retrieval date, evidence type, stance, and confidence. Keep checked, unavailable, not-checked, and no-evidence-found states separate.
 
 ## 4. Stage Execution

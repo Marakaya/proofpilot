@@ -30,7 +30,20 @@ const requiredFiles = [
   "skills/proofpilot/references/review.md",
   "skills/proofpilot/references/submit.md",
   "skills/proofpilot/references/evidence.md",
-  "skills/proofpilot/references/safety.md"
+  "skills/proofpilot/references/safety.md",
+  "skills/proofpilot/references/accelerator-programs.json",
+  "skills/proofpilot/references/accelerator-checklist.json",
+  "skills/proofpilot/references/accelerators.md",
+  "skills/proofpilot/references/decision-lenses.json",
+  "skills/proofpilot/references/honest-evaluation.md",
+  "skills/proofpilot/references/judgment-policy.json",
+  "skills/proofpilot/references/presentation-checklist.json",
+  "skills/proofpilot/references/presentation-decks.json",
+  "skills/proofpilot/references/presentations.md",
+  "skills/proofpilot/references/solana-new.md",
+  "skills/proofpilot/references/source-orchestration.md",
+  "skills/proofpilot/references/source-playbooks.json",
+  "skills/proofpilot/scripts/discover-sources.js"
 ];
 
 const registrySpecs = [
@@ -119,12 +132,22 @@ export function validateRepository() {
   const rubrics = readJson("skills/proofpilot/references/rubrics.json");
   const evalCases = readJson("examples/evals/cases.json");
   const packageManifest = readJson("package.json");
+  const acceleratorPrograms = readJson("skills/proofpilot/references/accelerator-programs.json");
+  const acceleratorChecklist = readJson("skills/proofpilot/references/accelerator-checklist.json");
+  const decisionLenses = readJson("skills/proofpilot/references/decision-lenses.json");
+  const judgmentPolicy = readJson("skills/proofpilot/references/judgment-policy.json");
+  const presentationChecklist = readJson("skills/proofpilot/references/presentation-checklist.json");
+  const presentationDecks = readJson("skills/proofpilot/references/presentation-decks.json");
+  const sourcePlaybooks = readJson("skills/proofpilot/references/source-playbooks.json");
 
   if (packageManifest.version !== taxonomy.version) {
     fail(`package.json version ${packageManifest.version} does not match taxonomy version ${taxonomy.version}`);
   }
   if (responseSchema.properties.version.const !== taxonomy.version) {
     fail("response.schema.json version does not match the taxonomy version");
+  }
+  if (!Array.isArray(judgmentPolicy.non_negotiables) || judgmentPolicy.non_negotiables.length < 3) {
+    fail("judgment-policy.json must define at least three non-negotiable rules");
   }
 
   const stages = new Set(taxonomy.stages.map(({ id }) => id));
@@ -148,7 +171,11 @@ export function validateRepository() {
     [sources.sources, "source"],
     [tools.tools, "tool"],
     [rubrics.rubrics, "rubric"],
-    [evalCases.cases, "eval case"]
+    [evalCases.cases, "eval case"],
+    [acceleratorPrograms.programs, "accelerator program"],
+    [decisionLenses.lenses, "decision lens"],
+    [presentationDecks.deck_types, "presentation deck"],
+    [sourcePlaybooks.playbooks, "source playbook"]
   ]) {
     assertUnique(items, label);
   }
@@ -214,6 +241,31 @@ export function validateRepository() {
     assertReferences([testCase.expected.venture_type], ventureTypes, `venture type in eval ${testCase.id}`);
     assertReferences([testCase.expected.program_context], programContexts, `program context in eval ${testCase.id}`);
     assertReferences([testCase.expected.sensitivity], sensitivities, `sensitivity in eval ${testCase.id}`);
+  }
+
+  for (const program of acceleratorPrograms.programs) {
+    for (const key of ["official_url", "apply_url"]) {
+      if (program[key] && !program[key].startsWith("https://")) {
+        fail(`Accelerator ${program.id} has an invalid ${key}`);
+      }
+    }
+  }
+
+  for (const playbook of sourcePlaybooks.playbooks) {
+    assertReferences(playbook.stages, stages, `stage in source playbook ${playbook.id}`);
+    if (!fs.existsSync(path.join(referencesDir, playbook.reference))) {
+      fail(`Source playbook ${playbook.id} references missing file ${playbook.reference}`);
+    }
+  }
+
+  for (const [checklist, label] of [
+    [acceleratorChecklist.accelerator_readiness_rubric, "accelerator checklist"],
+    [presentationChecklist.presentation_rubric, "presentation checklist"]
+  ]) {
+    if (!checklist || !Array.isArray(checklist.dimensions)) {
+      fail(`Missing dimensions in ${label}`);
+    }
+    assertUnique(checklist.dimensions, label);
   }
 
   const skill = fs.readFileSync(path.join(skillDir, "SKILL.md"), "utf8");

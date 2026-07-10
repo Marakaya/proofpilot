@@ -9,12 +9,15 @@
     "proofpilot": "./scripts/cli.js"
   },
   "scripts": {
+    "discover:sources": "node skills/proofpilot/scripts/discover-sources.js",
     "generate:docs": "node scripts/generate-tool-docs.js",
+    "install:profiles": "node scripts/install-skills.js",
     "validate": "node scripts/validate.js",
+    "validate:profiles": "node scripts/validate-install.js",
     "test": "node scripts/test.js"
   },
   "files": [
-    "skills/proofpilot",
+    "skills",
     "docs",
     "examples",
     "scripts",

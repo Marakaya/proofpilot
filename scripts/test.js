@@ -8,6 +8,7 @@ import { validateRepository } from "./validate.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, "scripts", "cli.js");
+const profileValidator = path.join(root, "scripts", "validate-install.js");
 
 function runCli(args, expectedStatus = 0) {
   const result = spawnSync(process.execPath, [cli, ...args], {
@@ -56,6 +57,14 @@ try {
   }
 } finally {
   fs.rmSync(temporaryRoot, { recursive: true, force: true });
+}
+
+const profileResult = spawnSync(process.execPath, [profileValidator], {
+  cwd: root,
+  encoding: "utf8"
+});
+if (profileResult.status !== 0) {
+  throw new Error(`Optional profile validation failed: ${profileResult.stderr || profileResult.stdout}`);
 }
 
 console.log(

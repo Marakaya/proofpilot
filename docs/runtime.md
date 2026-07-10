@@ -24,6 +24,12 @@ All files required by the agent live under `skills/proofpilot`:
 
 The root CLI can copy this folder into Codex, Claude, or a generic agent skill directory.
 
+## Optional Stage Profiles
+
+Five `proofpilot-*` stage profiles remain available for runtimes that benefit from direct stage invocation. They are opt-in and share the canonical `skills/proofpilot/references` directory in both symlink and copy installation modes. The default CLI installs only the main router to avoid broad trigger competition.
+
+Focused accelerator, presentation, Solana, source-orchestration, and honest-evaluation playbooks live inside the canonical skill and are loaded only when their trigger applies.
+
 ## Connector Boundary
 
 The registry describes capabilities, not promises that integrations are live. Each capability declares its status, permission class, and credential class. A public research capability and a wallet or deployment capability are represented separately even when they belong to the same tool.

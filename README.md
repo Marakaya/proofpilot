@@ -60,6 +60,25 @@ Use `--dir <path>` for an exact custom destination and `--force` only when repla
 
 The CLI installs and validates the skill package. The selected agent runtime executes [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md).
 
+The repository also ships five opt-in stage profiles. They are not installed by the default CLI because the main skill already routes every stage and broad implicit triggers can compete. Install them deliberately when a runtime benefits from direct stage invocation:
+
+```bash
+npm run install:profiles
+npm run validate:profiles
+```
+
+The profiles share the canonical references from `skills/proofpilot/references`; they do not maintain a second registry.
+
+## Focused Extensions
+
+The self-contained skill includes additional playbooks merged into the v0.2 evidence model:
+
+- Solana tasks can use `solana-new.md` to discover installed journey skills, local knowledge, scaffold guidance, Colosseum context, and DefiLlama research paths.
+- Accelerator work uses current program profiles for YC, Techstars, 500 Global, Antler, Entrepreneur First, and Sequoia Arc, while requiring official-page refresh before final advice.
+- Pitch and presentation work selects a hackathon, investor, angel, accelerator, grant, or partner deck before drafting.
+- `honest-evaluation.md` requires explicit `wait`, `pivot`, `stop`, or not-ready verdicts when evidence does not justify encouragement.
+- Source playbooks prioritize local and public evidence before optional account connections.
+
 ## Coach And Evaluator Modes
 
 `coach` mode helps improve a project and plan the next experiment.

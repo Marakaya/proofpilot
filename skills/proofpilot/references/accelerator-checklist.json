@@ -1,0 +1,63 @@
+{
+  "accelerator_readiness_rubric": {
+    "scores": ["red", "yellow", "green"],
+    "dimensions": [
+      {
+        "id": "plain_description",
+        "label": "Plain description",
+        "question": "Can the company be explained in one specific, matter-of-fact sentence without marketing-speak?"
+      },
+      {
+        "id": "founder_edge",
+        "label": "Founder edge",
+        "question": "Why is this founder or team unusually likely to win this market?"
+      },
+      {
+        "id": "customer_pain",
+        "label": "Customer pain",
+        "question": "Is the customer, painful job, current workaround, and buying/usage trigger concrete?"
+      },
+      {
+        "id": "evidence_people_want_it",
+        "label": "People want it",
+        "question": "What proof exists from users, usage, revenue, pilots, LOIs, retention, referrals, or credible customer pull?"
+      },
+      {
+        "id": "execution_speed",
+        "label": "Execution speed",
+        "question": "What changed in the last week or month that proves the team moves fast?"
+      },
+      {
+        "id": "market_scale",
+        "label": "Market scale",
+        "question": "Could this become a venture-scale company if the wedge works?"
+      },
+      {
+        "id": "differentiated_insight",
+        "label": "Differentiated insight",
+        "question": "What does the team understand that incumbents, investors, or other founders may be missing?"
+      },
+      {
+        "id": "program_fit",
+        "label": "Program fit",
+        "question": "Why is this specific accelerator or founder program the right next forcing function?"
+      },
+      {
+        "id": "application_clarity",
+        "label": "Application clarity",
+        "question": "Are the application answers concise, concrete, direct, and free of empty claims?"
+      },
+      {
+        "id": "interview_readiness",
+        "label": "Interview readiness",
+        "question": "Can the founders defend weak spots directly under pressure?"
+      }
+    ],
+    "verdicts": {
+      "apply_now": "Enough evidence and clarity to apply now; focus on tightening answers and interview prep.",
+      "apply_after_7_day_sprint": "Potentially viable, but needs a focused 7-day proof sprint before applying.",
+      "wait": "Do not apply yet; missing proof would likely waste the application.",
+      "pivot": "The current idea or program target is wrong; change wedge, customer, or target program."
+    }
+  }
+}
