@@ -30,3 +30,24 @@ Find an idea, choose the simplest stack, and prepare a submission plan.
 I want to apply for an ecosystem grant.
 Turn my concept into milestones, impact proof, budget, and a credible application.
 ```
+
+## Physical-World Business
+
+```text
+I manage three laundries and want to start another business.
+It does not need to be software.
+Use my operating access to find directions I can test without a large investment.
+```
+
+## Formal Evaluation
+
+```text
+Evaluate these finalist submissions using the published rubric.
+Freeze the evidence cutoff, score only the submitted artifacts, report evidence coverage, and do not use private coaching history.
+```
+
+## Structured Output
+
+```text
+Validate this idea and return the result using the ProofPilot response schema so our platform can store the evidence and next actions.
+```

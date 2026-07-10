@@ -1,0 +1,331 @@
+{
+  "$schema": "./rubrics.schema.json",
+  "version": "0.2.0",
+  "scale": {
+    "minimum": 0,
+    "maximum": 4,
+    "bands": [
+      { "id": "red", "minimum": 0, "maximum": 1.49 },
+      { "id": "yellow", "minimum": 1.5, "maximum": 2.99 },
+      { "id": "green", "minimum": 3, "maximum": 4 }
+    ],
+    "intermediate_rule": "Use 1 or 3 only when the evidence falls clearly between the adjacent anchors."
+  },
+  "evidence_policy": {
+    "allowed_states": ["scored", "insufficient_evidence", "not_applicable"],
+    "provisional_below_coverage": 0.5,
+    "rule": "Report weighted score and evidence coverage separately. Do not convert missing evidence into positive evidence or hide it inside a confidence label."
+  },
+  "rubrics": [
+    {
+      "id": "discovery_opportunity",
+      "label": "Discovery opportunity",
+      "applies_to_stages": ["discover"],
+      "dimensions": [
+        {
+          "id": "founder_access",
+          "label": "Founder access",
+          "weight": 0.2,
+          "question": "Can the founder reach and understand the target users?",
+          "anchors": {
+            "0": "No credible access or relevant insight is identified.",
+            "2": "Some access exists, but it is indirect, narrow, or untested.",
+            "4": "The founder has direct, repeatable access and relevant lived or operating insight."
+          }
+        },
+        {
+          "id": "problem_urgency",
+          "label": "Problem urgency",
+          "weight": 0.25,
+          "question": "Is the problem frequent, costly, risky, or time-sensitive?",
+          "anchors": {
+            "0": "The problem is vague, optional, or unsupported.",
+            "2": "A plausible problem exists, but urgency and frequency remain uncertain.",
+            "4": "Repeated behavior or primary evidence shows a frequent and consequential problem."
+          }
+        },
+        {
+          "id": "customer_reachability",
+          "label": "Customer reachability",
+          "weight": 0.2,
+          "question": "Can the first test recruit suitable users quickly?",
+          "anchors": {
+            "0": "No practical recruitment path is identified.",
+            "2": "A channel is named but access, cost, or conversion is untested.",
+            "4": "A concrete channel and reachable test cohort are available now."
+          }
+        },
+        {
+          "id": "distribution_advantage",
+          "label": "Distribution advantage",
+          "weight": 0.15,
+          "question": "Is there a credible path to repeated acquisition or adoption?",
+          "anchors": {
+            "0": "The plan assumes users will appear after launch.",
+            "2": "One plausible channel exists without proof of repeatability.",
+            "4": "The founder controls or has validated access to a repeatable channel."
+          }
+        },
+        {
+          "id": "testability",
+          "label": "Testability",
+          "weight": 0.2,
+          "question": "Can the core assumption be tested within the available constraints?",
+          "anchors": {
+            "0": "Testing requires an unrealistic build, budget, approval, or timeline.",
+            "2": "A test is possible after reducing scope or resolving dependencies.",
+            "4": "A low-cost behavioral test can run immediately with a clear threshold."
+          }
+        }
+      ]
+    },
+    {
+      "id": "venture_validation",
+      "label": "Venture validation",
+      "applies_to_stages": ["validate", "review"],
+      "dimensions": [
+        {
+          "id": "customer_specificity",
+          "label": "Customer specificity",
+          "weight": 0.15,
+          "question": "Is the target customer narrow and observable?",
+          "anchors": {
+            "0": "The customer is everyone or defined only by demographics.",
+            "2": "A segment is named but the buying context or workflow is unclear.",
+            "4": "The user, buyer, context, trigger, and current workflow are concrete."
+          }
+        },
+        {
+          "id": "problem_evidence",
+          "label": "Problem evidence",
+          "weight": 0.3,
+          "question": "What observed behavior proves the problem matters?",
+          "anchors": {
+            "0": "Only founder opinion or compliments support the problem.",
+            "2": "Interviews or secondary evidence suggest a problem without behavioral commitment.",
+            "4": "Repeated primary evidence shows costly workarounds, urgency, or committed action."
+          }
+        },
+        {
+          "id": "alternative_landscape",
+          "label": "Alternative landscape",
+          "weight": 0.15,
+          "question": "Are direct, adjacent, manual, and do-nothing alternatives understood?",
+          "anchors": {
+            "0": "Alternatives are ignored or dismissed without evidence.",
+            "2": "Major alternatives are listed but switching logic remains weak.",
+            "4": "Alternatives, tradeoffs, incumbents, and switching triggers are evidenced."
+          }
+        },
+        {
+          "id": "commitment_signal",
+          "label": "Commitment signal",
+          "weight": 0.25,
+          "question": "Have target users committed time, money, data, reputation, or access?",
+          "anchors": {
+            "0": "No target-user commitment exists.",
+            "2": "Users agreed to follow-up or a pilot without meaningful cost.",
+            "4": "Multiple suitable users made a costly or behaviorally meaningful commitment."
+          }
+        },
+        {
+          "id": "risk_test_quality",
+          "label": "Risk test quality",
+          "weight": 0.15,
+          "question": "Does the next test target the assumption most likely to invalidate the venture?",
+          "anchors": {
+            "0": "The next step builds features without testing a risky assumption.",
+            "2": "The test is relevant but has a weak sample, metric, or threshold.",
+            "4": "The test targets the highest-risk assumption with a clear protocol and decision threshold."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mvp_readiness",
+      "label": "MVP readiness",
+      "applies_to_stages": ["plan", "review"],
+      "dimensions": [
+        {
+          "id": "outcome_clarity",
+          "label": "Outcome clarity",
+          "weight": 0.2,
+          "question": "Does the MVP promise one observable user outcome?",
+          "anchors": {
+            "0": "The MVP is a feature list without a user outcome.",
+            "2": "An outcome is stated but is broad or difficult to measure.",
+            "4": "One target user, trigger, outcome, and success measure are explicit."
+          }
+        },
+        {
+          "id": "scope_discipline",
+          "label": "Scope discipline",
+          "weight": 0.25,
+          "question": "Is the scope the smallest version that tests the core risk?",
+          "anchors": {
+            "0": "The scope attempts a full product or multiple unrelated workflows.",
+            "2": "The core flow exists but optional features or infrastructure remain.",
+            "4": "The scope is a thin end-to-end test with explicit non-goals."
+          }
+        },
+        {
+          "id": "delivery_feasibility",
+          "label": "Delivery feasibility",
+          "weight": 0.25,
+          "question": "Can the available team deliver within time, budget, and dependency constraints?",
+          "anchors": {
+            "0": "Critical skills, approvals, data, or time are unavailable.",
+            "2": "Delivery is plausible after resolving named dependencies or reducing scope.",
+            "4": "Owners, milestones, dependencies, fallbacks, and acceptance conditions are credible."
+          }
+        },
+        {
+          "id": "measurement",
+          "label": "Measurement",
+          "weight": 0.15,
+          "question": "Will the MVP produce evidence that changes a decision?",
+          "anchors": {
+            "0": "No behavior, metric, threshold, or learning objective is defined.",
+            "2": "Metrics exist but are weakly connected to the core assumption.",
+            "4": "The MVP records the target behavior and has a pre-committed decision threshold."
+          }
+        },
+        {
+          "id": "demo_readiness",
+          "label": "Demo readiness",
+          "weight": 0.15,
+          "question": "Can the value be demonstrated reliably and quickly?",
+          "anchors": {
+            "0": "The demo depends on explanation, unstable systems, or unfinished flows.",
+            "2": "The core flow works with gaps, setup risk, or unclear narration.",
+            "4": "A value-first demo works end to end with prepared data and a fallback."
+          }
+        }
+      ]
+    },
+    {
+      "id": "venture_readiness",
+      "label": "Venture readiness",
+      "applies_to_stages": ["review"],
+      "dimensions": [
+        {
+          "id": "problem_clarity",
+          "label": "Problem clarity",
+          "weight": 0.2,
+          "question": "Are the customer, trigger, pain, and current workaround specific?",
+          "anchors": {
+            "0": "The problem and customer are generic or solution-led.",
+            "2": "The problem is plausible but still contains material ambiguity.",
+            "4": "The problem is concrete and supported by current primary evidence."
+          }
+        },
+        {
+          "id": "evidence_strength",
+          "label": "Evidence strength",
+          "weight": 0.25,
+          "question": "Does behavior support the project's key claims?",
+          "anchors": {
+            "0": "Key claims rely on opinion or unsupported projections.",
+            "2": "Some primary evidence exists without strong commitment or repetition.",
+            "4": "Multiple independent behavioral signals support the core claims."
+          }
+        },
+        {
+          "id": "differentiation",
+          "label": "Differentiation",
+          "weight": 0.15,
+          "question": "Is the switching reason credible against current alternatives?",
+          "anchors": {
+            "0": "The project is materially interchangeable with accessible alternatives.",
+            "2": "A difference exists but its importance to customers is unproven.",
+            "4": "Target users validate a meaningful advantage in outcome, access, cost, or workflow."
+          }
+        },
+        {
+          "id": "distribution",
+          "label": "Distribution",
+          "weight": 0.2,
+          "question": "Is there evidence for a repeatable path to suitable users?",
+          "anchors": {
+            "0": "Acquisition is unspecified or depends on generic virality.",
+            "2": "A plausible channel has early tests but no repeatability evidence.",
+            "4": "A controlled or validated channel repeatedly reaches suitable users at a viable cost."
+          }
+        },
+        {
+          "id": "execution_credibility",
+          "label": "Execution credibility",
+          "weight": 0.2,
+          "question": "Can this team execute the next milestone under real constraints?",
+          "anchors": {
+            "0": "Critical ownership, capability, resources, or dependencies are missing.",
+            "2": "The plan is plausible but contains unresolved execution risks.",
+            "4": "Relevant capability, owners, milestones, resources, and fallback paths are evidenced."
+          }
+        }
+      ]
+    },
+    {
+      "id": "submission_readiness",
+      "label": "Submission readiness",
+      "applies_to_stages": ["review", "submit"],
+      "dimensions": [
+        {
+          "id": "criteria_fit",
+          "label": "Criteria fit",
+          "weight": 0.25,
+          "question": "Does the submission directly address the current official rubric and eligibility rules?",
+          "anchors": {
+            "0": "Material eligibility or rubric requirements are missing.",
+            "2": "The submission is eligible and addresses most criteria with weak mapping.",
+            "4": "Every material criterion maps to a clear answer and supporting evidence."
+          }
+        },
+        {
+          "id": "proof_quality",
+          "label": "Proof quality",
+          "weight": 0.25,
+          "question": "Are shipped work, user evidence, metrics, and links credible and verifiable?",
+          "anchors": {
+            "0": "Key claims are unsupported, misleading, or unverifiable.",
+            "2": "Some credible proof exists with important gaps or weak links.",
+            "4": "Material claims are concrete, current, and independently verifiable."
+          }
+        },
+        {
+          "id": "narrative_clarity",
+          "label": "Narrative clarity",
+          "weight": 0.2,
+          "question": "Can a reviewer understand the problem, solution, proof, and next milestone quickly?",
+          "anchors": {
+            "0": "The narrative is generic, contradictory, or feature-led.",
+            "2": "The core story is understandable but verbose or weakly ordered.",
+            "4": "The value, evidence, differentiation, and ask are concise and coherent."
+          }
+        },
+        {
+          "id": "completeness",
+          "label": "Completeness",
+          "weight": 0.15,
+          "question": "Are all required fields, links, assets, and declarations present?",
+          "anchors": {
+            "0": "Multiple required fields or critical assets are missing.",
+            "2": "The package is mostly complete with fixable gaps.",
+            "4": "All requirements are complete, current, accessible, and internally consistent."
+          }
+        },
+        {
+          "id": "demo_quality",
+          "label": "Demo quality",
+          "weight": 0.15,
+          "question": "Does the demo prove the promised outcome within the reviewer's attention window?",
+          "anchors": {
+            "0": "The demo is absent, broken, or does not show the claimed outcome.",
+            "2": "The core flow is visible but slow, fragile, or explanation-heavy.",
+            "4": "The demo quickly shows a reliable end-to-end outcome with a fallback."
+          }
+        }
+      ]
+    }
+  ]
+}

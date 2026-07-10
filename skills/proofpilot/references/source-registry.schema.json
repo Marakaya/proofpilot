@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofpilot.dev/schemas/source-registry.schema.json",
+  "title": "ProofPilot source registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "sources"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/source" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "text": { "type": "string", "minLength": 1 },
+    "idList": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "nullableUrl": { "anyOf": [{ "type": "string", "format": "uri", "pattern": "^https://" }, { "type": "null" }] },
+    "nullableDate": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "source_type", "official_url", "authority", "access", "stages", "domains", "program_contexts", "credential_class", "status", "query_strategy", "evidence_use", "last_verified_at"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/text" },
+        "source_type": { "enum": ["user_artifact", "platform_archive", "official_docs", "official_repository", "program_page", "public_catalog"] },
+        "official_url": { "$ref": "#/$defs/nullableUrl" },
+        "authority": { "enum": ["high", "medium", "low"] },
+        "access": { "enum": ["user_provided", "runtime_selected", "platform", "public", "public_or_connected", "connected"] },
+        "stages": { "$ref": "#/$defs/idList" },
+        "domains": { "$ref": "#/$defs/idList" },
+        "program_contexts": { "$ref": "#/$defs/idList" },
+        "credential_class": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["runtime_input", "platform_only", "available_public", "connector_spec", "catalogued", "deprecated"] },
+        "query_strategy": { "$ref": "#/$defs/text" },
+        "evidence_use": { "$ref": "#/$defs/text" },
+        "last_verified_at": { "$ref": "#/$defs/nullableDate" }
+      }
+    }
+  }
+}

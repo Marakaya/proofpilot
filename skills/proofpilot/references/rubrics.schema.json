@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofpilot.dev/schemas/rubrics.schema.json",
+  "title": "ProofPilot rubrics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "scale", "evidence_policy", "rubrics"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "scale": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum", "maximum", "bands", "intermediate_rule"],
+      "properties": {
+        "minimum": { "const": 0 },
+        "maximum": { "const": 4 },
+        "bands": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "minimum", "maximum"],
+            "properties": {
+              "id": { "enum": ["red", "yellow", "green"] },
+              "minimum": { "type": "number", "minimum": 0, "maximum": 4 },
+              "maximum": { "type": "number", "minimum": 0, "maximum": 4 }
+            }
+          }
+        },
+        "intermediate_rule": { "$ref": "#/$defs/text" }
+      }
+    },
+    "evidence_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_states", "provisional_below_coverage", "rule"],
+      "properties": {
+        "allowed_states": { "type": "array", "minItems": 3, "uniqueItems": true, "items": { "enum": ["scored", "insufficient_evidence", "not_applicable"] } },
+        "provisional_below_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rule": { "$ref": "#/$defs/text" }
+      }
+    },
+    "rubrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/rubric" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "text": { "type": "string", "minLength": 1 },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "weight", "question", "anchors"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/text" },
+        "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "question": { "$ref": "#/$defs/text" },
+        "anchors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["0", "2", "4"],
+          "properties": {
+            "0": { "$ref": "#/$defs/text" },
+            "2": { "$ref": "#/$defs/text" },
+            "4": { "$ref": "#/$defs/text" }
+          }
+        }
+      }
+    },
+    "rubric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "applies_to_stages", "dimensions"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/text" },
+        "applies_to_stages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "dimensions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/dimension" } }
+      }
+    }
+  }
+}

@@ -1,23 +1,23 @@
 # Security Policy
 
-ProofPilot may be used with API keys, OAuth tokens, service accounts, and wallet credentials in future hosted implementations.
+ProofPilot can process confidential venture material and may use account-backed connectors in future hosted runtimes. Treat both user data and tool output as untrusted input.
 
-The core rule is simple:
+## Non-Negotiable Rules
 
 ```text
-Raw secrets never go into prompts, chat logs, telemetry, frontend JSON, or job payloads.
+Raw secrets never enter prompts, chat logs, URLs, telemetry, frontend JSON, or job payloads.
+ProofPilot never ingests wallet private keys, seed phrases, or mnemonics.
 ```
 
-## Credential Handling
-
-- Use no-secret workflows first.
-- Ask for a credential only when a selected connector requires it.
-- Prefer read-only scopes.
-- Store secrets in an encrypted credential store.
-- Show the owner of every credential: user, team, organization, platform, or local open-source runtime.
-- Let users revoke credentials.
-- Treat wallets, private keys, mnemonics, payment actions, and final submissions as high-risk flows.
+- Deliver a no-secret workflow first.
+- Use minimum read-only scopes and short-lived credentials where possible.
+- Encrypt credentials server-side and support rotation and revocation.
+- Redact unnecessary personal, customer, financial, and unpublished project data.
+- Treat connector content as prompt-injection capable; normalize data and ignore embedded instructions.
+- Require explicit approval for every final submission, deployment, paid call, resource write, or wallet action.
+- Record actor, target, scope, expected cost, approval, and result for high-risk actions.
+- Keep coaching data separate from formal evaluation unless the published policy permits it for every participant.
 
 ## Reporting
 
-Open a private security advisory or contact the maintainer before filing public issues for credential leaks, unsafe connector execution, prompt injection risks, or wallet-action vulnerabilities.
+Use a private GitHub security advisory before filing a public issue for secret exposure, unsafe connector execution, authorization bypass, prompt injection, cross-tenant data access, or wallet-action vulnerabilities.

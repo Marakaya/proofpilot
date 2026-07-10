@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofpilot.dev/schemas/tool-registry.schema.json",
+  "title": "ProofPilot tool registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "tools"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/tool" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "text": { "type": "string", "minLength": 1 },
+    "idList": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "nullableUrl": { "anyOf": [{ "type": "string", "format": "uri", "pattern": "^https://" }, { "type": "null" }] },
+    "nullableDate": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "permission_class", "credential_class", "status"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/text" },
+        "permission_class": { "$ref": "#/$defs/id" },
+        "credential_class": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["available_public", "connector_spec", "implemented", "deferred", "catalogued", "deprecated"] }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "category", "domains", "program_contexts", "stages", "integration_types", "official_url", "docs_url", "capabilities", "use_for", "decision", "usage_basis", "license", "last_verified_at"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/text" },
+        "category": { "enum": ["source_and_connector", "founder_framework", "hackathon_platform", "data_platform", "community_platform", "ai_and_data", "llm_provider", "build_platform", "deployment", "cloud_platform", "web3_scaffold", "web3_intelligence", "web3_action", "security"] },
+        "domains": { "$ref": "#/$defs/idList" },
+        "program_contexts": { "$ref": "#/$defs/idList" },
+        "stages": { "$ref": "#/$defs/idList" },
+        "integration_types": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["public_web", "api", "local_skill", "mcp", "cli", "manual"] }
+        },
+        "official_url": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "docs_url": { "$ref": "#/$defs/nullableUrl" },
+        "capabilities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/capability" } },
+        "use_for": { "$ref": "#/$defs/text" },
+        "decision": { "$ref": "#/$defs/text" },
+        "usage_basis": { "enum": ["public_reference", "api_terms", "open_source", "manual_user_action"] },
+        "license": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+        "last_verified_at": { "$ref": "#/$defs/nullableDate" }
+      }
+    }
+  }
+}

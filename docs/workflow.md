@@ -1,69 +1,64 @@
 # Workflow
 
-ProofPilot uses a staged workflow instead of a single giant prompt.
+ProofPilot uses an ordered stage pipeline with independent classification dimensions.
 
-## 1. Intake
+## 1. Intake And Safety
 
-Capture the minimum context:
+Capture only context that can change the recommendation: user access, skills, team, time, budget, outcome, constraints, and existing proof. Ask at most three high-impact questions; otherwise state assumptions and continue.
 
-- what the user wants
-- skills and constraints
-- team size
-- time horizon
-- budget
-- market or audience interest
-- technical comfort level
-- target outcome: startup, MVP, pitch, grant, hackathon submission, or learning project
+Classify sensitivity before external research. Confidential or restricted artifacts are not sent to external connectors without explicit approval and appropriate processing controls.
 
-If the user does not know what to build, ask only a few useful questions and continue with assumptions.
+## 2. Routing
 
-## 2. Direction Search
+Build the run context:
 
-Generate candidate directions from:
+```text
+mode
+stages[]
+domains[]
+venture_type
+program_context
+sensitivity
+```
 
-- user skills and constraints
-- source catalog
-- comparable projects
-- ecosystem opportunities
-- startup frameworks
-- local/community context when available
+Stages are ordered and composable:
 
-## 3. Evidence Pass
+```text
+discover -> validate -> plan -> review -> submit
+```
 
-For each direction, check:
+Domains and program context do not replace stages. A project can be `ai + web3`, a `startup`, and in a `grant` context while running `validate + plan + submit`.
 
-- similar projects
-- who the customer is
-- painfulness and urgency
-- current alternatives
-- distribution channel
-- build feasibility
-- regulatory, privacy, cost, or security risks
+## 3. Source Plan
 
-## 4. Recommendation
+Choose only sources that can affect the current decision. Start with user artifacts and public primary sources. Add a connector only when it unlocks a named task.
 
-Return a short ranked set of options, then recommend one.
+For every material claim, record the source, direct URL, retrieval date, evidence type, stance, and confidence. Keep checked, unavailable, not-checked, and no-evidence-found states separate.
 
-The recommendation must include:
+## 4. Stage Execution
 
-- why this idea is worth testing
-- what proof is missing
-- what not to build yet
-- first MVP scope
-- next validation task
+- `discover`: generate materially different directions from founder access and observed jobs
+- `validate`: test the riskiest assumptions with behavioral evidence
+- `plan`: select the thinnest delivery model and measurable MVP
+- `review`: apply an anchored rubric with evidence coverage
+- `submit`: map verified program requirements to a human-controlled draft
 
-## 5. Build Path
+When several stages apply, preserve their dependency order. Do not prepare a confident build plan before exposing unresolved validation assumptions.
 
-Pick a practical path:
+## 5. Recommendation
 
-- no-code
-- web app
-- AI app
-- data/ML notebook
-- web3 app
-- community workflow
-- submission/pitch only
+Return the next defensible decision, not a promise that the venture will work. Include:
 
-## 6. Readiness Review
+- supporting and contradictory evidence
+- unresolved assumptions
+- confidence and evidence coverage
+- the smallest next experiment
+- success threshold
+- kill or pivot condition
+- sources checked and not checked
+- credentials needed, if any
+- one to five ordered next actions
 
-Run the rubric in `data/rubrics.json` and produce red/yellow/green findings with concrete next actions.
+## 6. Evaluation
+
+Formal evaluation uses `evaluator` mode. Freeze the rubric version, evidence cutoff, and allowed sources before scoring. Keep private coaching context outside the evaluation unless the published policy allows it equally for every participant.

@@ -1,0 +1,113 @@
+{
+  "version": "0.2.0",
+  "run": {
+    "mode": "coach",
+    "stages": ["discover", "validate"],
+    "domains": ["community", "no_code"],
+    "venture_type": "startup",
+    "program_context": "none",
+    "sensitivity": "team",
+    "generated_at": "2026-07-11T10:00:00.000Z"
+  },
+  "diagnosis": "The founder has direct community and sales access but limited engineering capacity, so the first opportunity should be testable as a manual workflow before software is built.",
+  "assumptions": [
+    "The founder can recruit at least five community operators for interviews.",
+    "The technical teammate is available only after a direction passes an initial demand test."
+  ],
+  "evidence": [
+    {
+      "id": "founder_context",
+      "claim": "The founder has sales and community skills but limited technical capacity.",
+      "source_id": "user_artifacts",
+      "source_url": null,
+      "retrieved_at": "2026-07-11T10:00:00.000Z",
+      "evidence_type": "user_verified",
+      "stance": "supports",
+      "confidence": "high",
+      "summary": "The claim comes directly from the user's stated skills and constraints."
+    }
+  ],
+  "directions": [
+    {
+      "id": "community_progress",
+      "name": "Community progress and proof workflow",
+      "customer": "Bootcamp and community operators",
+      "painful_job": "Track member progress and produce credible completion evidence without maintaining several spreadsheets.",
+      "first_test": "Manually produce one weekly progress report for three community operators using their existing exports.",
+      "unknowns": ["How frequently the problem occurs", "Whether operators will share the required data", "What they currently pay in staff time"]
+    },
+    {
+      "id": "local_lead_followup",
+      "name": "Local business lead follow-up service",
+      "customer": "Small local service businesses",
+      "painful_job": "Follow up with inbound leads consistently without adding another full-time employee.",
+      "first_test": "Run a concierge follow-up workflow for two businesses and measure response and booking rates.",
+      "unknowns": ["Lead volume", "Consent and messaging constraints", "Willingness to pay for managed follow-up"]
+    },
+    {
+      "id": "founder_evidence_profile",
+      "name": "Founder evidence profile",
+      "customer": "Early founders preparing for mentors, grants, or accelerators",
+      "painful_job": "Keep project proof, feedback, and milestones in a form that reviewers can verify quickly.",
+      "first_test": "Create five profiles manually and ask three reviewers whether the format shortens review time.",
+      "unknowns": ["Reviewer adoption", "Founder update frequency", "Whether existing profile tools already solve the workflow"]
+    }
+  ],
+  "recommendation": {
+    "decision": "test",
+    "rationale": "Test the community progress workflow first because the founder's distribution access makes recruitment faster and a concierge version can produce evidence without engineering.",
+    "confidence": "low",
+    "success_threshold": "At least three of five suitable operators describe the workflow as recurring and two agree to provide data for a manual pilot.",
+    "kill_or_pivot_condition": "Pause or switch direction if fewer than two operators will provide data or if the current spreadsheet workflow takes less than one staff-hour per week."
+  },
+  "experiments": [
+    {
+      "name": "Community operator workflow test",
+      "assumption": "Community operators have a recurring and costly progress-reporting problem.",
+      "method": "Interview five operators, observe their current reporting workflow, and ask qualified participants for a one-week data-assisted pilot.",
+      "metric": "Observed staff time and number of operators agreeing to a pilot",
+      "threshold": "Three report at least two staff-hours per week and two begin a pilot",
+      "deadline": "Within seven days"
+    }
+  ],
+  "sources_checked": [
+    {
+      "source_id": "user_artifacts",
+      "status": "checked",
+      "note": "Used the founder's stated skills, team, and time constraints."
+    }
+  ],
+  "sources_not_checked": [
+    {
+      "source_id": "local_archive",
+      "status": "not_checked",
+      "note": "No community archive was connected for this example, so local demand remains unverified."
+    },
+    {
+      "source_id": "github",
+      "status": "not_checked",
+      "note": "Comparable product research should follow only after the first customer workflow is selected."
+    }
+  ],
+  "credential_requests": [],
+  "next_actions": [
+    {
+      "order": 1,
+      "action": "Recruit five community operators who currently produce progress reports.",
+      "owner": "Founder",
+      "done_when": "Five suitable interviews are scheduled."
+    },
+    {
+      "order": 2,
+      "action": "Observe the current workflow and record frequency, staff time, errors, and current tools.",
+      "owner": "Founder",
+      "done_when": "Every interview has the same four behavioral fields recorded."
+    },
+    {
+      "order": 3,
+      "action": "Offer a one-week manual report pilot to operators who meet the pain threshold.",
+      "owner": "Founder",
+      "done_when": "At least two operators provide data or the direction reaches its kill condition."
+    }
+  ]
+}

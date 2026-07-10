@@ -1,0 +1,47 @@
+{
+  "$schema": "./taxonomy.schema.json",
+  "version": "0.2.0",
+  "modes": [
+    { "id": "coach", "label": "Coach", "description": "Help the user discover, improve, plan, or prepare a project." },
+    { "id": "evaluator", "label": "Evaluator", "description": "Apply a fixed rubric to an evidence snapshot without silently improving the artifact." }
+  ],
+  "stages": [
+    { "id": "discover", "label": "Discover", "order": 1, "workflow_ref": "discover.md" },
+    { "id": "validate", "label": "Validate", "order": 2, "workflow_ref": "validate.md" },
+    { "id": "plan", "label": "Plan", "order": 3, "workflow_ref": "plan.md" },
+    { "id": "review", "label": "Review", "order": 4, "workflow_ref": "review.md" },
+    { "id": "submit", "label": "Submit", "order": 5, "workflow_ref": "submit.md" }
+  ],
+  "domains": [
+    { "id": "web2", "label": "Web2 software", "description": "SaaS, marketplaces, consumer apps, internal tools, and web or mobile products." },
+    { "id": "ai", "label": "AI", "description": "LLM, agent, RAG, voice, image, video, and AI-enabled workflows." },
+    { "id": "web3", "label": "Web3", "description": "Wallet, onchain, protocol, token, smart-contract, and blockchain products." },
+    { "id": "data_ml", "label": "Data and ML", "description": "Datasets, analytics, models, benchmarks, notebooks, and data products." },
+    { "id": "community", "label": "Community", "description": "Events, education, membership, reputation, and community operations." },
+    { "id": "no_code", "label": "No-code and operations", "description": "Manual, spreadsheet, automation, and low-code delivery paths." },
+    { "id": "physical_world", "label": "Physical-world business", "description": "Offline services, commerce, logistics, local businesses, and hardware-enabled operations." },
+    { "id": "deep_tech", "label": "Deep tech", "description": "Scientific, industrial, hardware, biotech, energy, and research-intensive ventures." }
+  ],
+  "venture_types": [
+    { "id": "startup", "label": "Startup" },
+    { "id": "small_business", "label": "Small business" },
+    { "id": "public_good", "label": "Public good" },
+    { "id": "nonprofit", "label": "Nonprofit" },
+    { "id": "internal_tool", "label": "Internal tool" },
+    { "id": "open_source", "label": "Open-source project" }
+  ],
+  "program_contexts": [
+    { "id": "none", "label": "No program" },
+    { "id": "hackathon", "label": "Hackathon" },
+    { "id": "grant", "label": "Grant" },
+    { "id": "accelerator", "label": "Accelerator" },
+    { "id": "incubator", "label": "Incubator" },
+    { "id": "competition", "label": "Competition" }
+  ],
+  "sensitivity_classes": [
+    { "id": "public", "label": "Public" },
+    { "id": "team", "label": "Team" },
+    { "id": "confidential", "label": "Confidential" },
+    { "id": "restricted", "label": "Restricted" }
+  ]
+}

@@ -1,0 +1,971 @@
+{
+  "$schema": "./tool-registry.schema.json",
+  "version": "0.2.0",
+  "tools": [
+    {
+      "id": "github",
+      "label": "GitHub",
+      "category": "source_and_connector",
+      "domains": ["web2", "ai", "web3", "data_ml", "community", "no_code", "deep_tech"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator", "incubator", "competition"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://github.com/",
+      "docs_url": "https://docs.github.com/en/rest",
+      "capabilities": [
+        { "id": "public_research", "label": "Search public repositories and inspect project proof", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "connected_repository", "label": "Inspect private or rate-limited repository data", "permission_class": "read_only", "credential_class": "api_token", "status": "connector_spec" },
+        { "id": "repository_write", "label": "Create branches, issues, or repository content", "permission_class": "write_nonfinal", "credential_class": "oauth", "status": "deferred" }
+      ],
+      "use_for": "Comparable projects, implementation proof, repository readiness, README quality, activity, issues, and licenses.",
+      "decision": "Use public access first. Keep write access outside the first ProofPilot connector release.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "yc_library",
+      "label": "YC Library and Startup School",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["none", "accelerator", "incubator"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://www.ycombinator.com/library",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "framework_reference", "label": "Use public founder guidance as an attributed reference", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Customer discovery, MVP discipline, launch, founder operations, and fundraising context.",
+      "decision": "Use stage-specific guidance; do not present heuristics as market evidence.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "gstack",
+      "label": "garrytan/gstack",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["none", "accelerator", "incubator"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web", "local_skill"],
+      "official_url": "https://github.com/garrytan/gstack",
+      "docs_url": "https://github.com/garrytan/gstack",
+      "capabilities": [
+        { "id": "workflow_reference", "label": "Study founder-role and specialist workflow patterns", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Founder-role decomposition and specialist workflow design.",
+      "decision": "Keep as an attributed reference, not a runtime dependency. Verify license and revision before reusing implementation material.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "founder_institute",
+      "label": "Founder Institute",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["none", "accelerator", "incubator"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://fi.co/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "framework_reference", "label": "Use public founder and idea-validation frameworks", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Founder readiness, idea validation, market framing, and structured founder progression.",
+      "decision": "Use as a framework source, not as proof that a particular idea has demand.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "sequoia_arc",
+      "label": "Sequoia Arc",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["none", "accelerator"],
+      "stages": ["validate", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://www.sequoiacap.com/arc/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "framework_reference", "label": "Use public PMF and company-building material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Product-market fit framing, company building, and pitch readiness.",
+      "decision": "Use as an attributed framework source.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "first_round_review",
+      "label": "First Round Review",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["none", "accelerator"],
+      "stages": ["validate", "plan", "review"],
+      "integration_types": ["public_web"],
+      "official_url": "https://review.firstround.com/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "framework_reference", "label": "Use public operator and PMF material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Early customer signals, product-market fit, hiring, and operating practices.",
+      "decision": "Use as secondary framework guidance with attribution.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "a16z",
+      "label": "Andreessen Horowitz",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["none", "accelerator"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://a16z.com/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "framework_reference", "label": "Use public company-building and operator material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Company building, go-to-market, fundraising context, and domain-specific founder guidance.",
+      "decision": "Use as an attributed framework source, not as primary evidence of customer demand.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "five_hundred_global",
+      "label": "500 Global",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["accelerator", "incubator"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://500.co/founders",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "program_reference", "label": "Use public founder-program and venture-education material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Founder education, accelerator preparation, startup evaluation context, and global program discovery.",
+      "decision": "Use current regional program pages for applications and general material for coaching.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "techstars",
+      "label": "Techstars and Startup Weekend",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["accelerator", "incubator", "hackathon"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://www.techstars.com/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "program_reference", "label": "Use public accelerator and short-cycle venture guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Mentor-driven validation, weekend-style MVP scope, and accelerator preparation.",
+      "decision": "Use current program pages for applications and general material for coaching.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "antler",
+      "label": "Antler",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["accelerator", "incubator"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://www.antler.co/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "program_reference", "label": "Use public founder and residency material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Founder-market fit, team formation, and accelerator context.",
+      "decision": "Use current regional program pages for application requirements.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "entrepreneur_first",
+      "label": "Entrepreneur First",
+      "category": "founder_framework",
+      "domains": [],
+      "program_contexts": ["accelerator", "incubator"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://www.joinef.com/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "program_reference", "label": "Use public founder and company-formation material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Founder edge, cofounder formation, and pre-idea accelerator preparation.",
+      "decision": "Use as an attributed framework and verify current cohort requirements separately.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "devpost",
+      "label": "Devpost",
+      "category": "hackathon_platform",
+      "domains": ["web2", "ai", "web3", "data_ml", "community"],
+      "program_contexts": ["hackathon", "competition"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "integration_types": ["public_web", "manual"],
+      "official_url": "https://devpost.com/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "public_research", "label": "Inspect public events, projects, prizes, and judging criteria", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "submission", "label": "Submit a project through the participant account", "permission_class": "final_submit", "credential_class": "oauth", "status": "deferred" }
+      ],
+      "use_for": "Public project comparisons, event criteria, prize tracks, submission fields, and demo patterns.",
+      "decision": "Draft and review submissions; keep final submission manual and user-controlled.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "mlh",
+      "label": "Major League Hacking",
+      "category": "hackathon_platform",
+      "domains": ["web2", "ai", "web3", "data_ml", "community"],
+      "program_contexts": ["hackathon"],
+      "stages": ["discover", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://mlh.io/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "program_reference", "label": "Inspect public event, organizer, and participant guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Beginner hackathon expectations, event rules, organizer patterns, and participant guidance.",
+      "decision": "Use current event rules for submissions and general guidance for workflow design.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "lablab",
+      "label": "Lablab.ai",
+      "category": "hackathon_platform",
+      "domains": ["ai", "web2", "data_ml"],
+      "program_contexts": ["hackathon", "competition"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web"],
+      "official_url": "https://lablab.ai/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "public_research", "label": "Inspect public AI events and project examples", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "AI hackathon formats, provider-driven challenges, public projects, and submission patterns.",
+      "decision": "Use public pages first; treat provider access as a separate capability.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "kaggle",
+      "label": "Kaggle",
+      "category": "data_platform",
+      "domains": ["ai", "data_ml"],
+      "program_contexts": ["none", "hackathon", "competition"],
+      "stages": ["discover", "validate", "plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://www.kaggle.com/",
+      "docs_url": "https://www.kaggle.com/docs/api",
+      "capabilities": [
+        { "id": "public_research", "label": "Inspect public datasets, notebooks, and competitions", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "account_api", "label": "Use account-backed dataset or competition operations", "permission_class": "read_only", "credential_class": "api_token", "status": "connector_spec" }
+      ],
+      "use_for": "Datasets, notebooks, benchmarks, competitions, and reproducible ML examples.",
+      "decision": "Use read-only public data first and request a user token only for a named account task.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "hugging_face",
+      "label": "Hugging Face",
+      "category": "ai_and_data",
+      "domains": ["ai", "data_ml"],
+      "program_contexts": ["none", "hackathon", "grant", "competition"],
+      "stages": ["discover", "validate", "plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://huggingface.co/",
+      "docs_url": "https://huggingface.co/docs",
+      "capabilities": [
+        { "id": "public_research", "label": "Inspect public models, datasets, Spaces, and model cards", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "connected_hub", "label": "Use private or account-backed Hub resources", "permission_class": "read_only", "credential_class": "api_token", "status": "connector_spec" }
+      ],
+      "use_for": "Model and dataset discovery, licenses, benchmarks, demos, and comparable AI products.",
+      "decision": "Prefer public artifacts and read-only tokens.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "nasa_open_apis",
+      "label": "NASA Open APIs and Space Apps",
+      "category": "data_platform",
+      "domains": ["data_ml", "ai", "deep_tech"],
+      "program_contexts": ["hackathon", "competition"],
+      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://api.nasa.gov/",
+      "docs_url": "https://api.nasa.gov/",
+      "capabilities": [
+        { "id": "public_reference", "label": "Inspect public datasets, APIs, and challenge material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "api_access", "label": "Call APIs beyond demo access", "permission_class": "read_only", "credential_class": "api_token", "status": "connector_spec" }
+      ],
+      "use_for": "Open-data ideas, scientific datasets, civic and space challenges, and public API feasibility.",
+      "decision": "Use official challenge and dataset pages; request an API key only for execution.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "hack_club",
+      "label": "Hack Club",
+      "category": "community_platform",
+      "domains": ["community", "web2", "ai", "no_code"],
+      "program_contexts": ["none", "hackathon", "incubator"],
+      "stages": ["discover", "plan", "review"],
+      "integration_types": ["public_web"],
+      "official_url": "https://hackclub.com/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "community_reference", "label": "Use public student-builder and community material", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Beginner-friendly project inspiration, community programs, and student builder workflows.",
+      "decision": "Use as community context, not as market validation.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "category": "llm_provider",
+      "domains": ["ai", "web2"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator", "competition"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://developers.openai.com/api/docs",
+      "docs_url": "https://developers.openai.com/api/docs",
+      "capabilities": [
+        { "id": "provider_guidance", "label": "Inspect current official product and API guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "inference", "label": "Run model inference", "permission_class": "wallet_or_paid_action", "credential_class": "paid_api", "status": "connector_spec" }
+      ],
+      "use_for": "AI architecture planning, provider comparison, model inference, and evaluation design.",
+      "decision": "Keep ProofPilot provider-agnostic; disclose cost and data handling before inference.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "anthropic",
+      "label": "Anthropic",
+      "category": "llm_provider",
+      "domains": ["ai", "web2"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator", "competition"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://docs.anthropic.com/",
+      "docs_url": "https://docs.anthropic.com/",
+      "capabilities": [
+        { "id": "provider_guidance", "label": "Inspect current official product and API guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "inference", "label": "Run model inference", "permission_class": "wallet_or_paid_action", "credential_class": "paid_api", "status": "connector_spec" }
+      ],
+      "use_for": "AI architecture planning, provider comparison, model inference, and evaluation design.",
+      "decision": "Keep ProofPilot provider-agnostic; disclose cost and data handling before inference.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "gemini",
+      "label": "Google Gemini",
+      "category": "llm_provider",
+      "domains": ["ai", "web2", "data_ml"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator", "competition"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://ai.google.dev/",
+      "docs_url": "https://ai.google.dev/gemini-api/docs",
+      "capabilities": [
+        { "id": "provider_guidance", "label": "Inspect current official model and API guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "inference", "label": "Run model inference", "permission_class": "wallet_or_paid_action", "credential_class": "paid_api", "status": "connector_spec" }
+      ],
+      "use_for": "Multimodal and Gemini ecosystem planning, provider comparison, and model inference.",
+      "decision": "Keep ProofPilot provider-agnostic and separate AI Studio keys from cloud service identities.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "meta_llama",
+      "label": "Meta Llama",
+      "category": "llm_provider",
+      "domains": ["ai", "web2", "data_ml"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator", "competition"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://developer.meta.com/ai/",
+      "docs_url": "https://developer.meta.com/ai/docs/overview/",
+      "capabilities": [
+        { "id": "provider_guidance", "label": "Inspect current official Llama model and API guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "inference", "label": "Run hosted model inference", "permission_class": "wallet_or_paid_action", "credential_class": "paid_api", "status": "connector_spec" }
+      ],
+      "use_for": "Open-model strategy, Llama ecosystem planning, provider comparison, and hosted inference options.",
+      "decision": "Separate open-weight model evaluation from hosted API access, licensing, and inference cost.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "elevenlabs",
+      "label": "ElevenLabs",
+      "category": "llm_provider",
+      "domains": ["ai", "web2"],
+      "program_contexts": ["none", "hackathon", "competition"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://elevenlabs.io/docs",
+      "docs_url": "https://elevenlabs.io/docs",
+      "capabilities": [
+        { "id": "provider_guidance", "label": "Inspect current voice and audio product guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "generation", "label": "Run paid voice or audio generation", "permission_class": "wallet_or_paid_action", "credential_class": "paid_api", "status": "connector_spec" }
+      ],
+      "use_for": "Voice agents, speech products, audio demos, and provider feasibility.",
+      "decision": "Use only for voice-specific plans and disclose consent, cost, and data risks.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "databricks",
+      "label": "Databricks",
+      "category": "data_platform",
+      "domains": ["ai", "data_ml", "web2"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://docs.databricks.com/",
+      "docs_url": "https://docs.databricks.com/",
+      "capabilities": [
+        { "id": "platform_guidance", "label": "Inspect current platform and architecture guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "workspace_access", "label": "Inspect an account workspace", "permission_class": "read_only", "credential_class": "service_identity", "status": "deferred" }
+      ],
+      "use_for": "Enterprise data, ML, lakehouse, and agent or data application planning.",
+      "decision": "Recommend only when the data scale or sponsor context justifies the platform.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "elastic",
+      "label": "Elastic",
+      "category": "data_platform",
+      "domains": ["ai", "data_ml", "web2"],
+      "program_contexts": ["none", "hackathon", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://www.elastic.co/guide/",
+      "docs_url": "https://www.elastic.co/guide/",
+      "capabilities": [
+        { "id": "platform_guidance", "label": "Inspect current search, retrieval, and observability guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "connected_cluster", "label": "Inspect a connected deployment", "permission_class": "read_only", "credential_class": "api_token", "status": "deferred" }
+      ],
+      "use_for": "Search, retrieval, RAG, observability, and AI search product planning.",
+      "decision": "Use when search or retrieval is core to the MVP, not as default infrastructure.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "replit",
+      "label": "Replit",
+      "category": "build_platform",
+      "domains": ["web2", "ai", "no_code"],
+      "program_contexts": ["none", "hackathon", "competition"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "manual"],
+      "official_url": "https://docs.replit.com/",
+      "docs_url": "https://docs.replit.com/",
+      "capabilities": [
+        { "id": "platform_guidance", "label": "Select a beginner-friendly build and deploy path", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "account_build", "label": "Create or deploy an account-backed project", "permission_class": "write_nonfinal", "credential_class": "oauth", "status": "deferred" }
+      ],
+      "use_for": "Beginner-friendly prototyping and deployment when speed matters.",
+      "decision": "Recommend as a manual path first; do not assume stable automation APIs.",
+      "usage_basis": "manual_user_action",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "bolt_new",
+      "label": "Bolt.new",
+      "category": "build_platform",
+      "domains": ["web2", "ai", "no_code"],
+      "program_contexts": ["none", "hackathon", "competition"],
+      "stages": ["plan"],
+      "integration_types": ["public_web", "manual"],
+      "official_url": "https://bolt.new/",
+      "docs_url": null,
+      "capabilities": [
+        { "id": "manual_prototype", "label": "Use the hosted builder for a user-controlled prototype", "permission_class": "write_nonfinal", "credential_class": "oauth", "status": "catalogued" }
+      ],
+      "use_for": "Fast web prototype paths for non-technical or time-constrained teams.",
+      "decision": "Treat as a manual user tool until a stable supported connector exists.",
+      "usage_basis": "manual_user_action",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "vercel",
+      "label": "Vercel",
+      "category": "deployment",
+      "domains": ["web2", "ai"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator", "competition"],
+      "stages": ["plan", "review", "submit"],
+      "integration_types": ["public_web", "api", "cli"],
+      "official_url": "https://vercel.com/docs",
+      "docs_url": "https://vercel.com/docs",
+      "capabilities": [
+        { "id": "deployment_guidance", "label": "Plan deployment and verify a public preview URL", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "deploy", "label": "Create or update a deployment", "permission_class": "write_nonfinal", "credential_class": "oauth", "status": "deferred" }
+      ],
+      "use_for": "Web deployment planning, public preview verification, and demo readiness.",
+      "decision": "Verify public URLs without credentials first; defer automated deployment.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "supabase",
+      "label": "Supabase",
+      "category": "deployment",
+      "domains": ["web2", "ai", "data_ml"],
+      "program_contexts": ["none", "hackathon", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api", "cli"],
+      "official_url": "https://supabase.com/docs",
+      "docs_url": "https://supabase.com/docs",
+      "capabilities": [
+        { "id": "stack_guidance", "label": "Plan a prototype using database, auth, storage, or realtime", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "project_access", "label": "Inspect or modify a connected project", "permission_class": "write_nonfinal", "credential_class": "service_identity", "status": "deferred" }
+      ],
+      "use_for": "Fast prototype stacks using managed Postgres, auth, storage, and realtime.",
+      "decision": "Treat service-role credentials as high risk and keep them out of client code.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "cloudflare",
+      "label": "Cloudflare",
+      "category": "deployment",
+      "domains": ["web2", "ai", "data_ml"],
+      "program_contexts": ["none", "hackathon", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api", "cli"],
+      "official_url": "https://developers.cloudflare.com/",
+      "docs_url": "https://developers.cloudflare.com/",
+      "capabilities": [
+        { "id": "platform_guidance", "label": "Plan Workers, D1, R2, AI, and edge deployment", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "resource_write", "label": "Create or update cloud resources", "permission_class": "write_nonfinal", "credential_class": "api_token", "status": "deferred" }
+      ],
+      "use_for": "Edge applications, storage, databases, AI workloads, and deployment checks.",
+      "decision": "Use scoped tokens per resource and defer automated resource creation.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "aws",
+      "label": "AWS, Bedrock, and Amplify",
+      "category": "cloud_platform",
+      "domains": ["web2", "ai", "data_ml", "deep_tech"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api", "cli"],
+      "official_url": "https://docs.aws.amazon.com/",
+      "docs_url": "https://docs.aws.amazon.com/",
+      "capabilities": [
+        { "id": "architecture_guidance", "label": "Use current official cloud and AI architecture guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "resource_access", "label": "Inspect or create account resources", "permission_class": "wallet_or_paid_action", "credential_class": "service_identity", "status": "deferred" }
+      ],
+      "use_for": "Cloud architecture, sponsored tracks, enterprise workloads, and managed AI services.",
+      "decision": "Use only after cost, region, IAM, and resource boundaries are explicit.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "azure",
+      "label": "Azure and Microsoft Foundry",
+      "category": "cloud_platform",
+      "domains": ["web2", "ai", "data_ml"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api", "cli"],
+      "official_url": "https://learn.microsoft.com/azure/",
+      "docs_url": "https://learn.microsoft.com/azure/",
+      "capabilities": [
+        { "id": "architecture_guidance", "label": "Use current official cloud and AI architecture guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "resource_access", "label": "Inspect or create tenant resources", "permission_class": "wallet_or_paid_action", "credential_class": "service_identity", "status": "deferred" }
+      ],
+      "use_for": "Enterprise applications, Microsoft ecosystem tracks, cloud AI, and deployment planning.",
+      "decision": "Use least-privilege Entra identities and defer automated resource creation.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "google_cloud",
+      "label": "Google Cloud and Firebase",
+      "category": "cloud_platform",
+      "domains": ["web2", "ai", "data_ml"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api", "cli"],
+      "official_url": "https://cloud.google.com/docs",
+      "docs_url": "https://cloud.google.com/docs",
+      "capabilities": [
+        { "id": "architecture_guidance", "label": "Use current official cloud, Firebase, and Vertex guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "resource_access", "label": "Inspect or create cloud resources", "permission_class": "wallet_or_paid_action", "credential_class": "service_identity", "status": "deferred" }
+      ],
+      "use_for": "Firebase prototypes, Google Cloud workloads, Vertex AI, and sponsored tracks.",
+      "decision": "Separate public API keys from service identities and apply cost guardrails.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "solana_new",
+      "label": "solana.new",
+      "category": "web3_scaffold",
+      "domains": ["web3"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan"],
+      "integration_types": ["public_web"],
+      "official_url": "https://solana.new/",
+      "docs_url": "https://solana.new/",
+      "capabilities": [
+        { "id": "scaffold_selection", "label": "Select a Solana starter template", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Solana starter template and scaffold discovery.",
+      "decision": "Recommend a starter path; do not treat it as an execution connector.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "colosseum_copilot",
+      "label": "Colosseum Copilot",
+      "category": "web3_intelligence",
+      "domains": ["web3"],
+      "program_contexts": ["hackathon", "accelerator"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "integration_types": ["api", "local_skill"],
+      "official_url": "https://docs.colosseum.com/copilot/getting-started",
+      "docs_url": "https://docs.colosseum.com/copilot/api-reference",
+      "capabilities": [
+        { "id": "project_research", "label": "Search projects, archives, clusters, and accelerator context", "permission_class": "read_only", "credential_class": "api_token", "status": "connector_spec" }
+      ],
+      "use_for": "Solana project similarity, winner patterns, archive research, gap analysis, and ecosystem context.",
+      "decision": "First-wave optional read connector. Use the documented read scope and honor rate and concurrency limits.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "ethglobal_skills",
+      "label": "ETHGlobal Skills",
+      "category": "web3_intelligence",
+      "domains": ["web3"],
+      "program_contexts": ["hackathon"],
+      "stages": ["discover", "validate", "review", "submit"],
+      "integration_types": ["public_web", "local_skill"],
+      "official_url": "https://ethglobal.com/",
+      "docs_url": "https://ethglobal.com/",
+      "capabilities": [
+        { "id": "public_research", "label": "Inspect public projects, events, sponsors, and prizes", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "external_skill", "label": "Use an installed ETHGlobal research skill", "permission_class": "read_only", "credential_class": "no_secret", "status": "connector_spec" }
+      ],
+      "use_for": "Ethereum hackathon project research, event requirements, sponsor tracks, and winner context.",
+      "decision": "Use official event pages as the authority for current rules. Treat external skill availability as optional.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "scaffold_eth",
+      "label": "Scaffold-ETH 2",
+      "category": "web3_scaffold",
+      "domains": ["web3", "web2"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "cli"],
+      "official_url": "https://scaffoldeth.io/",
+      "docs_url": "https://docs.scaffoldeth.io/",
+      "capabilities": [
+        { "id": "scaffold_guidance", "label": "Plan and scaffold an EVM application locally", "permission_class": "write_nonfinal", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "deploy", "label": "Deploy contracts or publish an app", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "EVM application scaffolding, learning, local development, and demo planning.",
+      "decision": "Enable local planning and scaffolding; keep deployment behind wallet and cost approval.",
+      "usage_basis": "open_source",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "base_onchainkit",
+      "label": "Base and OnchainKit",
+      "category": "web3_scaffold",
+      "domains": ["web3", "web2"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api"],
+      "official_url": "https://github.com/coinbase/onchainkit",
+      "docs_url": "https://docs.base.org/onchainkit/latest/getting-started/overview",
+      "capabilities": [
+        { "id": "stack_guidance", "label": "Plan Base application patterns and onchain UX", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "connected_app", "label": "Use account-backed developer services", "permission_class": "write_nonfinal", "credential_class": "api_token", "status": "deferred" }
+      ],
+      "use_for": "Base application architecture, wallet UX, identity, payments, and Coinbase ecosystem integration.",
+      "decision": "Use guidance first; request developer credentials only for a selected integration.",
+      "usage_basis": "api_terms",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "coinbase_agentkit",
+      "label": "Coinbase AgentKit",
+      "category": "web3_action",
+      "domains": ["web3", "ai"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api", "local_skill"],
+      "official_url": "https://github.com/coinbase/agentkit",
+      "docs_url": "https://github.com/coinbase/agentkit",
+      "capabilities": [
+        { "id": "architecture_guidance", "label": "Inspect agentic wallet and action patterns", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "onchain_action", "label": "Execute an onchain action", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "Future agentic wallet and onchain action workflows.",
+      "decision": "Keep execution deferred until external signing, policy, limits, and audit logs exist.",
+      "usage_basis": "open_source",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "solana_agent_kit",
+      "label": "Solana Agent Kit",
+      "category": "web3_action",
+      "domains": ["web3", "ai"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "api", "local_skill"],
+      "official_url": "https://github.com/sendaifun/solana-agent-kit",
+      "docs_url": "https://github.com/sendaifun/solana-agent-kit",
+      "capabilities": [
+        { "id": "architecture_guidance", "label": "Inspect Solana agent plugins and integration patterns", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "onchain_action", "label": "Execute a Solana action", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "Solana agent architecture, RPC, plugin, and future action workflows.",
+      "decision": "Use for planning only until external signing and explicit action policies exist.",
+      "usage_basis": "open_source",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "openzeppelin",
+      "label": "OpenZeppelin",
+      "category": "security",
+      "domains": ["web3"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "local_skill"],
+      "official_url": "https://docs.openzeppelin.com/",
+      "docs_url": "https://docs.openzeppelin.com/",
+      "capabilities": [
+        { "id": "security_guidance", "label": "Use current contract and security guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" }
+      ],
+      "use_for": "Smart-contract patterns, controls, upgradeability, and security readiness.",
+      "decision": "Enable by default for relevant EVM plans and reviews.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "trail_of_bits",
+      "label": "Trail of Bits",
+      "category": "security",
+      "domains": ["web3", "web2", "deep_tech"],
+      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "local_skill", "cli"],
+      "official_url": "https://github.com/trailofbits",
+      "docs_url": "https://github.com/trailofbits",
+      "capabilities": [
+        { "id": "security_guidance", "label": "Use current secure-development and analysis guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "local_analysis", "label": "Run approved local analysis tools", "permission_class": "read_only", "credential_class": "no_secret", "status": "catalogued" }
+      ],
+      "use_for": "Threat modeling, secure development, smart-contract analysis, and security review procedures.",
+      "decision": "Use relevant guidance and run local tools only when the artifact and environment permit it.",
+      "usage_basis": "open_source",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "sui",
+      "label": "Sui developer tools",
+      "category": "web3_scaffold",
+      "domains": ["web3"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "cli"],
+      "official_url": "https://docs.sui.io/",
+      "docs_url": "https://docs.sui.io/",
+      "capabilities": [
+        { "id": "developer_guidance", "label": "Use official Sui build and ecosystem guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "deploy", "label": "Deploy or sign a transaction", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "Sui architecture, Move development, local testing, and ecosystem-specific planning.",
+      "decision": "Use official guidance; keep signing and deployment external and gated.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "aptos",
+      "label": "Aptos developer tools",
+      "category": "web3_scaffold",
+      "domains": ["web3"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "cli"],
+      "official_url": "https://aptos.dev/",
+      "docs_url": "https://aptos.dev/",
+      "capabilities": [
+        { "id": "developer_guidance", "label": "Use official Aptos build and ecosystem guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "deploy", "label": "Deploy or sign a transaction", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "Aptos architecture, Move development, local testing, and ecosystem-specific planning.",
+      "decision": "Use official guidance; keep signing and deployment external and gated.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "bnb_chain_ai",
+      "label": "BNB Chain AI and MCP tools",
+      "category": "web3_intelligence",
+      "domains": ["web3", "ai"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["discover", "plan", "review"],
+      "integration_types": ["public_web", "mcp"],
+      "official_url": "https://docs.bnbchain.org/",
+      "docs_url": "https://docs.bnbchain.org/",
+      "capabilities": [
+        { "id": "official_guidance", "label": "Use official BNB Chain documentation", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "mcp_read", "label": "Use a verified read-only BNB knowledge MCP", "permission_class": "read_only", "credential_class": "no_secret", "status": "catalogued" },
+        { "id": "mcp_write", "label": "Execute a chain operation through MCP", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "BNB Chain research, architecture, and future agent or MCP workflows.",
+      "decision": "Use official docs now. Require source verification before enabling a third-party MCP and keep write actions deferred.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "avalanche",
+      "label": "Avalanche developer tools",
+      "category": "web3_scaffold",
+      "domains": ["web3"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "cli"],
+      "official_url": "https://build.avax.network/",
+      "docs_url": "https://build.avax.network/",
+      "capabilities": [
+        { "id": "developer_guidance", "label": "Use official Avalanche build guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "deploy", "label": "Deploy or sign a transaction", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "Avalanche application planning, local development, and ecosystem-specific architecture.",
+      "decision": "Use official guidance and defer wallet or deployment actions.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "ton",
+      "label": "TON Blueprint and TON Connect",
+      "category": "web3_scaffold",
+      "domains": ["web3", "web2"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "cli", "api"],
+      "official_url": "https://docs.ton.org/",
+      "docs_url": "https://docs.ton.org/",
+      "capabilities": [
+        { "id": "developer_guidance", "label": "Plan contracts, tests, and wallet connection", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "wallet_connect", "label": "Request user-controlled wallet signing", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "TON local development, contract testing, deployment planning, and wallet UX.",
+      "decision": "Never store a mnemonic. Use explicit external wallet signing for actions.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "stellar",
+      "label": "Stellar developer tools",
+      "category": "web3_scaffold",
+      "domains": ["web3"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "cli"],
+      "official_url": "https://developers.stellar.org/",
+      "docs_url": "https://developers.stellar.org/",
+      "capabilities": [
+        { "id": "developer_guidance", "label": "Use official Stellar build guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "onchain_action", "label": "Deploy or sign a transaction", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "Stellar application planning, payments, assets, Soroban development, and ecosystem fit.",
+      "decision": "Use official guidance first and keep secret-key handling outside ProofPilot.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    },
+    {
+      "id": "polkadot",
+      "label": "Polkadot developer tools",
+      "category": "web3_scaffold",
+      "domains": ["web3"],
+      "program_contexts": ["none", "hackathon", "grant"],
+      "stages": ["plan", "review"],
+      "integration_types": ["public_web", "cli"],
+      "official_url": "https://docs.polkadot.com/",
+      "docs_url": "https://docs.polkadot.com/",
+      "capabilities": [
+        { "id": "developer_guidance", "label": "Use official Polkadot build and ecosystem guidance", "permission_class": "read_only", "credential_class": "no_secret", "status": "available_public" },
+        { "id": "onchain_action", "label": "Deploy or sign a transaction", "permission_class": "wallet_or_paid_action", "credential_class": "wallet_session", "status": "deferred" }
+      ],
+      "use_for": "Polkadot application planning, SDK selection, interoperability, and ecosystem fit.",
+      "decision": "Use official documentation and treat emerging agent-specific tooling as catalogued until verified.",
+      "usage_basis": "public_reference",
+      "license": null,
+      "last_verified_at": "2026-07-11"
+    }
+  ]
+}

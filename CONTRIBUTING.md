@@ -1,27 +1,37 @@
 # Contributing
 
-ProofPilot is designed as a practical skill/router package, not a collection of vague prompts.
+ProofPilot is an evidence-first agent skill, not a collection of vague prompts or an unverified directory of links.
 
-Good contributions add one of these:
+Useful contributions include:
 
-- a new source catalog entry with clear scope and credential requirements
-- a focused skill with inputs, workflow, outputs, and safety limits
-- a rubric that produces actionable next steps
-- an example request/response pair
-- validation or schema improvements
+- a stage workflow that changes a real founder decision
+- a primary source with a clear query strategy and evidence purpose
+- a tool capability with explicit status, permission, and credential requirements
+- an anchored rubric with weights and evidence rules
+- a structured example or evaluation case
+- validation, packaging, safety, or connector work
+
+## Source Of Truth
+
+Canonical skill files live under `skills/proofpilot`. Edit the JSON registries there and regenerate `docs/included-tools.md`; do not maintain a second registry in repository-level documentation.
+
+Represent public research, private access, write actions, and wallet or paid actions as separate capabilities. Do not create compound credential classes such as `no_secret_or_wallet_later`.
 
 ## Contribution Rules
 
-- Keep user-facing workflows useful for non-technical founders.
-- Do not require API keys for basic idea discovery or validation.
-- Prefer read-only connectors before write or deploy actions.
-- Mark paid, wallet, private-key, and submission actions clearly.
-- Do not add advice that pretends to be legal, tax, medical, or investment advice.
+- Keep workflows useful for technical and non-technical founders.
+- Separate facts, assumptions, inference, and unknowns.
+- Add direct official URLs and a verification date where applicable.
+- Prefer public and read-only paths before account connections.
+- Never add private-key or mnemonic ingestion.
+- Keep final submission, deployment, payment, and wallet actions human-controlled.
+- Check source licenses and terms before copying external skill or framework material.
+- Do not present medical, legal, tax, financial, or investment conclusions as professional advice.
 
 ## Validation
 
-Run:
-
 ```bash
+npm run generate:docs
 npm test
+npm pack --dry-run
 ```

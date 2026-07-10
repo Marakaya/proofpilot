@@ -1,0 +1,4 @@
+interface:
+  display_name: "ProofPilot"
+  short_description: "Evidence-first venture guidance"
+  default_prompt: "Use $proofpilot to turn my current idea or constraints into an evidence-backed next decision."

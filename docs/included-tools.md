@@ -1,145 +1,158 @@
 # Included Tools
 
-This document explains what is included in ProofPilot and why.
+> Generated from the ProofPilot source and tool registries. Run `npm run generate:docs` after registry changes.
 
-ProofPilot has four tool types:
+ProofPilot distinguishes public references from connector specifications and implemented integrations. A listed tool is not automatically an active API connector.
 
-| Type | Meaning | Default Behavior |
-|---|---|---|
-| Internal skill | A local ProofPilot workflow that runs inside the agent runtime | Enabled by default |
-| Source | A public or platform-owned knowledge base used for research and comparison | Enabled by default when public |
-| Connector | An external API or account-backed tool | Optional; asks for credentials only when needed |
-| Gated action tool | A connector that can deploy, spend money, submit final work, or use wallets/private keys | Disabled until explicit permission gates exist |
+## Status Meanings
 
-The product rule is simple: **users can get value before connecting any key**.
+| Status | Meaning |
+|---|---|
+| `available_public` | The agent can use current public material without a secret. |
+| `connector_spec` | The access model is documented, but ProofPilot does not ship a live adapter yet. |
+| `implemented` | A tested runtime adapter ships with ProofPilot. |
+| `catalogued` | Useful candidate that must be verified before runtime use. |
+| `deferred` | Intentionally disabled pending permission, security, cost, or product controls. |
+| `deprecated` | Retained only for migration or historical context. |
 
-## Internal ProofPilot Skills
+## Evidence Sources
 
-These are the core modules included in the repository.
-
-| Skill | What It Does | When To Use | Output |
+| Source | Access | Status | Used For |
 |---|---|---|---|
-| `proofpilot` | Main router. Reads the user's goal, constraints, team, timeline, and target outcome, then selects the right focused skill. | Every session starts here. | Track recommendation, selected workflow, required sources, credential needs. |
-| `idea-discovery` | Helps a user who does not know what to build. Turns skills, interests, constraints, and trends into possible venture directions. | "I do not know what to build." | 3 to 5 directions, ranked recommendation, first validation task, what not to build yet. |
-| `venture-validation` | Tests an idea against customer pain, alternatives, market logic, comparable projects, and feasibility. | User has an idea but does not know if it is worth building. | Customer hypothesis, alternatives, evidence map, risk list, go/pivot/pause recommendation. |
-| `mvp-planner` | Converts a direction into the smallest credible MVP and build path. | User chose an idea and needs a realistic plan. | MVP promise, non-goals, feature scope, timeline, dependencies, demo script. |
-| `readiness-review` | Scores an idea, MVP, pitch, grant, repo, or submission using ProofPilot's rubric. | Before mentor review, launch, grant application, or hackathon deadline. | Red/yellow/green scorecard, blockers, quick wins, missing evidence. |
-| `submission-builder` | Drafts pitches, grant applications, accelerator answers, Devpost/Colosseum-style submissions, and demo narratives. | User needs a structured application or pitch. | Draft answers, missing fields, asset checklist, final-submit warning. |
+| User-provided artifacts | user_provided | `runtime_input` | Claims about the project, shipped work, user behavior, repository state, and submitted assets. |
+| Current official target program | runtime_selected | `runtime_input` | Eligibility, deadlines, judging criteria, required assets, bounties, and submission format. |
+| Local community archive | platform | `platform_only` | Local demand, repeated project patterns, prior feedback, and ecosystem-specific context. |
+| [GitHub](https://github.com/) | public_or_connected | `available_public` | Comparable implementations, repository activity, shipped proof, documentation quality, issues, and licenses. |
+| [YC Library and Startup School](https://www.ycombinator.com/library) | public | `available_public` | Founder operating principles, customer discovery, MVP discipline, launch, and fundraising context. |
+| [garrytan/gstack](https://github.com/garrytan/gstack) | public | `available_public` | Founder-role decomposition and specialist workflow patterns. |
+| [Founder Institute](https://fi.co/) | public | `available_public` | Founder readiness, idea validation, market framing, and structured progression. |
+| [Devpost](https://devpost.com/) | public | `available_public` | Project patterns, judging criteria, prize tracks, required fields, and public demos. |
+| [Colosseum Copilot](https://docs.colosseum.com/copilot/getting-started) | connected | `connector_spec` | Solana project similarity, winner patterns, archive evidence, gap analysis, and accelerator context. |
+| [ETHGlobal](https://ethglobal.com/) | public | `available_public` | Ethereum hackathon projects, event requirements, sponsors, prizes, and submission patterns. |
+| [Kaggle](https://www.kaggle.com/) | public_or_connected | `available_public` | Dataset availability, benchmark conventions, notebooks, and competition requirements. |
+| [Hugging Face](https://huggingface.co/) | public_or_connected | `available_public` | Model and dataset availability, licenses, benchmarks, demos, and comparable AI products. |
+| [OpenZeppelin](https://docs.openzeppelin.com/) | public | `available_public` | Smart-contract patterns, security controls, upgradeability, and implementation readiness. |
+| [Trail of Bits](https://github.com/trailofbits) | public | `available_public` | Threat modeling, secure development, smart-contract analysis, and review procedures. |
 
-## Core Source Catalog
+## Sources And Connectors
 
-These sources make ProofPilot useful before credentials are connected.
-
-| Source | Used For | Tracks | Credential |
+| Tool | Used For | Capabilities | Decision |
 |---|---|---|---|
-| Local community archive | Past projects, event history, mentor feedback, judging outcomes, recurring local needs. | `startup`, `community`, `hackathon`, `grant` | Platform-owned in hosted deployments |
-| GitHub public repos | Similar projects, README quality, implementation proof, traction signals, open-source patterns. | All technical tracks | None for public repos; token for private repos or higher limits |
-| YC Library and Startup School | Startup basics, customer discovery, MVP scope, launch, founder discipline. | `startup` | None |
-| `garrytan/gstack` | Founder/operator skill-pack reference, specialist role patterns, startup workflow primitives. | `startup` | None |
-| Founder Institute frameworks | Founder readiness, idea validation, market sizing, structured startup curriculum. | `startup` | None |
-| Sequoia Arc / First Round / a16z / Techstars / 500 / Antler / EF frameworks | PMF thinking, go-to-market, fundraising readiness, founder-market fit, cofounder formation. | `startup`, `grant` | None |
-| Public hackathon pages | Rules, judging criteria, deadlines, prizes, required assets, sponsor tracks. | `hackathon` | None |
-| Security guides | OpenZeppelin and Trail of Bits readiness practices. | `web3` | None |
+| [GitHub](https://github.com/) | Comparable projects, implementation proof, repository readiness, README quality, activity, issues, and licenses. | `public_research`: available_public; no_secret; read_only<br>`connected_repository`: connector_spec; api_token; read_only<br>`repository_write`: deferred; oauth; write_nonfinal | Use public access first. Keep write access outside the first ProofPilot connector release. |
 
-## Startup And Founder Tools
+## Founder Frameworks
 
-These tools shape founder-quality output even when the user is not technical.
-
-| Tool | What ProofPilot Uses It For | Product Decision |
-|---|---|---|
-| `garrytan/gstack` | Reference for founder roles, operating cadence, and startup assistant workflows. | Include as inspiration/source, not as a hard dependency. |
-| YC Startup School | Customer discovery, MVP discipline, launch basics, fundraising context. | Use as general startup framework source. |
-| YC Library | Founder lessons, startup heuristics, pitch clarity, market reasoning. | Use for validation and pitch review. |
-| Founder Institute | Structured founder/idea validation and curriculum-style progress. | Use for beginner founder guidance. |
-| Sequoia Arc PMF Framework | PMF diagnosis and market clarity. | Use in readiness review for startup track. |
-| First Round PMF Method | Early customer signal and product-market fit thinking. | Use in validation prompts and rubric checks. |
-| Techstars / Startup Weekend | Short-cycle startup formation and weekend-style MVP scope. | Use for beginner and hackathon-style startup paths. |
-| Antler / Entrepreneur First | Founder-market fit and cofounder/team formation. | Use when the user's issue is team or founder fit. |
-
-## Web2, AI, And Data Tools
-
-These support founders who are building SaaS, AI apps, data products, no-code workflows, or startup submissions.
-
-| Tool | What It Is For | When ProofPilot Uses It | Credential |
+| Tool | Used For | Capabilities | Decision |
 |---|---|---|---|
-| GitHub | Repo readiness, similar projects, implementation proof, issue/activity signal. | Readiness review, MVP planning, technical proof. | Optional token for private repos or higher limits. |
-| Devpost | Public hackathon/project examples and submission format. | Submission drafts and hackathon comparison. | No official public API assumed; public pages only. |
-| Major League Hacking | Organizer patterns, rules, beginner-friendly hackathon expectations. | Hackathon workflow design and participant guidance. | None. |
-| Lablab.ai | AI hackathon formats, project examples, AI/ML challenge patterns. | AI app and hackathon track. | Public pages no key; provider APIs may require keys. |
-| Kaggle | Datasets, notebooks, ML competitions, benchmark examples. | Data/ML ideas and validation. | Optional user API key. |
-| Hugging Face | Models, datasets, Spaces, demos, competitions. | AI app and data/ML tracks. | Optional user token. |
-| NASA APIs / Space Apps | Open-data project ideas, public APIs, civic/open-data submission patterns. | Data, civic, and hackathon tracks. | API key for `api.nasa.gov`; public rules need no key. |
-| Hack Club | Student builder culture, project inspiration, community examples. | Beginner and community tracks. | None. |
-| OpenAI | LLM review, idea synthesis, pitch feedback, AI app provider option. | Hosted review worker or local BYOK mode. | Platform key first; user BYOK optional. |
-| Anthropic | Alternative LLM provider for review and writing workflows. | Provider-agnostic inference. | Platform key first; user BYOK optional. |
-| Google Gemini | AI app provider option, multimodal workflows, Gemini ecosystem projects. | AI app planning and provider comparison. | API key or Google Cloud identity. |
-| Meta Llama API | Llama-hosted or provider-hosted open model workflow. | AI app provider comparison. | Provider-specific key. |
-| ElevenLabs | Voice agents, speech demos, audio product ideas. | Voice app track. | API key. |
-| Databricks | Data/AI platform, enterprise data workflows, agent/data apps. | Data/ML or enterprise AI track. | Workspace host plus PAT or cloud identity. |
-| Elastic | Search, retrieval, RAG, observability, AI search products. | RAG/search app planning. | API key or cloud credentials. |
-| Replit | Beginner-friendly build/deploy environment and existing AI builder workflows. | No-code/low-code or beginner build path. | Prefer manual/link path first. |
-| Bolt.new | Fast prototype path for web apps. | MVP planning when speed matters more than custom infra. | No stable public API connector assumed. |
+| [YC Library and Startup School](https://www.ycombinator.com/library) | Customer discovery, MVP discipline, launch, founder operations, and fundraising context. | `framework_reference`: available_public; no_secret; read_only | Use stage-specific guidance; do not present heuristics as market evidence. |
+| [garrytan/gstack](https://github.com/garrytan/gstack) | Founder-role decomposition and specialist workflow design. | `workflow_reference`: available_public; no_secret; read_only | Keep as an attributed reference, not a runtime dependency. Verify license and revision before reusing implementation material. |
+| [Founder Institute](https://fi.co/) | Founder readiness, idea validation, market framing, and structured founder progression. | `framework_reference`: available_public; no_secret; read_only | Use as a framework source, not as proof that a particular idea has demand. |
+| [Sequoia Arc](https://www.sequoiacap.com/arc/) | Product-market fit framing, company building, and pitch readiness. | `framework_reference`: available_public; no_secret; read_only | Use as an attributed framework source. |
+| [First Round Review](https://review.firstround.com/) | Early customer signals, product-market fit, hiring, and operating practices. | `framework_reference`: available_public; no_secret; read_only | Use as secondary framework guidance with attribution. |
+| [Andreessen Horowitz](https://a16z.com/) | Company building, go-to-market, fundraising context, and domain-specific founder guidance. | `framework_reference`: available_public; no_secret; read_only | Use as an attributed framework source, not as primary evidence of customer demand. |
+| [500 Global](https://500.co/founders) | Founder education, accelerator preparation, startup evaluation context, and global program discovery. | `program_reference`: available_public; no_secret; read_only | Use current regional program pages for applications and general material for coaching. |
+| [Techstars and Startup Weekend](https://www.techstars.com/) | Mentor-driven validation, weekend-style MVP scope, and accelerator preparation. | `program_reference`: available_public; no_secret; read_only | Use current program pages for applications and general material for coaching. |
+| [Antler](https://www.antler.co/) | Founder-market fit, team formation, and accelerator context. | `program_reference`: available_public; no_secret; read_only | Use current regional program pages for application requirements. |
+| [Entrepreneur First](https://www.joinef.com/) | Founder edge, cofounder formation, and pre-idea accelerator preparation. | `program_reference`: available_public; no_secret; read_only | Use as an attributed framework and verify current cohort requirements separately. |
 
-## Deployment And Cloud Tools
+## Hackathon Platforms
 
-These tools are useful after the idea and MVP path are clear.
-
-| Tool | What It Is For | ProofPilot Use | Credential Policy |
+| Tool | Used For | Capabilities | Decision |
 |---|---|---|---|
-| Vercel | Web app deployment, preview URLs, frontend/serverless demos. | Deployment checklist and public URL verification. | Access token/OAuth only when automating. |
-| Supabase | Postgres, auth, storage, realtime for fast prototypes. | Stack recommendation and deployment checks. | Publishable key can be public; service role is high risk. |
-| Cloudflare | Workers, D1, R2, Workers AI, edge deployments. | AI/web app stack option and deployment checks. | Scoped API token and account ID. |
-| AWS / Bedrock / Amplify | Cloud infrastructure, AI providers, app hosting. | Larger startup or sponsored cloud track. | IAM role or access keys; use after cost guardrails. |
-| Azure / Microsoft Foundry | Azure OpenAI, cloud app stack, Microsoft startup/hackathon paths. | Enterprise/web2/AI provider track. | API key, Entra ID, or service principal. |
-| Google Cloud / Firebase | AI Studio, Vertex, Firebase app stack. | AI/web app stack option. | API key or service account depending action. |
+| [Devpost](https://devpost.com/) | Public project comparisons, event criteria, prize tracks, submission fields, and demo patterns. | `public_research`: available_public; no_secret; read_only<br>`submission`: deferred; oauth; final_submit | Draft and review submissions; keep final submission manual and user-controlled. |
+| [Major League Hacking](https://mlh.io/) | Beginner hackathon expectations, event rules, organizer patterns, and participant guidance. | `program_reference`: available_public; no_secret; read_only | Use current event rules for submissions and general guidance for workflow design. |
+| [Lablab.ai](https://lablab.ai/) | AI hackathon formats, provider-driven challenges, public projects, and submission patterns. | `public_research`: available_public; no_secret; read_only | Use public pages first; treat provider access as a separate capability. |
 
-## Web3 And Onchain Tools
+## Data Platforms
 
-ProofPilot includes web3 tools, but wallet/action tools are gated by default.
-
-| Tool | What It Is For | ProofPilot Use | Credential Policy |
+| Tool | Used For | Capabilities | Decision |
 |---|---|---|---|
-| Colosseum Copilot | Solana project archive, winners, project search, gap analysis. | Solana/hackathon research and differentiation. | User PAT; read-only connector. |
-| `solana.new` | Solana starter templates and scaffold discovery. | Recommend starter path. | No key for scaffold selection. |
-| Solana Agent Kit | Agentic Solana actions, wallet/RPC/plugin workflows. | Future action connector. | Requires wallet/private key or wallet interface; deferred. |
-| ETHGlobal Skills | Ethereum project corpus, sponsor docs, bounties, winner context. | EVM/hackathon research. | Free limited lookup; x402 paid overage possible. |
-| Scaffold-ETH 2 | EVM dapp scaffold and learning path. | EVM stack planning. | No key for local planning; deploy needs wallet/RPC/Etherscan keys. |
-| Base Skills / OnchainKit | Base app patterns, app config, onchain UX. | Base app planning and UI stack recommendation. | Some app integrations need Coinbase Developer Platform key. |
-| Coinbase AgentKit | Agentic wallet/onchain actions across Coinbase-supported flows. | Future wallet/action track. | CDP keys plus wallet provider credentials; deferred. |
-| OpenZeppelin Skills | Smart contract security, contracts, readiness practices. | Security/readiness review. | No API key. |
-| Trail of Bits Skills | Security review procedures and local analysis guidance. | Security/readiness review. | No API key; local tools may be optional. |
-| Sui Dev Skills | Sui build guidance and ecosystem-specific path. | Sui stack recommendation. | No key for guidance; deployment uses local keys. |
-| Aptos Agent Skills | Aptos build guidance and agent examples. | Aptos stack recommendation. | No key for guidance; deployment uses local config/private keys. |
-| BNB Ask AI MCP | Hosted read-only BNB Chain knowledge. | BNB Chain research. | No key; read-only. |
-| BNBChain MCP | BNB read/write chain operations. | Future action connector. | Private key for write actions; deferred. |
-| BNBAgent SDK | BNB agent workflows and wallet/RPC operations. | Future action connector. | Private key, wallet password, RPC URL; deferred. |
-| Avalanche Starter Kit | Avalanche app scaffold and ecosystem path. | Avalanche planning. | No key for scaffold; deploy needs wallet/RPC. |
-| TON Blueprint / Acton | TON local scaffold, tests, and deployment path. | TON planning. | Avoid mnemonic storage; deploy via explicit wallet flow. |
-| TON Connect | Wallet connection and signing UX. | Future wallet UX. | No API key; wallet session/signing is gated. |
-| Stellar `stellar-build` | Stellar skill workflow and build path. | Second-wave ecosystem support. | No obvious key for guidance; actions may require wallet secret. |
-| Polkadot Agent Mesh | Early signal for Polkadot agent/skill ecosystem. | Watch list. | Not stable enough for first-wave automation. |
+| [Kaggle](https://www.kaggle.com/) | Datasets, notebooks, benchmarks, competitions, and reproducible ML examples. | `public_research`: available_public; no_secret; read_only<br>`account_api`: connector_spec; api_token; read_only | Use read-only public data first and request a user token only for a named account task. |
+| [NASA Open APIs and Space Apps](https://api.nasa.gov/) | Open-data ideas, scientific datasets, civic and space challenges, and public API feasibility. | `public_reference`: available_public; no_secret; read_only<br>`api_access`: connector_spec; api_token; read_only | Use official challenge and dataset pages; request an API key only for execution. |
+| [Databricks](https://docs.databricks.com/) | Enterprise data, ML, lakehouse, and agent or data application planning. | `platform_guidance`: available_public; no_secret; read_only<br>`workspace_access`: deferred; service_identity; read_only | Recommend only when the data scale or sponsor context justifies the platform. |
+| [Elastic](https://www.elastic.co/guide/) | Search, retrieval, RAG, observability, and AI search product planning. | `platform_guidance`: available_public; no_secret; read_only<br>`connected_cluster`: deferred; api_token; read_only | Use when search or retrieval is core to the MVP, not as default infrastructure. |
 
-## What Is Enabled First
+## Community Platforms
 
-ProofPilot's first practical release should enable:
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [Hack Club](https://hackclub.com/) | Beginner-friendly project inspiration, community programs, and student builder workflows. | `community_reference`: available_public; no_secret; read_only | Use as community context, not as market validation. |
 
-1. Internal skills.
-2. Public source catalog.
-3. Startup/founder frameworks.
-4. Public GitHub and public hackathon/project pages.
-5. No-secret web3 guidance tools.
-6. Optional read connectors: Colosseum Copilot, GitHub, Kaggle, Hugging Face.
+## AI And Data
 
-## What Is Deferred
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [Hugging Face](https://huggingface.co/) | Model and dataset discovery, licenses, benchmarks, demos, and comparable AI products. | `public_research`: available_public; no_secret; read_only<br>`connected_hub`: connector_spec; api_token; read_only | Prefer public artifacts and read-only tokens. |
 
-These should not run automatically in the first release:
+## AI Providers
 
-- wallet signing
-- private-key ingestion
-- contract deployment
-- paid API overage
-- cloud resource creation
-- final submission to an external platform
-- sponsor credit spending
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [OpenAI](https://developers.openai.com/api/docs) | AI architecture planning, provider comparison, model inference, and evaluation design. | `provider_guidance`: available_public; no_secret; read_only<br>`inference`: connector_spec; paid_api; wallet_or_paid_action | Keep ProofPilot provider-agnostic; disclose cost and data handling before inference. |
+| [Anthropic](https://docs.anthropic.com/) | AI architecture planning, provider comparison, model inference, and evaluation design. | `provider_guidance`: available_public; no_secret; read_only<br>`inference`: connector_spec; paid_api; wallet_or_paid_action | Keep ProofPilot provider-agnostic; disclose cost and data handling before inference. |
+| [Google Gemini](https://ai.google.dev/) | Multimodal and Gemini ecosystem planning, provider comparison, and model inference. | `provider_guidance`: available_public; no_secret; read_only<br>`inference`: connector_spec; paid_api; wallet_or_paid_action | Keep ProofPilot provider-agnostic and separate AI Studio keys from cloud service identities. |
+| [Meta Llama](https://developer.meta.com/ai/) | Open-model strategy, Llama ecosystem planning, provider comparison, and hosted inference options. | `provider_guidance`: available_public; no_secret; read_only<br>`inference`: connector_spec; paid_api; wallet_or_paid_action | Separate open-weight model evaluation from hosted API access, licensing, and inference cost. |
+| [ElevenLabs](https://elevenlabs.io/docs) | Voice agents, speech products, audio demos, and provider feasibility. | `provider_guidance`: available_public; no_secret; read_only<br>`generation`: connector_spec; paid_api; wallet_or_paid_action | Use only for voice-specific plans and disclose consent, cost, and data risks. |
 
-Each deferred action needs explicit approval, audit logs, spending limits, and a clear owner.
+## Build Platforms
+
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [Replit](https://docs.replit.com/) | Beginner-friendly prototyping and deployment when speed matters. | `platform_guidance`: available_public; no_secret; read_only<br>`account_build`: deferred; oauth; write_nonfinal | Recommend as a manual path first; do not assume stable automation APIs. |
+| [Bolt.new](https://bolt.new/) | Fast web prototype paths for non-technical or time-constrained teams. | `manual_prototype`: catalogued; oauth; write_nonfinal | Treat as a manual user tool until a stable supported connector exists. |
+
+## Deployment
+
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [Vercel](https://vercel.com/docs) | Web deployment planning, public preview verification, and demo readiness. | `deployment_guidance`: available_public; no_secret; read_only<br>`deploy`: deferred; oauth; write_nonfinal | Verify public URLs without credentials first; defer automated deployment. |
+| [Supabase](https://supabase.com/docs) | Fast prototype stacks using managed Postgres, auth, storage, and realtime. | `stack_guidance`: available_public; no_secret; read_only<br>`project_access`: deferred; service_identity; write_nonfinal | Treat service-role credentials as high risk and keep them out of client code. |
+| [Cloudflare](https://developers.cloudflare.com/) | Edge applications, storage, databases, AI workloads, and deployment checks. | `platform_guidance`: available_public; no_secret; read_only<br>`resource_write`: deferred; api_token; write_nonfinal | Use scoped tokens per resource and defer automated resource creation. |
+
+## Cloud Platforms
+
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [AWS, Bedrock, and Amplify](https://docs.aws.amazon.com/) | Cloud architecture, sponsored tracks, enterprise workloads, and managed AI services. | `architecture_guidance`: available_public; no_secret; read_only<br>`resource_access`: deferred; service_identity; wallet_or_paid_action | Use only after cost, region, IAM, and resource boundaries are explicit. |
+| [Azure and Microsoft Foundry](https://learn.microsoft.com/azure/) | Enterprise applications, Microsoft ecosystem tracks, cloud AI, and deployment planning. | `architecture_guidance`: available_public; no_secret; read_only<br>`resource_access`: deferred; service_identity; wallet_or_paid_action | Use least-privilege Entra identities and defer automated resource creation. |
+| [Google Cloud and Firebase](https://cloud.google.com/docs) | Firebase prototypes, Google Cloud workloads, Vertex AI, and sponsored tracks. | `architecture_guidance`: available_public; no_secret; read_only<br>`resource_access`: deferred; service_identity; wallet_or_paid_action | Separate public API keys from service identities and apply cost guardrails. |
+
+## Web3 Scaffolds
+
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [solana.new](https://solana.new/) | Solana starter template and scaffold discovery. | `scaffold_selection`: available_public; no_secret; read_only | Recommend a starter path; do not treat it as an execution connector. |
+| [Scaffold-ETH 2](https://scaffoldeth.io/) | EVM application scaffolding, learning, local development, and demo planning. | `scaffold_guidance`: available_public; no_secret; write_nonfinal<br>`deploy`: deferred; wallet_session; wallet_or_paid_action | Enable local planning and scaffolding; keep deployment behind wallet and cost approval. |
+| [Base and OnchainKit](https://github.com/coinbase/onchainkit) | Base application architecture, wallet UX, identity, payments, and Coinbase ecosystem integration. | `stack_guidance`: available_public; no_secret; read_only<br>`connected_app`: deferred; api_token; write_nonfinal | Use guidance first; request developer credentials only for a selected integration. |
+| [Sui developer tools](https://docs.sui.io/) | Sui architecture, Move development, local testing, and ecosystem-specific planning. | `developer_guidance`: available_public; no_secret; read_only<br>`deploy`: deferred; wallet_session; wallet_or_paid_action | Use official guidance; keep signing and deployment external and gated. |
+| [Aptos developer tools](https://aptos.dev/) | Aptos architecture, Move development, local testing, and ecosystem-specific planning. | `developer_guidance`: available_public; no_secret; read_only<br>`deploy`: deferred; wallet_session; wallet_or_paid_action | Use official guidance; keep signing and deployment external and gated. |
+| [Avalanche developer tools](https://build.avax.network/) | Avalanche application planning, local development, and ecosystem-specific architecture. | `developer_guidance`: available_public; no_secret; read_only<br>`deploy`: deferred; wallet_session; wallet_or_paid_action | Use official guidance and defer wallet or deployment actions. |
+| [TON Blueprint and TON Connect](https://docs.ton.org/) | TON local development, contract testing, deployment planning, and wallet UX. | `developer_guidance`: available_public; no_secret; read_only<br>`wallet_connect`: deferred; wallet_session; wallet_or_paid_action | Never store a mnemonic. Use explicit external wallet signing for actions. |
+| [Stellar developer tools](https://developers.stellar.org/) | Stellar application planning, payments, assets, Soroban development, and ecosystem fit. | `developer_guidance`: available_public; no_secret; read_only<br>`onchain_action`: deferred; wallet_session; wallet_or_paid_action | Use official guidance first and keep secret-key handling outside ProofPilot. |
+| [Polkadot developer tools](https://docs.polkadot.com/) | Polkadot application planning, SDK selection, interoperability, and ecosystem fit. | `developer_guidance`: available_public; no_secret; read_only<br>`onchain_action`: deferred; wallet_session; wallet_or_paid_action | Use official documentation and treat emerging agent-specific tooling as catalogued until verified. |
+
+## Web3 Intelligence
+
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [Colosseum Copilot](https://docs.colosseum.com/copilot/getting-started) | Solana project similarity, winner patterns, archive research, gap analysis, and ecosystem context. | `project_research`: connector_spec; api_token; read_only | First-wave optional read connector. Use the documented read scope and honor rate and concurrency limits. |
+| [ETHGlobal Skills](https://ethglobal.com/) | Ethereum hackathon project research, event requirements, sponsor tracks, and winner context. | `public_research`: available_public; no_secret; read_only<br>`external_skill`: connector_spec; no_secret; read_only | Use official event pages as the authority for current rules. Treat external skill availability as optional. |
+| [BNB Chain AI and MCP tools](https://docs.bnbchain.org/) | BNB Chain research, architecture, and future agent or MCP workflows. | `official_guidance`: available_public; no_secret; read_only<br>`mcp_read`: catalogued; no_secret; read_only<br>`mcp_write`: deferred; wallet_session; wallet_or_paid_action | Use official docs now. Require source verification before enabling a third-party MCP and keep write actions deferred. |
+
+## Web3 Action Tools
+
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [Coinbase AgentKit](https://github.com/coinbase/agentkit) | Future agentic wallet and onchain action workflows. | `architecture_guidance`: available_public; no_secret; read_only<br>`onchain_action`: deferred; wallet_session; wallet_or_paid_action | Keep execution deferred until external signing, policy, limits, and audit logs exist. |
+| [Solana Agent Kit](https://github.com/sendaifun/solana-agent-kit) | Solana agent architecture, RPC, plugin, and future action workflows. | `architecture_guidance`: available_public; no_secret; read_only<br>`onchain_action`: deferred; wallet_session; wallet_or_paid_action | Use for planning only until external signing and explicit action policies exist. |
+
+## Security
+
+| Tool | Used For | Capabilities | Decision |
+|---|---|---|---|
+| [OpenZeppelin](https://docs.openzeppelin.com/) | Smart-contract patterns, controls, upgradeability, and security readiness. | `security_guidance`: available_public; no_secret; read_only | Enable by default for relevant EVM plans and reviews. |
+| [Trail of Bits](https://github.com/trailofbits) | Threat modeling, secure development, smart-contract analysis, and security review procedures. | `security_guidance`: available_public; no_secret; read_only<br>`local_analysis`: catalogued; no_secret; read_only | Use relevant guidance and run local tools only when the artifact and environment permit it. |
+
+## Safety Boundary
+
+ProofPilot never asks for a private key, seed phrase, mnemonic, or raw secret in chat. Wallet, paid, deployment, resource-creation, and final-submission capabilities remain deferred until a specific action receives explicit approval and the runtime can enforce scope, limits, and audit logs.

@@ -1,30 +1,35 @@
 # Runtime Model
 
-ProofPilot is a skill/router package. A hosted implementation can add connectors, credentials, queues, and persistence, but the base repo stays portable.
+ProofPilot is a self-contained agent skill. The host agent performs reasoning and public research; a future hosted implementation can add persistence and live connectors without changing the core contracts.
 
 ## Layers
 
-1. `context_bundle`: user goals, constraints, team, timeline, assets, and selected track
-2. `skill_router`: chooses the focused skill for the current stage
-3. `source_catalog`: picks public or connected sources to check
-4. `credential_resolver`: determines whether a connector needs a key
-5. `permission_gate`: blocks paid, write, wallet, deploy, and final-submit actions until approved
-6. `evidence_normalizer`: turns external results into comparable notes
-7. `reviewer`: applies the relevant rubric
-8. `artifact_writer`: writes plans, pitches, submissions, reports, or checklists
+1. `intake`: goals, constraints, assets, and sensitivity
+2. `router`: mode, ordered stages, domains, venture type, and program context
+3. `source_planner`: smallest useful set of public or connected sources
+4. `evidence_normalizer`: facts, claims, conflicts, confidence, and retrieval metadata
+5. `stage_pipeline`: discover, validate, plan, review, and submit workflows
+6. `rubric_engine`: anchored score, evidence coverage, and provisional state
+7. `artifact_writer`: human response or structured response schema
+8. `permission_gate`: explicit boundary for writes, payment, wallets, deployment, and final submission
 
-## Permission Classes
+## Portable Skill
 
-- `read_only`: search, fetch, analyze, summarize
-- `draft_only`: generate content without external side effects
-- `write_nonfinal`: create drafts, branches, issues, docs, configs
-- `final_submit`: submit to an external platform or mark final
-- `wallet_or_paid_action`: sign, deploy, pay, spend credits, call paid APIs
+All files required by the agent live under `skills/proofpilot`:
 
-## Hosted Implementation Notes
+- `SKILL.md` contains core routing and decision rules
+- `references/*.md` contain stage workflows and safety rules
+- `references/*.json` contain machine-readable taxonomy, sources, tools, credentials, rubrics, and output schema
+- `agents/openai.yaml` exposes installable skill metadata
 
-- Run long external checks in a background worker.
-- Keep raw connector responses out of final prompts when possible; normalize first.
-- Store evidence links and timestamps.
-- Log permission grants and revocations.
-- Keep public source checks usable without credentials.
+The root CLI can copy this folder into Codex, Claude, or a generic agent skill directory.
+
+## Connector Boundary
+
+The registry describes capabilities, not promises that integrations are live. Each capability declares its status, permission class, and credential class. A public research capability and a wallet or deployment capability are represented separately even when they belong to the same tool.
+
+Live adapters should normalize responses before model use, store evidence links and timestamps, redact secrets, honor rate limits, and record explicit permission grants. Long external checks belong in a background worker in hosted deployments.
+
+## Superteam Integration
+
+Use `coach` mode in the participant workspace and `evaluator` mode in the judging pipeline. Keep their evidence stores and access policies separate. Evaluations should persist the rubric version, project artifact hash or version, evidence cutoff, dimension findings, coverage, and reviewer overrides for reproducibility.

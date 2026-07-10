@@ -1,98 +1,112 @@
 # ProofPilot
 
-Open-source AI guide for turning raw ideas into validated ventures, MVPs, pitches, and submissions.
+Evidence-first open-source guidance for turning uncertainty into a defensible venture decision.
 
-ProofPilot is not a hackathon-only tool. It helps a student, founder, web2 developer, web3 builder, community operator, or non-technical entrepreneur move from "I do not know what to build" to a concrete plan with evidence, risks, stack options, and next actions.
+ProofPilot helps a founder, small-business owner, student, community operator, technical builder, or non-technical entrepreneur discover an opportunity, validate it, plan the smallest useful test, review readiness, and prepare a pitch or application. It is not limited to software or hackathons.
 
-## What It Does
+## What Makes It Different
 
-ProofPilot routes a user's request through focused skills:
+ProofPilot is designed to resist confident but unsupported startup advice:
 
-- discover a promising direction from interests, constraints, skills, and market signals
-- validate an idea against public sources, startup frameworks, and similar projects
-- choose the right track: startup, web2, web3, AI app, data/ML, grant, community, or hackathon
-- scope an MVP that can be built with the available team, time, and budget
-- prepare a pitch, application, demo script, or hackathon submission
-- review readiness with a rubric before a founder talks to users, mentors, judges, or investors
+- facts, user claims, assumptions, inferences, and unknowns stay separate
+- material external claims require direct sources and retrieval dates
+- missing evidence produces a provisional conclusion, not a fabricated opportunity
+- every recommendation includes a success threshold and a kill or pivot condition
+- public and no-secret workflows run before optional connectors
+- coaching and formal evaluation use separate modes
+
+## How It Routes Work
+
+ProofPilot classifies a request across independent dimensions instead of forcing it into one track:
+
+- `mode`: `coach` or `evaluator`
+- `stages`: `discover`, `validate`, `plan`, `review`, `submit`
+- `domains`: web2, AI, web3, data/ML, community, no-code, physical-world business, or deep tech
+- `venture_type`: startup, small business, public good, nonprofit, internal tool, or open source
+- `program_context`: none, hackathon, grant, accelerator, incubator, or competition
+- `sensitivity`: public, team, confidential, or restricted
+
+A single request can run several stages. An AI and web3 startup preparing for a grant is no longer reduced to one ambiguous track.
 
 ## Example Request
 
 ```text
 I do not know what to build.
 I am good at sales and community, but I am not a developer.
-I have 2 weeks and one technical friend.
-Help me find a startup idea, check similar projects, pick an MVP, and prepare a pitch.
+I have two weeks and one technical friend.
+Find directions I can test, check the riskiest assumptions, and plan the smallest MVP.
 ```
 
-ProofPilot should answer with:
+The response should include evidence and unknowns, three to five distinct directions, one recommended test, a measurable threshold, a stop condition, sources checked and not checked, credential requirements, and the next actions.
 
-- clarifying questions only when required
-- 3 to 5 venture directions
-- evidence and comparable projects
-- recommended idea and why
-- MVP scope
-- stack or no-code path
-- risks and validation tasks
-- pitch/submission outline
-- connected tools needed, if any
+## Install And Inspect
 
-## Tracks
+Clone the repository and install dependencies:
 
-ProofPilot supports these default tracks:
+```bash
+npm install
+npm test
+node scripts/cli.js inspect
+```
 
-- `startup`: customer problem, market, MVP, GTM, pitch
-- `web2`: SaaS, marketplace, internal tool, consumer app, data product
-- `web3`: wallet, onchain actions, protocol integrations, security readiness
-- `ai_app`: LLM apps, copilots, workflows, RAG, voice/image/video tools
-- `data_ml`: datasets, notebooks, benchmarks, competitions
-- `hackathon`: rules, rubric, bounty fit, submission quality, demo readiness
-- `grant`: ecosystem fit, milestones, budget, impact proof
-- `community`: events, learning, memberships, reputation, achievements
+Install the self-contained skill for a supported agent runtime:
 
-## Credential Policy
+```bash
+node scripts/cli.js install --target codex
+node scripts/cli.js install --target claude
+```
 
-ProofPilot works without API keys first.
+Use `--dir <path>` for an exact custom destination and `--force` only when replacing an existing installation intentionally.
 
-It only asks for credentials when a selected connector unlocks a concrete action. Keys must never be pasted into chat or prompts. Any hosted implementation should store secrets through an encrypted credential layer.
+The CLI installs and validates the skill package. The selected agent runtime executes [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md).
 
-Default rollout:
+## Coach And Evaluator Modes
 
-1. No-secret sources: public docs, public hackathon pages, startup libraries, security guides.
-2. Read connectors: GitHub, Kaggle, Hugging Face, Colosseum Copilot, public APIs.
-3. Provider keys: OpenAI, Gemini, Anthropic, Llama, ElevenLabs, Vercel, Cloudflare, AWS, Azure.
-4. Wallet/action connectors: only after explicit permission gates, audit logs, spending limits, and sandbox wallets.
+`coach` mode helps improve a project and plan the next experiment.
 
-See [docs/credential-model.md](docs/credential-model.md).
+`evaluator` mode freezes the rubric, evidence cutoff, and allowed sources before scoring. It does not silently rewrite a submission or use private coaching history. Scores are reported with evidence coverage and confidence so Superteam or another operator can audit the result.
 
-## Included Tools
+## Tools And Credentials
 
-ProofPilot includes internal skills, public source catalogs, optional API connectors, and gated wallet/action tools.
+ProofPilot delivers value from public sources first. A tool can expose several capabilities with different controls: public research may need no secret, private repository access may need a scoped token, and deployment may remain deferred.
 
-Start with [docs/included-tools.md](docs/included-tools.md) for the full tool map: what each tool does, when ProofPilot uses it, which tracks it supports, and whether it needs credentials.
+The generated [tool catalog](docs/included-tools.md) distinguishes:
+
+- public references available now
+- connector specifications that do not yet ship a live adapter
+- implemented adapters
+- catalogued candidates requiring verification
+- deferred actions requiring stronger permission, cost, or security controls
+
+ProofPilot never asks for a private key, seed phrase, mnemonic, or raw API secret in chat.
 
 ## Repository Layout
 
 ```text
-skills/                 Agent skill definitions
-data/                   Source, tool, track, credential, and rubric registries
-docs/                   Runtime, workflow, and security model
-examples/               Example user requests and expected responses
-schemas/                JSON schema for registries
-scripts/                Validation and CLI helpers
+skills/proofpilot/
+  SKILL.md                 Canonical routing and safety instructions
+  agents/openai.yaml       Agent UI metadata
+  references/              Workflows, registries, rubrics, and schemas
+docs/                      Human-facing architecture and generated tool catalog
+examples/                  Requests, structured output, and evaluation cases
+scripts/                   CLI, documentation generator, and validator
 ```
 
-## Quick Start
+The `skills/proofpilot` directory is self-contained and can be installed without copying sibling skills or repository-level data files.
+
+## Development
 
 ```bash
+npm run generate:docs
 npm test
-node scripts/cli.js
+npm pack --dry-run
 ```
 
-To use ProofPilot in an agent runtime, start with [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md), then load the focused skill that matches the user's current stage.
+`npm test` validates JSON Schemas, cross-registry references, unique IDs, rubric weights, workflow links, example responses, evaluation contracts, and generated documentation.
 
 ## Status
 
-Alpha. The current repo is a portable skill/router package and reference registry. It does not yet include a hosted UI, secret vault, or live connector execution server.
+Alpha. Version 0.2 is a portable skill and evidence contract. Public research is usable through the host agent's tools, but ProofPilot does not yet ship a hosted UI, secret vault, persistence layer, or live external API adapters.
 
 ## License
 

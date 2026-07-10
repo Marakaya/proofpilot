@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofpilot.dev/schemas/response.schema.json",
+  "title": "ProofPilot structured response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "run", "diagnosis", "assumptions", "evidence", "recommendation", "sources_checked", "sources_not_checked", "credential_requests", "next_actions"],
+  "properties": {
+    "version": { "const": "0.2.0" },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "stages", "domains", "venture_type", "program_context", "sensitivity", "generated_at"],
+      "properties": {
+        "mode": { "enum": ["coach", "evaluator"] },
+        "stages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["discover", "validate", "plan", "review", "submit"] } },
+        "domains": { "type": "array", "uniqueItems": true, "items": { "enum": ["web2", "ai", "web3", "data_ml", "community", "no_code", "physical_world", "deep_tech"] } },
+        "venture_type": { "enum": ["startup", "small_business", "public_good", "nonprofit", "internal_tool", "open_source"] },
+        "program_context": { "enum": ["none", "hackathon", "grant", "accelerator", "incubator", "competition"] },
+        "sensitivity": { "enum": ["public", "team", "confidential", "restricted"] },
+        "generated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "diagnosis": { "type": "string", "minLength": 1 },
+    "assumptions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidenceItem" }
+    },
+    "directions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "customer", "painful_job", "first_test", "unknowns"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "name": { "$ref": "#/$defs/text" },
+          "customer": { "$ref": "#/$defs/text" },
+          "painful_job": { "$ref": "#/$defs/text" },
+          "first_test": { "$ref": "#/$defs/text" },
+          "unknowns": { "type": "array", "items": { "$ref": "#/$defs/text" } }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "rationale", "confidence", "success_threshold", "kill_or_pivot_condition"],
+      "properties": {
+        "decision": { "enum": ["test", "go_to_next_test", "pivot", "pause", "ready", "not_ready", "draft_complete"] },
+        "rationale": { "$ref": "#/$defs/text" },
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "success_threshold": { "$ref": "#/$defs/text" },
+        "kill_or_pivot_condition": { "$ref": "#/$defs/text" }
+      }
+    },
+    "experiments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "assumption", "method", "metric", "threshold", "deadline"],
+        "properties": {
+          "name": { "$ref": "#/$defs/text" },
+          "assumption": { "$ref": "#/$defs/text" },
+          "method": { "$ref": "#/$defs/text" },
+          "metric": { "$ref": "#/$defs/text" },
+          "threshold": { "$ref": "#/$defs/text" },
+          "deadline": { "$ref": "#/$defs/text" }
+        }
+      }
+    },
+    "mvp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["promise", "delivery_model", "must_haves", "non_goals", "measurement", "demo"],
+      "properties": {
+        "promise": { "$ref": "#/$defs/text" },
+        "delivery_model": { "$ref": "#/$defs/text" },
+        "must_haves": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+        "non_goals": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+        "measurement": { "$ref": "#/$defs/text" },
+        "demo": { "$ref": "#/$defs/text" }
+      }
+    },
+    "scorecards": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scorecard" }
+    },
+    "sources_checked": { "type": "array", "items": { "$ref": "#/$defs/sourceCheck" } },
+    "sources_not_checked": { "type": "array", "items": { "$ref": "#/$defs/sourceCheck" } },
+    "credential_requests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool_id", "capability_id", "credential_class", "reason", "minimum_scope"],
+        "properties": {
+          "tool_id": { "$ref": "#/$defs/id" },
+          "capability_id": { "$ref": "#/$defs/id" },
+          "credential_class": { "$ref": "#/$defs/id" },
+          "reason": { "$ref": "#/$defs/text" },
+          "minimum_scope": { "$ref": "#/$defs/text" }
+        }
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["order", "action", "owner", "done_when"],
+        "properties": {
+          "order": { "type": "integer", "minimum": 1 },
+          "action": { "$ref": "#/$defs/text" },
+          "owner": { "$ref": "#/$defs/text" },
+          "done_when": { "$ref": "#/$defs/text" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "text": { "type": "string", "minLength": 1 },
+    "nullableUrl": { "anyOf": [{ "type": "string", "format": "uri", "pattern": "^https://" }, { "type": "null" }] },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "claim", "source_id", "source_url", "retrieved_at", "evidence_type", "stance", "confidence", "summary"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "claim": { "$ref": "#/$defs/text" },
+        "source_id": { "$ref": "#/$defs/id" },
+        "source_url": { "$ref": "#/$defs/nullableUrl" },
+        "retrieved_at": { "type": "string", "format": "date-time" },
+        "evidence_type": { "enum": ["user_verified", "primary_current", "primary_historical", "secondary", "inference"] },
+        "stance": { "enum": ["supports", "contradicts", "neutral"] },
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "summary": { "$ref": "#/$defs/text" }
+      }
+    },
+    "sourceCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "status", "note"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["checked", "not_checked", "unavailable", "no_evidence_found"] },
+        "note": { "$ref": "#/$defs/text" }
+      }
+    },
+    "scorecard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rubric_id", "rubric_version", "weighted_score", "evidence_coverage", "provisional", "dimensions"],
+      "properties": {
+        "rubric_id": { "$ref": "#/$defs/id" },
+        "rubric_version": { "type": "string" },
+        "weighted_score": { "anyOf": [{ "type": "number", "minimum": 0, "maximum": 4 }, { "type": "null" }] },
+        "evidence_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "provisional": { "type": "boolean" },
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["dimension_id", "state", "score", "confidence", "evidence_ids", "finding"],
+            "properties": {
+              "dimension_id": { "$ref": "#/$defs/id" },
+              "state": { "enum": ["scored", "insufficient_evidence", "not_applicable"] },
+              "score": { "anyOf": [{ "type": "integer", "minimum": 0, "maximum": 4 }, { "type": "null" }] },
+              "confidence": { "enum": ["low", "medium", "high"] },
+              "evidence_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+              "finding": { "$ref": "#/$defs/text" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
