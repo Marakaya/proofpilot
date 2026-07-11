@@ -41,6 +41,8 @@ The response should include evidence and unknowns, three to five distinct direct
 
 ## Install And Inspect
 
+Requirements: Node.js 20 or later and npm.
+
 Clone the repository and install dependencies:
 
 ```bash
@@ -49,25 +51,52 @@ npm test
 node scripts/cli.js inspect
 ```
 
-Install the self-contained skill for a supported agent runtime:
+Install the self-contained skill for a supported agent runtime. Choose one target:
 
 ```bash
 node scripts/cli.js install --target codex
 node scripts/cli.js install --target claude
+node scripts/cli.js install --target agents
 ```
 
 Use `--dir <path>` for an exact custom destination and `--force` only when replacing an existing installation intentionally.
 
-The CLI installs and validates the skill package. The selected agent runtime executes [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md).
+The CLI installs and validates the skill package. The selected agent runtime executes [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md). Restart or reopen the runtime after installation so it discovers the new skill.
+
+## Quick Start
+
+In Codex, invoke ProofPilot explicitly with `$proofpilot`:
+
+```text
+$proofpilot
+
+I do not know what to build. I have two weeks, access to university communities,
+and no technical cofounder. Find directions worth testing and plan the smallest
+experiment that could disprove the strongest idea.
+```
+
+Other supported runtimes can invoke the installed `proofpilot` skill through their normal skill picker or invocation syntax. ProofPilot may also activate from a matching founder, validation, MVP, review, pitch, grant, accelerator, or hackathon request.
+
+## Optional Stage Profiles
 
 The repository also ships five opt-in stage profiles. They are not installed by the default CLI because the main skill already routes every stage and broad implicit triggers can compete. Install them deliberately when a runtime benefits from direct stage invocation:
 
+| Profile | Direct stage |
+|---|---|
+| `proofpilot-idea-discovery` | Discover opportunities from constraints and access |
+| `proofpilot-venture-validation` | Test demand and risky assumptions |
+| `proofpilot-mvp-planner` | Plan the smallest useful experiment or MVP |
+| `proofpilot-readiness-review` | Review evidence and readiness with a rubric |
+| `proofpilot-submission-builder` | Prepare a pitch, grant, accelerator, or hackathon application |
+
+For a fresh Codex installation, use the profile installer instead of the main-only `install --target codex` command above. It installs the main router and all five profiles together:
+
 ```bash
-npm run install:profiles
+npm run install:profiles -- --copy
 npm run validate:profiles
 ```
 
-The profiles share the canonical references from `skills/proofpilot/references`; they do not maintain a second registry.
+The profile installer targets `$CODEX_HOME/skills` or `~/.codex/skills` by default. Pass `--target <skill-root>` for another runtime. Add `--force` only when intentionally replacing an existing ProofPilot installation. The profiles share the canonical references from `skills/proofpilot/references`; they do not maintain a second registry.
 
 ## Focused Extensions
 
@@ -78,6 +107,12 @@ The self-contained skill includes additional playbooks merged into the v0.2 evid
 - Pitch and presentation work selects a hackathon, investor, angel, accelerator, grant, or partner deck before drafting.
 - `honest-evaluation.md` requires explicit `wait`, `pivot`, `stop`, or not-ready verdicts when evidence does not justify encouragement.
 - Source playbooks prioritize local and public evidence before optional account connections.
+
+Inspect which supported local skills, shared source packs, and credential classes are available without printing secret values:
+
+```bash
+npm run discover:sources
+```
 
 ## Coach And Evaluator Modes
 
@@ -93,7 +128,7 @@ The generated [tool catalog](docs/included-tools.md) distinguishes:
 
 - public references available now
 - connector specifications that do not yet ship a live adapter
-- implemented adapters
+- implemented adapters, when present; v0.2 does not ship any
 - catalogued candidates requiring verification
 - deferred actions requiring stronger permission, cost, or security controls
 
@@ -106,6 +141,7 @@ skills/proofpilot/
   SKILL.md                 Canonical routing and safety instructions
   agents/openai.yaml       Agent UI metadata
   references/              Workflows, registries, rubrics, and schemas
+  scripts/                 Local source discovery without secret disclosure
 docs/                      Human-facing architecture and generated tool catalog
 examples/                  Requests, structured output, and evaluation cases
 scripts/                   CLI, documentation generator, and validator
