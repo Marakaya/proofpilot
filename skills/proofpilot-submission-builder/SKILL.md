@@ -1,42 +1,21 @@
 ---
 name: proofpilot-submission-builder
-description: Use when a user needs ProofPilot to draft or improve a pitch, grant application, YC application, Techstars application, 500 Global application, Antler application, EF application, accelerator application, Devpost, Colosseum, ETHGlobal, hackathon submission, demo narrative, reviewer notes, or application asset checklist with blunt feedback.
+description: Use when drafting or improving a pitch, grant, accelerator, or hackathon application and its supporting materials.
 ---
 
 # ProofPilot Submission Builder
 
-## Resources
+This optional profile selects the `submit` stage of the shared ProofPilot workflow.
 
-- Load `references/taxonomy.json` to identify domains, venture type, and program context.
-- Load `references/decision-lenses.json` for relevant proof and risk requirements.
-- Load `references/source-playbooks.json` for sponsor, hackathon, grant, and ecosystem source order.
-- Load `references/judgment-policy.json` and apply `references/honest-evaluation.md`.
-- Load `references/accelerator-programs.json`, `references/accelerator-checklist.json`, and `references/accelerators.md` for accelerator applications.
-- Load `references/presentation-decks.json`, `references/presentation-checklist.json`, and `references/presentations.md` for pitch decks, hackathon decks, investor decks, angel decks, and Google Slides/PPTX deliverables.
-- Load `references/source-registry.json` to identify relevant sponsor, hackathon, grant, or ecosystem sources.
-- Load `references/credential-registry.json` before using connected sources.
-- For Solana hackathon or grant submissions, read `references/solana-new.md` and use solana.new submission/build context before drafting.
+First read [onboarding.md](references/onboarding.md). Colosseum access is required for completed ProofPilot setup in this profile too. Check existing access, reuse a verified key, and guide secure local setup if needed; keep the original task pending. Other keys are optional. Apply the explicit limited/offline-work exception from that reference.
 
-## Process
+1. For substantial assessments, follow [quality.md](references/quality.md) from frozen evidence through checks and bounded repair, even for prose output and on every model. Read [routing.md](references/routing.md), [decisions.md](references/decisions.md), [evidence.md](references/evidence.md), and [safety.md](references/safety.md). Classify mode, stages, domains, venture type, program context, and sensitivity independently.
+2. Follow [submit.md](references/submit.md). Add another stage only when the user's request needs it. Ask at most three questions when they materially change the decision; otherwise state assumptions and continue.
+3. Start relevant project/archive research with Colosseum, then select the smallest useful complementary source set from [source-registry.json](references/source-registry.json) and applicable [source-playbooks.json](references/source-playbooks.json). Check actual availability and current official facts. Read [source-orchestration.md](references/source-orchestration.md) for local discovery or nested skills.
+4. For validation or readiness, apply [honest-evaluation.md](references/honest-evaluation.md). Use [rubrics.json](references/rubrics.json) for scoring, with supported scores and evidence coverage; never substitute tone for rigor.
+5. Load [accelerators.md](references/accelerators.md), [presentations.md](references/presentations.md), or [solana-new.md](references/solana-new.md) only when relevant. Load [product-market-fit.md](references/product-market-fit.md) for value, retention, monetization, scaling, or Sequoia; [ai-product-validation.md](references/ai-product-validation.md) when AI quality, economics, or automation materially affects the decision.
+6. Return the checked stage output and next defensible decision; disclose unresolved material checks from [quality.md](references/quality.md). Narrow edits need only relevant accuracy/format checks. For structured output use [response.schema.json](references/response.schema.json) and resolve `scripts/validate-response.js` from this installed profile's directory.
 
-1. Identify the target format: pitch deck, angel deck, investor deck, hackathon deck, grant, accelerator application, Devpost, Colosseum, ETHGlobal, Google Slides, PPTX, or custom.
-2. Map required fields and judging criteria.
-3. Check required source playbooks for precedent, sponsor, ecosystem, or grant proof.
-4. If the application is not ready, say so before drafting and provide a proof sprint or rewrite plan.
-5. Draft concise answers with proof, demo links, team strengths, traction, risks, and next milestones.
-6. Flag missing assets and weak claims.
-7. Keep final submission under human control.
+Check current program rules when relevant. A completed draft is not a decision to send it. A narrow copy or layout edit does not require a new venture assessment.
 
-## Safety
-
-Do not final-submit, spend credits, deploy, sign, or publish without explicit user approval.
-
-## Output
-
-- completed draft
-- blunt readiness verdict
-- missing fields
-- asset checklist
-- reviewer notes
-- sources checked and proof gaps
-- final-submit warning if relevant
+Respect the user's actual business goal and existing scoped authorization. Local drafts and requested reversible edits are within the task; external writes, payment, deployment, signing, or submission require authorization covering that action. Pass these bounds into delegated tools.

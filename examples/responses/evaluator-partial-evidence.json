@@ -1,0 +1,141 @@
+{
+  "version": "0.3.0",
+  "run": {
+    "mode": "evaluator",
+    "stages": [
+      "review"
+    ],
+    "domains": [
+      "community",
+      "no_code"
+    ],
+    "venture_type": "startup",
+    "program_context": "none",
+    "sensitivity": "team",
+    "generated_at": "2026-09-05T10:00:00Z",
+    "evaluation_snapshot": {
+      "evidence_cutoff": "2026-09-05T09:00:00Z",
+      "allowed_source_ids": [
+        "user_artifacts"
+      ],
+      "artifacts": [
+        {
+          "id": "provided_packet_v1",
+          "location": "examples/responses/evaluator-partial-evidence.json (embedded synthetic input facts)",
+          "version": "fixture-v1"
+        }
+      ]
+    }
+  },
+  "diagnosis": "Synthetic contract fixture: the provided packet describes a specific customer and comparable alternatives, but contains no observed demand or commitment. This is not a real project evaluation.",
+  "assumptions": [
+    "All project facts in this example are synthetic test inputs."
+  ],
+  "evidence": [
+    {
+      "id": "observed_packet",
+      "claim": "The supplied synthetic packet identifies the buyer, workflow, trigger, and comparison table.",
+      "source_id": "user_artifacts",
+      "source_url": null,
+      "retrieved_at": "2026-09-05T08:00:00Z",
+      "evidence_type": "user_verified",
+      "stance": "supports",
+      "confidence": "medium",
+      "summary": "Verified within the embedded fixture-v1 input: buyer = independent community operator; user = reporting coordinator; trigger = weekly sponsor update; alternatives = spreadsheet, manual email, and no report. No external verification is implied.",
+      "artifact_ref": "provided_packet_v1"
+    }
+  ],
+  "recommendation": {
+    "decision": "proceed",
+    "rationale": "Customer framing is concrete; run a behavioral experiment to fill the demand and commitment gaps.",
+    "confidence": "low",
+    "success_threshold": "At least three of five suitable operators describe the workflow as recurring and two agree to provide data for a manual pilot.",
+    "kill_or_pivot_condition": "Pause or switch direction if fewer than two operators will provide data or if the current spreadsheet workflow takes less than one staff-hour per week.",
+    "target": "test"
+  },
+  "sources_checked": [
+    {
+      "source_id": "user_artifacts",
+      "status": "checked",
+      "note": "Read only the embedded synthetic input packet fixture-v1."
+    }
+  ],
+  "sources_not_checked": [],
+  "credential_requests": [],
+  "next_actions": [
+    {
+      "order": 1,
+      "action": "Recruit five community operators who currently produce progress reports.",
+      "owner": "Founder",
+      "done_when": "Five suitable interviews are scheduled."
+    },
+    {
+      "order": 2,
+      "action": "Observe the current workflow and record frequency, staff time, errors, and current tools.",
+      "owner": "Founder",
+      "done_when": "Every interview has the same four behavioral fields recorded."
+    },
+    {
+      "order": 3,
+      "action": "Offer a one-week manual report pilot to operators who meet the pain threshold.",
+      "owner": "Founder",
+      "done_when": "At least two operators provide data or the direction reaches its kill condition."
+    }
+  ],
+  "blocking_checks": [],
+  "scorecards": [
+    {
+      "rubric_id": "venture_validation",
+      "rubric_version": "0.3.0",
+      "weighted_score": 4,
+      "evidence_coverage": 0.3,
+      "provisional": true,
+      "dimensions": [
+        {
+          "dimension_id": "customer_specificity",
+          "state": "scored",
+          "score": 4,
+          "confidence": "medium",
+          "evidence_ids": [
+            "observed_packet"
+          ],
+          "finding": "The synthetic supplied packet includes the required customer framing or alternatives."
+        },
+        {
+          "dimension_id": "problem_evidence",
+          "state": "insufficient_evidence",
+          "score": null,
+          "confidence": "low",
+          "evidence_ids": [],
+          "finding": "The input packet contains no observation for this dimension; request evidence instead of assigning a zero."
+        },
+        {
+          "dimension_id": "alternative_landscape",
+          "state": "scored",
+          "score": 4,
+          "confidence": "medium",
+          "evidence_ids": [
+            "observed_packet"
+          ],
+          "finding": "The synthetic supplied packet includes the required customer framing or alternatives."
+        },
+        {
+          "dimension_id": "commitment_signal",
+          "state": "insufficient_evidence",
+          "score": null,
+          "confidence": "low",
+          "evidence_ids": [],
+          "finding": "The input packet contains no observation for this dimension; request evidence instead of assigning a zero."
+        },
+        {
+          "dimension_id": "risk_test_quality",
+          "state": "insufficient_evidence",
+          "score": null,
+          "confidence": "low",
+          "evidence_ids": [],
+          "finding": "The input packet contains no observation for this dimension; request evidence instead of assigning a zero."
+        }
+      ]
+    }
+  ]
+}

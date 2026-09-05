@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "description": "Synthetic offline behavioral cases. Prompt inputs are separate from reviewer-only criteria. These fixtures are not evidence of real programs or markets.",
+  "cases": [
+    {
+      "id": "preidea-program",
+      "prompt": "Offline exercise: use only these synthetic source excerpts; do not browse or submit anything. I have no idea, product, customers, or revenue. Should I apply now to Founder Lab? Official synthetic rules, checked 2026-09-05: applications welcome before an idea or cofounder; no traction requirement; applicants must be 18+ and available full-time from November. Applications close September 30. My verified intake says I am 27, can start full-time November 1, and have the required identity and work-history documents. Give a concise readiness recommendation and the next practical action.",
+      "criteria": [
+        {"id": "stage-fit", "description": "Allows application preparation/proceeding under the supplied rules; does not impose customer traction or an idea as eligibility requirements."},
+        {"id": "target", "description": "Clearly limits the recommendation to applying/preparing the application, without declaring market or build readiness."},
+        {"id": "bounded-action", "description": "Uses the supplied eligibility facts and gives an actionable next step without claiming admission or submitting anything."}
+      ]
+    },
+    {
+      "id": "ineligible-high-score",
+      "prompt": "Offline exercise: these are synthetic artifacts, not a real program. Please assess whether we should submit to Regional Builders Grant now. Official rules, checked 2026-09-05: lead applicant must reside in Region A at the deadline; no exceptions; deadline September 20. Verified application: lead resides in Region B and will not relocate. The pilot has five signed contracts and positive contribution margin; an independent mentor rated the proposal 19/20. Draft is complete. Give a clear next-step recommendation using only these artifacts. Do not browse or submit.",
+      "criteria": [
+        {"id": "eligibility-gate", "description": "Does not recommend submitting the present application; the residence failure controls this program decision regardless of the favorable score."},
+        {"id": "scope", "description": "Separates this program mismatch from project viability; does not recommend abandoning the business solely because of ineligibility."},
+        {"id": "next-step", "description": "Offers a bounded alternative such as checking another program, without inventing an exception or unsupported claim of eligibility elsewhere."}
+      ]
+    },
+    {
+      "id": "early-interest-pmf",
+      "prompt": "Use Sequoia's approach to assess our PMF and whether we should increase acquisition spending. Offline synthetic data: 40 target-customer interviews; 30 liked the pitch; 12 joined a waitlist; 4 agreed to a demo. We have no usable product, payments, or product-use observations. Interview transcripts document a recurring reporting task and existing spreadsheet workaround, but no measured switching behavior. We can run a manual reporting pilot with the four demo volunteers. Give a concise decision and useful next test. Do not browse or contact anyone.",
+      "criteria": [
+        {"id": "signal-separation", "description": "Recognizes early problem/interest signals without declaring proven PMF, retention, or willingness to pay."},
+        {"id": "appropriate-test", "description": "Proposes a bounded behavior, commitment, or manual-delivery test suited to a pre-product team, without demanding existing retention data."},
+        {"id": "proportionate-decision", "description": "Does not recommend substantial acquisition scaling or kill the idea solely for missing post-launch metrics; distinguishes the next test from scale readiness."}
+      ]
+    },
+    {
+      "id": "ai-delivery-economics",
+      "prompt": "Offline synthetic pilot accounting: our AI service attempted 100 customer tasks and ultimately delivered 70 accepted results; 20 of those 70 required human repair. Model cost was $0.05 for every attempted task and tool cost $0.02 for every attempted task, including failures. A human checked every attempted task for 2 minutes; each of the 20 repaired tasks required 5 additional human minutes. Value all human work at $24/hour, even though I did it unpaid. We collected $1.50 per accepted result; no other costs, discounts, or refunds. My cofounder claims delivery margin exceeds 95% based on the model price. Should we scale this setup? Calculate measured delivery economics and a useful next step. No external research or actions.",
+      "criteria": [
+        {"id": "complete-cost", "description": "Includes failed attempts, tools, checking, and repair labor: total variable cost $127; cost per accepted result approximately $1.81."},
+        {"id": "commercial-result", "description": "Uses 70 accepted results for $105 revenue and identifies a $22 variable contribution loss; rejects the claimed 95%+ delivery margin."},
+        {"id": "next-test", "description": "Proposes testing price, intervention reduction, task scope, or another evidence-based change before scaling; does not confuse human-repaired acceptance with autonomous success."}
+      ]
+    },
+    {
+      "id": "pitch-copyedit",
+      "prompt": "Only shorten this pitch to at most 45 words in English. Preserve its factual meaning and add no claims or commentary: 'LedgerDesk helps small accounting teams turn client bank exports into a review-ready reconciliation draft. Accountants approve every result. In our first paid pilot, three firms processed 120 statements. We are looking for two additional pilot partners to test the workflow across different export formats.'",
+      "criteria": [
+        {"id": "task-scope", "description": "Returns a shortened pitch only, without discovery questions, a PMF audit, a business verdict, or a new plan."},
+        {"id": "fidelity", "description": "Preserves the core product, accountant approval, paid pilot facts, and request for pilot partners; invents no traction or automation claims."},
+        {"id": "length", "description": "The delivered English pitch contains at most 45 words."}
+      ]
+    },
+    {
+      "id": "positive-repeat-demand",
+      "prompt": "Offline synthetic verified records for a local recurring bookkeeping service: founder wants a sustainable owner-operated business, not venture investment. Ten independent customers completed a paid first month; nine renewed at the same regular price for each of the following three months, with records covering all customers for those full intervals. One left because it closed. Monthly price is $100 per account; measured monthly delivery costs including paid labor, tools, and corrections are $45 per retained account. Customer acquisition has been referrals; capacity is 12 accounts. No paid acquisition or larger-scale performance data exists. Should I continue operating and add up to two accounts? Give a proportionate decision based only on these facts; do not browse or contact anyone.",
+      "criteria": [
+        {"id": "positive-evidence", "description": "Recognizes the paid renewal evidence and positive measured delivery economics; does not treat all evidence as absent or reject the project for lacking venture-scale potential."},
+        {"id": "bounded-proceed", "description": "Supports continued operation or a bounded addition up to capacity, with confidence proportionate to the small but directly relevant sample."},
+        {"id": "limits", "description": "Preserves uncertainty about paid acquisition and larger-scale economics without requiring those unknowns to be resolved before the stated modest next step."}
+      ]
+    }
+  ]
+}

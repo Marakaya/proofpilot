@@ -1,6 +1,10 @@
 {
   "accelerator_readiness_rubric": {
-    "scores": ["red", "yellow", "green"],
+    "scores": [
+      "red",
+      "yellow",
+      "green"
+    ],
     "dimensions": [
       {
         "id": "plain_description",
@@ -54,10 +58,11 @@
       }
     ],
     "verdicts": {
-      "apply_now": "Enough evidence and clarity to apply now; focus on tightening answers and interview prep.",
-      "apply_after_7_day_sprint": "Potentially viable, but needs a focused 7-day proof sprint before applying.",
-      "wait": "Do not apply yet; missing proof would likely waste the application.",
-      "pivot": "The current idea or program target is wrong; change wedge, customer, or target program."
-    }
+      "proceed": "Apply only when actual mandatory checks pass and the scope is justified.",
+      "revise": "Change the application or program target based on evidence.",
+      "pause": "Resolve a named uncertainty or dependency before applying.",
+      "stop": "End this application approach when evidence supports doing so."
+    },
+    "decision_contract": "decisions.md; target=apply; drafting uses target=artifact, decision=complete"
   }
 }

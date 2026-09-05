@@ -1,5 +1,7 @@
 # Workflow
 
+Substantial recommendations and verdicts, including prose, follow [quality.md](../skills/proofpilot/references/quality.md): freeze the evidence before drafting, use executable checks, review claims against source context, and repair only evidenced defects. Stop after acceptance, repeated material failure, unavailable evidence, or at most two repairs. Keep narrow edits within their original scope.
+
 ProofPilot uses an ordered stage pipeline with independent classification dimensions.
 
 ## 1. Intake And Safety
@@ -31,7 +33,7 @@ Domains and program context do not replace stages. A project can be `ai + web3`,
 
 ## 3. Source Plan
 
-Choose only sources that can affect the current decision. Start with user artifacts and public primary sources. Add a connector only when it unlocks a named task.
+Complete the shared Colosseum setup gate first. Choose only sources that can affect the current decision: use Colosseum for relevant project/archive research, user artifacts for actual project evidence, and current public primary sources for domain facts and rules. Add other optional connections only for a named capability. Respect the explicit limited/offline-work exception in onboarding.md.
 
 Use focused source playbooks for Solana, accelerator, presentation, or multi-ecosystem research. Treat local installed skill packs as optional sources and refresh current rules, terms, protocol health, and technical recommendations from official sources before final advice.
 
@@ -61,6 +63,10 @@ Return the next defensible decision, not a promise that the venture will work. I
 - credentials needed, if any
 - one to five ordered next actions
 
+Separate the decision target (test, build, apply, artifact) from its action (proceed, revise, pause, stop, complete). Completion applies only to an artifact. Mandatory conditions have passed, failed, or unknown states and cannot be averaged into readiness. Use the PMF and AI references only when they change this decision. A narrow requested edit can end with a completed artifact without an experiment.
+
 ## 6. Evaluation
 
 Formal evaluation uses `evaluator` mode. Freeze the rubric version, evidence cutoff, and allowed sources before scoring. Keep private coaching context outside the evaluation unless the published policy allows it equally for every participant.
+
+Include versioned artifacts, the evidence cutoff, and allowed sources in the snapshot. Unknown dimensions lower coverage and make the result provisional; they are not zero scores. Event assessments use [event-assessment.md](../skills/proofpilot/references/event-assessment.md) and `event-score.js`, retaining the fixed 100-point denominator and a null final total when incomplete. Other structured output uses the packaged response checker. Quality packets require explicit `mode`; evaluator mode automatically requires independent review.

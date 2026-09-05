@@ -46,6 +46,24 @@ Evaluate these finalist submissions using the published rubric.
 Freeze the evidence cutoff, score only the submitted artifacts, report evidence coverage, and do not use private coaching history.
 ```
 
+## Workshop Organizer
+
+```text
+$proofpilot
+Prepare a short participant form and judging guide for a three-hour API workshop.
+The assignment is to build on our starter template. We assess learning and a working
+result, not commercial potential. Use only these event requirements; no external research.
+```
+
+## Participant Self-Review
+
+```text
+$proofpilot
+Use coach mode to check my Solana hackathon submission against the supplied event rules.
+Here are the commit, README, demo scenario and transcript. Tell me what is supported,
+what remains unverified and what I should fix before submitting. Do not rank other teams.
+```
+
 ## Structured Output
 
 ```text

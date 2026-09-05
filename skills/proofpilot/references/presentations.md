@@ -2,7 +2,7 @@
 
 Use this reference when the user needs slides, a pitch deck, demo deck, investor deck, angel deck, grant deck, accelerator deck, or presentation review.
 
-Always apply `honest-evaluation.md` first. A polished deck cannot rescue a weak story. Say so directly.
+Apply `honest-evaluation.md` when giving a readiness verdict. Keep claims faithful to their evidence. A narrow copy or layout edit does not require a full venture assessment.
 
 ## Data Files
 
@@ -23,6 +23,8 @@ Use these existing tools when available:
 - `brand-design`: brand palette/logo/system when the project lacks visual identity.
 
 ## Deck Selection
+
+Lengths and slide sequences below are ProofPilot defaults, not official program requirements. Use the current requested format first; some programs use forms or videos instead of a deck. Adapt proof requirements to founder-first and pre-product stages.
 
 | Need | Deck Type | Default Length | What Wins |
 |---|---:|---:|---|
@@ -59,7 +61,7 @@ Use these existing tools when available:
 
 - Use `accelerators.md`.
 - Prove founder edge and speed.
-- Do not recommend applying if the story has no people-want-it evidence.
+- Check the actual program's stage and requirements. Founder-first programs can accept applicants before a product or customer evidence; distinguish formal fit from application strength.
 
 ## Output Standards
 
@@ -67,7 +69,7 @@ When reviewing or drafting:
 
 - pick the deck type
 - state the audience
-- give a blunt readiness verdict
+- give a readiness verdict when requested or needed for the decision
 - list missing proof
 - produce the slide sequence
 - write slide titles in plain language

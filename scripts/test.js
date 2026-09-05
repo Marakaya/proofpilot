@@ -5,6 +5,16 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { validateRepository } from "./validate.js";
+import { runResponseTests } from "./test-response.js";
+import { runBehaviorCliTests } from "./test-eval-behavior.js";
+import { runDiscoveryCredentialTests } from "./test-discovery-credentials.js";
+import { runFreshnessTests } from "./test-freshness.js";
+import { runSetupTests } from "./test-setup.js";
+import { runInstallOnboardingTests } from "./test-install-onboarding.js";
+import { runColosseumReadTests } from "./test-colosseum-read.js";
+import { runServiceAccessTests } from "./test-service-access.js";
+import { runQualityTests } from "./test-quality.js";
+import { runEventScoreTests } from "./test-event-score.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, "scripts", "cli.js");
@@ -25,10 +35,24 @@ function runCli(args, expectedStatus = 0) {
 }
 
 const summary = validateRepository();
+const responseTests = runResponseTests();
+const behaviorCliTests = runBehaviorCliTests();
+const discoveryCredentialTests = runDiscoveryCredentialTests();
+const freshnessTests = runFreshnessTests();
+const setupTests = runSetupTests();
+const installOnboardingTests = runInstallOnboardingTests();
+const colosseumReadTests = runColosseumReadTests();
+const serviceAccessTests = runServiceAccessTests();
+const qualityTests = runQualityTests();
+const eventScoreTests = runEventScoreTests();
+runCli(["event", "list"]);
+runCli(["event", "check"], 1);
+runCli(["validate-response", "examples/responses/evaluator-partial-evidence.json"]);
+runCli(["validate-response"], 1);
 const inspectResult = runCli(["inspect", "--json"]);
 const manifest = JSON.parse(inspectResult.stdout);
 
-if (manifest.version !== "0.2.0" || manifest.tools !== summary.tools) {
+if (manifest.version !== "0.3.0" || manifest.tools !== summary.tools) {
   throw new Error("CLI inspect output does not match the validated registries");
 }
 
@@ -69,5 +93,5 @@ if (profileResult.status !== 0) {
 
 console.log(
   `ProofPilot tests passed: ${summary.tools} tools, ${summary.capabilities} capabilities, ` +
-    `${summary.rubrics} rubrics, ${summary.evalCases} eval contracts.`
+    `${summary.rubrics} rubrics, ${summary.evalCases} routing contracts, ${responseTests.cases} response tests, ${behaviorCliTests.cases} eval CLI tests, ${discoveryCredentialTests.scenarios} credential scenarios, ${freshnessTests.cases} freshness tests, ${setupTests.cases} setup tests, ${installOnboardingTests.cases} onboarding install scenarios, ${colosseumReadTests.cases} Colosseum read tests, ${serviceAccessTests.cases} service-access tests, ${qualityTests.cases} quality workflow tests, ${eventScoreTests.cases} event score tests.`
 );

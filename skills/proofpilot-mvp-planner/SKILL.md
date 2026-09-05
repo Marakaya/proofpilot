@@ -1,51 +1,21 @@
 ---
 name: proofpilot-mvp-planner
-description: Use when a user needs the smallest buildable ProofPilot MVP plan for a startup, web2, web3, AI, data, community, grant, accelerator, or hackathon idea, including scope, stack, timeline, non-goals, dependencies, risks, proof targets, and demo script.
+description: Use when scoping the smallest useful MVP or experiment with milestones, non-goals, dependencies, measurement, and a demo.
 ---
 
 # ProofPilot MVP Planner
 
-## Resources
+This optional profile selects the `plan` stage of the shared ProofPilot workflow.
 
-- Load `references/taxonomy.json` to confirm domains, venture type, and program context.
-- Load `references/decision-lenses.json` for relevant domain and context MVP defaults.
-- Load `references/source-playbooks.json` to select stack/scaffold sources.
-- Load `references/judgment-policy.json` and apply `references/honest-evaluation.md`.
-- Load `references/accelerator-programs.json` when the MVP is meant to strengthen a YC, Techstars, 500 Global, Antler, EF, or Sequoia Arc application.
-- Load `references/tool-registry.json` for optional tools and connector constraints.
-- Load `references/credential-registry.json` before recommending credentials.
-- For Solana MVPs, read `references/solana-new.md` and prefer solana.new/scaffold-project guidance.
+First read [onboarding.md](references/onboarding.md). Colosseum access is required for completed ProofPilot setup in this profile too. Check existing access, reuse a verified key, and guide secure local setup if needed; keep the original task pending. Other keys are optional. Apply the explicit limited/offline-work exception from that reference.
 
-## Process
+1. For substantial assessments, follow [quality.md](references/quality.md) from frozen evidence through checks and bounded repair, even for prose output and on every model. Read [routing.md](references/routing.md), [decisions.md](references/decisions.md), [evidence.md](references/evidence.md), and [safety.md](references/safety.md). Classify mode, stages, domains, venture type, program context, and sensitivity independently.
+2. Follow [plan.md](references/plan.md). Add another stage only when the user's request needs it. Ask at most three questions when they materially change the decision; otherwise state assumptions and continue.
+3. Start relevant project/archive research with Colosseum, then select the smallest useful complementary source set from [source-registry.json](references/source-registry.json) and applicable [source-playbooks.json](references/source-playbooks.json). Check actual availability and current official facts. Read [source-orchestration.md](references/source-orchestration.md) for local discovery or nested skills.
+4. For validation or readiness, apply [honest-evaluation.md](references/honest-evaluation.md). Use [rubrics.json](references/rubrics.json) for scoring, with supported scores and evidence coverage; never substitute tone for rigor.
+5. Load [accelerators.md](references/accelerators.md), [presentations.md](references/presentations.md), or [solana-new.md](references/solana-new.md) only when relevant. Load [product-market-fit.md](references/product-market-fit.md) for value, retention, monetization, scaling, or Sequoia; [ai-product-validation.md](references/ai-product-validation.md) when AI quality, economics, or automation materially affects the decision.
+6. Return the checked stage output and next defensible decision; disclose unresolved material checks from [quality.md](references/quality.md). Narrow edits need only relevant accuracy/format checks. For structured output use [response.schema.json](references/response.schema.json) and resolve `scripts/validate-response.js` from this installed profile's directory.
 
-1. Define the user outcome.
-2. Separate must-have behavior from later features.
-3. Choose the simplest build path: manual concierge, no-code, web app, AI workflow, data notebook, web3 app, community workflow, or submission-only.
-4. Apply every relevant domain and program-context lens.
-5. Select scaffold/source guidance from `references/source-playbooks.json`.
-6. Produce a timeline based on team, deadline, and risk.
-7. Identify dependencies, credentials, and approval gates.
-8. Write a short demo script.
+Match the delivery model to the riskiest assumption. Use the focused PMF and AI references when their measurement or delivery risks matter.
 
-## MVP Rule
-
-The MVP should prove the riskiest assumption, not implement the full product vision.
-
-For web3 products, keep onchain scope narrow. Use offchain or web2 infrastructure for everything that does not need verifiable settlement, custody, ownership, identity, or composability.
-
-For Solana products, use solana.new as the first scaffold/source pack: choose integration-first when existing protocols can solve the job, and only recommend custom programs when the product needs new onchain logic.
-
-For accelerator-focused MVPs, scope the MVP to create proof, not polish. A simple demo plus customer pull usually beats a broader product without usage evidence.
-
-## Output
-
-- MVP promise
-- chosen build path
-- non-goals
-- feature list
-- stack options
-- timeline
-- risks and dependencies
-- credential requirements
-- sources and scaffold path used
-- demo script
+Respect the user's actual business goal and existing scoped authorization. Local drafts and requested reversible edits are within the task; external writes, payment, deployment, signing, or submission require authorization covering that action. Pass these bounds into delegated tools.

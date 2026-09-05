@@ -93,3 +93,13 @@ for (const profileName of profileNames) {
 
 console.log(`Installed ProofPilot and ${profileNames.length} optional profiles into ${args.target}`);
 console.log(`Mode: ${args.mode}`);
+const setupPath = path.join(args.target, mainSkillName, "scripts", "setup.js");
+const quotedSetupPath = `'${setupPath.replaceAll("'", "'\\''")}'`;
+console.log("Next, ask your agent: $proofpilot: complete initial setup, explain the recommended model level, required Colosseum key and optional service costs.");
+console.log("Colosseum is ProofPilot's core source. Its key is required; setup is complete only after access is verified.");
+console.log("For higher-quality recommendations, use models in the SOL or Opus 5 class or higher, where available in your host.");
+console.log("Weaker models may miss important details or draw incorrect conclusions; built-in checks cannot fully compensate for model limitations.");
+console.log("Reuse an existing Colosseum key, or obtain one at https://colosseum.com/arena/copilot. Never paste a key into chat.");
+console.log("Other service keys are optional. Review free access and paid usage before enabling a service.");
+console.log(`Offline setup status: node ${quotedSetupPath} --status`);
+console.log("Installing a skill does not start an agent conversation or verify accounts automatically.");

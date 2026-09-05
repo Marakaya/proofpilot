@@ -10,6 +10,7 @@ Use this workflow when the project needs a testable MVP, experiment, build path,
 4. Fit the scope to team skill, time, budget, distribution, compliance, and program constraints.
 5. Identify dependencies, credentials, external services, data, security work, and fallback paths.
 6. Add instrumentation that can prove whether the MVP worked.
+   For product-market fit, measure first value, repeated meaningful use, payment, or renewal as appropriate to the stage. For AI, validate accepted outcomes and full delivery costs before promising autonomy or unit economics; use the focused PMF and AI references.
 7. Produce a demo script that shows the promised outcome rather than a feature tour.
 
 ## Required Output

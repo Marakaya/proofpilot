@@ -1,0 +1,280 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { createResponseValidator } from "./validate.js";
+import { calculateScorecard, validateResponseSemantics, validateResponseStructure } from "../skills/proofpilot/scripts/validate-response.js";
+
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const read = (file) => JSON.parse(fs.readFileSync(path.join(root, file), "utf8"));
+
+export function runResponseTests() {
+  const schema = read("skills/proofpilot/references/response.schema.json");
+  const rubrics = read("skills/proofpilot/references/rubrics.json");
+  const sources = read("skills/proofpilot/references/source-registry.json");
+  const tools = read("skills/proofpilot/references/tool-registry.json");
+  const credentials = read("skills/proofpilot/references/credential-registry.json");
+  const validate = createResponseValidator({ schema, rubrics, sources, tools, credentials });
+  const partial = read("examples/responses/evaluator-partial-evidence.json");
+  const ineligible = read("examples/responses/ineligible-application.json");
+  const coach = read("examples/responses/unknown-idea.json");
+  let count = 0;
+  function test(name, base, mutate, expectedError = null) {
+    const response = structuredClone(base);
+    mutate?.(response);
+    const errors = validate(response);
+    const structural = validateResponseStructure(response, schema);
+    const portableErrors = structural.length ? structural : validateResponseSemantics(response, { rubrics, sources, tools, credentials });
+    assert.equal(portableErrors.length === 0, errors.length === 0, `${name}: portable/Ajv validator disagreement`);
+    if (expectedError) {
+      assert.ok(errors.length > 0, `${name}: invalid response was accepted`);
+      assert.match(errors.join("; "), expectedError, name);
+    } else {
+      assert.deepEqual(errors, [], name);
+    }
+    count++;
+    return response;
+  }
+  function recompute(response) {
+    const card = response.scorecards[0];
+    const rubric = rubrics.rubrics.find((item) => item.id === card.rubric_id);
+    Object.assign(card, calculateScorecard(card, rubric));
+  }
+  const full = structuredClone(partial);
+  for (const dimension of full.scorecards[0].dimensions) {
+    Object.assign(dimension, { state: "scored", score: 3, evidence_ids: ["observed_packet"] });
+  }
+  recompute(full);
+  full.scorecards[0].provisional = false;
+  const eligible = structuredClone(ineligible);
+  eligible.recommendation.decision = "proceed";
+  eligible.blocking_checks[0].status = "passed";
+  eligible.blocking_checks[0].requirement = "Synthetic program admits the supplied applicant location.";
+  // This fixture intentionally has a low quality score: gates do not depend on it.
+  for (const dimension of eligible.scorecards[0].dimensions) dimension.score = 0;
+  recompute(eligible);
+
+  test("coach can propose a test from candid user claims", coach);
+  test("partial evidence can yield high score with low coverage", partial);
+  test("high quality score cannot erase ineligibility", ineligible);
+  test("full observed coverage can be nonprovisional", full);
+  test("conservative provisional flag is allowed", full, (r) => { r.scorecards[0].provisional = true; });
+  test("low score does not decide independent eligibility", eligible);
+  test("no generic traction eligibility requirement", eligible, (r) => { r.diagnosis = "Synthetic pre-idea accelerator accepts eligible candidates before customer traction."; });
+  test("not-applicable weight excluded from coverage", partial, (r) => {
+    r.scorecards[0].dimensions[1].state = "not_applicable";
+    recompute(r);
+    assert.ok(Math.abs(r.scorecards[0].evidence_coverage - 3 / 7) < 1e-9);
+  });
+  test("all not-applicable means null score and zero coverage", partial, (r) => {
+    for (const d of r.scorecards[0].dimensions) Object.assign(d, { state: "not_applicable", score: null, evidence_ids: [] });
+    recompute(r);
+    assert.equal(r.scorecards[0].weighted_score, null);
+    assert.equal(r.scorecards[0].evidence_coverage, 0);
+  });
+  test("no evidence remains unknown rather than real zero", partial, (r) => {
+    for (const d of r.scorecards[0].dimensions) Object.assign(d, { state: "insufficient_evidence", score: null, evidence_ids: [] });
+    recompute(r);
+  });
+  test("real observed zero is scored and fully covered", full, (r) => {
+    for (const d of r.scorecards[0].dimensions) d.score = 0;
+    recompute(r);
+    assert.equal(r.scorecards[0].weighted_score, 0);
+    assert.equal(r.scorecards[0].evidence_coverage, 1);
+  });
+  test("rounding up to tolerance accepted", full, (r) => { r.scorecards[0].weighted_score += 5e-7; });
+  test("draft completion is artifact completion", coach, (r) => { r.recommendation.target = "artifact"; r.recommendation.decision = "complete"; });
+  test("build blocker does not prevent separate test", full, (r) => {
+    r.blocking_checks.push({ id: "implementation_access", target: "build", requirement: "Authorized data access needed for production build.", status: "unknown", evidence_ids: [] });
+  });
+  test("failed gate permits pause rather than proceed", full, (r) => {
+    r.recommendation.decision = "pause";
+    r.blocking_checks.push({ id: "test_access", target: "test", requirement: "Test participants provide data access.", status: "failed", evidence_ids: ["observed_packet"] });
+  });
+  test("unknown matching gate needs provisional even with full score", full, (r) => {
+    r.recommendation.decision = "pause";
+    r.scorecards[0].provisional = true;
+    r.blocking_checks.push({ id: "test_access", target: "test", requirement: "Confirm test data access.", status: "unknown", evidence_ids: [] });
+  });
+
+  const request = {
+    tool_id: "github",
+    capability_id: "connected_repository",
+    credential_class: "api_token",
+    reason: "Plan access to a user-selected private repository after authorization.",
+    minimum_scope: "Read-only access to the selected repository; no writes."
+  };
+  const withRequest = test("actual registry permits a named connector setup request", coach, (r) => {
+    r.credential_requests = [structuredClone(request)];
+  });
+  test("unknown credential-request tool rejected", withRequest, (r) => { r.credential_requests[0].tool_id = "invented"; }, /unknown tool_id/);
+  test("unknown credential-request capability rejected", withRequest, (r) => { r.credential_requests[0].capability_id = "invented"; }, /unknown capability_id/);
+  test("capability belonging to another tool rejected", withRequest, (r) => { r.credential_requests[0].capability_id = "account_api"; }, /unknown capability_id.*for tool github/);
+  test("unknown credential class rejected", withRequest, (r) => { r.credential_requests[0].credential_class = "invented"; }, /unknown credential_class/);
+  test("known but mismatched credential class rejected", withRequest, (r) => { r.credential_requests[0].credential_class = "oauth"; }, /credential_class must be api_token/);
+  test("no-secret cannot replace required credential", withRequest, (r) => { r.credential_requests[0].credential_class = "no_secret"; }, /credential_class must be api_token/);
+  const publicRequest = test("public capability may explicitly describe no-secret setup", withRequest, (r) => {
+    Object.assign(r.credential_requests[0], { capability_id: "public_research", credential_class: "no_secret", reason: "Inspect public project proof.", minimum_scope: "Public repository data only; no account connection." });
+  });
+  test("public capability cannot request an API token", publicRequest, (r) => { r.credential_requests[0].credential_class = "api_token"; }, /credential_class must be no_secret/);
+  test("deferred setup request does not require a working integration", withRequest, (r) => {
+    Object.assign(r.credential_requests[0], { capability_id: "repository_write", credential_class: "oauth", reason: "Describe setup for a future authorized repository draft.", minimum_scope: "Selected repository only; execution requires separate authorization." });
+  });
+  test("different capabilities on one tool are distinct requests", withRequest, (r) => { r.credential_requests.push(structuredClone(publicRequest.credential_requests[0])); });
+  test("duplicate tool/capability requests rejected", withRequest, (r) => {
+    r.credential_requests.push({ ...request, reason: "A second reason must not duplicate the same setup request." });
+  }, /duplicate tool\/capability request/);
+  // Exercise registry defaults and fail closed if either supplied registry lacks the requested identity.
+  assert.deepEqual(createResponseValidator()(withRequest), []);
+  count++;
+  assert.match(createResponseValidator({ tools: { tools: [] } })(withRequest).join("; "), /unknown tool_id/);
+  count++;
+  assert.match(createResponseValidator({ credentials: { credential_classes: [] } })(withRequest).join("; "), /unknown credential_class/);
+  count++;
+
+  test("audit exploit 4/4 without evidence rejected", partial, (r) => {
+    r.evidence = [];
+    r.scorecards[0].evidence_coverage = 0;
+    r.scorecards[0].provisional = false;
+  }, /evidence_id|coverage|provisional/);
+  test("scored dimension needs nonempty evidence ids", partial, (r) => { r.scorecards[0].dimensions[0].evidence_ids = []; }, /evidence_ids|item/);
+  test("unknown evidence references rejected", partial, (r) => { r.scorecards[0].dimensions[0].evidence_ids = ["missing"]; }, /unknown evidence_id/);
+  test("duplicate evidence ids rejected", partial, (r) => { r.evidence.push(structuredClone(r.evidence[0])); }, /Duplicate evidence id/);
+  test("duplicate dimensions rejected", partial, (r) => { r.scorecards[0].dimensions.push(structuredClone(r.scorecards[0].dimensions[0])); }, /Duplicate dimension/);
+  test("missing rubric dimension rejected", partial, (r) => { r.scorecards[0].dimensions.pop(); }, /missing dimension/);
+  test("invented dimension rejected", partial, (r) => { r.scorecards[0].dimensions[0].dimension_id = "invented"; }, /unknown dimension/);
+  test("unknown rubric rejected", partial, (r) => { r.scorecards[0].rubric_id = "invented"; }, /Unknown rubric_id/);
+  test("old rubric version rejected", partial, (r) => { r.scorecards[0].rubric_version = "0.2.0"; }, /rubric_version/);
+  test("duplicate scorecard rubric rejected", partial, (r) => { r.scorecards.push(structuredClone(r.scorecards[0])); }, /Duplicate scorecard/);
+  test("weighted-score calculation enforced", partial, (r) => { r.scorecards[0].weighted_score = 3; }, /weighted_score/);
+  test("coverage calculation enforced", partial, (r) => { r.scorecards[0].evidence_coverage = 1; }, /evidence_coverage/);
+  test("rounding outside tolerance rejected", full, (r) => { r.scorecards[0].weighted_score += 2e-6; }, /weighted_score/);
+  test("partial evidence must be provisional", partial, (r) => { r.scorecards[0].provisional = false; }, /provisional/);
+  test("one unknown forces provisional even above 50% coverage", full, (r) => {
+    Object.assign(r.scorecards[0].dimensions[0], { state: "insufficient_evidence", score: null, evidence_ids: [] });
+    recompute(r);
+  }, /provisional/);
+  test("unknown score cannot be numeric", partial, (r) => { r.scorecards[0].dimensions[1].score = 0; }, /null/);
+  test("scored state cannot have null", partial, (r) => { r.scorecards[0].dimensions[0].score = null; }, /integer/);
+  test("fractional dimension score rejected", partial, (r) => { r.scorecards[0].dimensions[0].score = 3.5; }, /integer/);
+  test("user statement is not verified observed evidence", partial, (r) => { r.evidence[0].evidence_type = "user_claim"; }, /observed evidence/);
+  test("inference alone cannot earn a score", partial, (r) => { r.evidence[0].evidence_type = "inference"; }, /observed evidence/);
+  test("null evidence URL is invalid for public primary", partial, (r) => { r.evidence[0].evidence_type = "primary_current"; }, /string/);
+  test("HTTP evidence URL rejected", partial, (r) => { r.evidence[0].source_url = "http://example.org/proof"; }, /uri|pattern|schema/);
+  test("evidence source must exist in registry", partial, (r) => { r.evidence[0].source_id = "invented"; }, /unknown source_id/);
+  test("checked source must exist in registry", partial, (r) => { r.sources_checked[0].source_id = "invented"; }, /unknown source_id/);
+  test("checked vs unavailable conflict rejected", partial, (r) => {
+    r.sources_not_checked.push({ source_id: "user_artifacts", status: "unavailable", note: "Conflicts with checked status." });
+  }, /conflicting or repeated/);
+  test("no-evidence-found cannot supply evidence", partial, (r) => { r.sources_checked[0].status = "no_evidence_found"; }, /checked status/);
+  test("checked source cannot appear in not-checked list", partial, (r) => { r.sources_not_checked = [r.sources_checked.pop()]; }, /allowed values|enum/);
+  test("evidence requires an actual source check", partial, (r) => { r.sources_checked = []; }, /checked status/);
+  test("evaluator snapshot required", partial, (r) => { delete r.run.evaluation_snapshot; }, /evaluation_snapshot/);
+  test("evaluator scorecards required", partial, (r) => { delete r.scorecards; }, /scorecards/);
+  test("evaluator scorecards cannot be empty", partial, (r) => { r.scorecards = []; }, /item/);
+  test("snapshot source allowlist enforced", partial, (r) => { r.run.evaluation_snapshot.allowed_source_ids = []; }, /allowed_source_ids/);
+  test("snapshot source must exist in registry", partial, (r) => { r.run.evaluation_snapshot.allowed_source_ids.push("invented"); }, /unknown source_id/);
+  test("evidence after cutoff rejected", partial, (r) => { r.evidence[0].retrieved_at = "2026-09-05T09:30:00Z"; }, /after evidence_cutoff/);
+  test("cutoff after generation rejected", partial, (r) => { r.run.evaluation_snapshot.evidence_cutoff = "2026-09-05T11:00:00Z"; }, /after generated_at/);
+  test("invalid calendar date rejected", partial, (r) => { r.evidence[0].retrieved_at = "2026-02-30T08:00:00Z"; }, /date-time/);
+  test("ambiguous timestamp without timezone rejected", partial, (r) => { r.evidence[0].retrieved_at = "2026-09-05T08:00:00"; }, /date-time/);
+  test("verified user artifact must be pinned in evaluator", partial, (r) => { delete r.evidence[0].artifact_ref; }, /requires artifact_ref/);
+  test("artifact reference must exist in snapshot", partial, (r) => { r.evidence[0].artifact_ref = "missing"; }, /unknown artifact_ref/);
+  test("artifact identity must be unique", partial, (r) => { r.run.evaluation_snapshot.artifacts.push(structuredClone(r.run.evaluation_snapshot.artifacts[0])); }, /Duplicate artifact id/);
+  test("artifact version cannot be empty", partial, (r) => { r.run.evaluation_snapshot.artifacts[0].version = ""; }, /character/);
+  test("blocking-check array required", coach, (r) => { delete r.blocking_checks; }, /blocking_checks/);
+  test("legacy unscoped decision rejected", coach, (r) => { r.recommendation.decision = "apply_now"; }, /allowed values|enum/);
+  test("decision target required", coach, (r) => { delete r.recommendation.target; }, /target/);
+  test("artifact cannot grant permission to proceed", coach, (r) => { r.recommendation.target = "artifact"; }, /allowed values|enum/);
+  test("complete cannot stand for applying", coach, (r) => { r.recommendation.target = "apply"; r.recommendation.decision = "complete"; }, /constant/);
+  test("high score cannot override failed eligibility", ineligible, (r) => { r.recommendation.decision = "proceed"; }, /Cannot proceed/);
+  test("unknown eligibility blocks applying", eligible, (r) => { r.blocking_checks[0].status = "unknown"; }, /Cannot proceed/);
+  test("apply needs explicit eligibility and materials checks", eligible, (r) => { r.blocking_checks = []; }, /program_eligibility|required_materials/);
+  test("required-materials gate cannot be omitted", eligible, (r) => { r.blocking_checks.pop(); }, /required_materials/);
+  test("wrong-target eligibility gate cannot authorize apply", eligible, (r) => { r.blocking_checks[0].target = "build"; }, /program_eligibility/);
+  test("passed gate needs evidence", eligible, (r) => { r.blocking_checks[0].evidence_ids = []; }, /evidence_ids|item/);
+  test("passed gate cannot rely only on user claim", eligible, (r) => {
+    r.evidence[0].evidence_type = "user_claim";
+    r.blocking_checks[0].evidence_ids = ["observed_packet"];
+  }, /Passed blocking check.*observed evidence/);
+  for (const type of ["primary_historical", "secondary"]) {
+    test(`${type} alone cannot pass current gate`, eligible, (r) => {
+      r.evidence[1].evidence_type = type;
+      r.blocking_checks[0].evidence_ids = ["official_fixture_rules"];
+    }, /Passed blocking check.*current supporting/);
+  }
+  for (const stance of ["neutral", "contradicts"]) {
+    test(`${stance} evidence alone cannot pass gate`, eligible, (r) => {
+      r.evidence[1].stance = stance;
+      r.blocking_checks[0].evidence_ids = ["official_fixture_rules"];
+    }, /Passed blocking check.*current supporting/);
+  }
+  test("failed gate cannot turn absence into incompatibility", ineligible, (r) => {
+    r.blocking_checks[0].evidence_ids = [];
+  }, /Failed blocking check.*use unknown/);
+  test("failed gate cannot rely only on an unverified assertion", ineligible, (r) => {
+    r.evidence[0].evidence_type = "user_claim";
+    r.blocking_checks[0].evidence_ids = ["observed_packet"];
+  }, /Failed blocking check/);
+  test("contradictory observed evidence may support a failed condition", ineligible, (r) => {
+    r.evidence[0].stance = "contradicts";
+    r.blocking_checks[0].evidence_ids = ["observed_packet"];
+  });
+  test("gate evidence reference must exist", eligible, (r) => { r.blocking_checks[0].evidence_ids = ["invented"]; }, /unknown evidence_id/);
+  test("gate identity must be unique", eligible, (r) => { r.blocking_checks.push(structuredClone(r.blocking_checks[0])); }, /Duplicate blocking check/);
+  test("unknown matching blocker requires provisional", full, (r) => {
+    r.recommendation.decision = "pause";
+    r.blocking_checks.push({ id: "test_access", target: "test", requirement: "Confirm access.", status: "unknown", evidence_ids: [] });
+  }, /provisional/);
+
+  // A framework article can inform a method, but cannot alone establish this project's quality.
+  const methodSources = structuredClone(sources);
+  methodSources.sources.find((source) => source.id === "user_artifacts").source_roles = ["methodology"];
+  const methodErrors = createResponseValidator({ schema, rubrics, sources: methodSources })(partial);
+  assert.match(methodErrors.join("; "), /methodology-only/);
+  count++;
+
+  // Validate actual JSON files through the co-installed portable command, including its failure status.
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-response-test-"));
+  try {
+    const command = path.join(root, "skills/proofpilot/scripts/validate-response.js");
+    const inputPath = path.join(temporary, "response.json");
+    for (const [response, expectedStatus] of [[partial, 0], [{ ...partial, blocking_checks: undefined }, 1]]) {
+      fs.writeFileSync(inputPath, JSON.stringify(response));
+      const result = spawnSync(process.execPath, [command, inputPath], { encoding: "utf8" });
+      assert.equal(result.status, expectedStatus, result.stderr || result.stdout);
+      count++;
+    }
+    const invalidRequest = structuredClone(withRequest);
+    invalidRequest.credential_requests[0].credential_class = "oauth";
+    for (const [response, expectedStatus] of [[withRequest, 0], [invalidRequest, 1]]) {
+      fs.writeFileSync(inputPath, JSON.stringify(response));
+      const result = spawnSync(process.execPath, [command, inputPath], { encoding: "utf8" });
+      assert.equal(result.status, expectedStatus, result.stderr || result.stdout);
+      if (expectedStatus === 1) assert.match(result.stderr, /credential_class must be api_token/);
+      count++;
+    }
+    fs.writeFileSync(inputPath, "{broken");
+    assert.equal(spawnSync(process.execPath, [command, inputPath], { encoding: "utf8" }).status, 1);
+    count++;
+    const linkedCommand = path.join(temporary, "linked-validator.js");
+    fs.symlinkSync(command, linkedCommand);
+    for (const [response, expectedStatus] of [[partial, 0], [{ ...partial, blocking_checks: undefined }, 1]]) {
+      fs.writeFileSync(inputPath, JSON.stringify(response));
+      const result = spawnSync(process.execPath, [linkedCommand, inputPath], { cwd: os.tmpdir(), encoding: "utf8" });
+      assert.equal(result.status, expectedStatus, result.stderr || result.stdout);
+      assert.ok((result.stdout + result.stderr).trim(), "Symlink entrypoint must actually run validation");
+      count++;
+    }
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
+  return { cases: count };
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const result = runResponseTests();
+  console.log(`ProofPilot response contract tests passed: ${result.cases} cases.`);
+}

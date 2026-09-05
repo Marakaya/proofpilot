@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 
 import { renderToolDocs } from "./tool-docs.js";
+import { validateServiceAccess } from "./test-service-access.js";
+import { isDate, validateFreshnessSemantics } from "./freshness.js";
+import { isDateTime, validateResponseSemantics } from "../skills/proofpilot/scripts/validate-response.js";
+import { runEventScore } from "../skills/proofpilot/scripts/event-score.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const skillDir = path.join(root, "skills", "proofpilot");
@@ -21,6 +25,9 @@ const requiredFiles = [
   "examples/requests.md",
   "examples/responses/unknown-idea.json",
   "examples/evals/cases.json",
+  "examples/evals/behavioral-cases.json",
+  "docs/evaluation.md",
+  "scripts/eval-behavior.js",
   "skills/proofpilot/SKILL.md",
   "skills/proofpilot/agents/openai.yaml",
   "skills/proofpilot/references/routing.md",
@@ -28,8 +35,22 @@ const requiredFiles = [
   "skills/proofpilot/references/validate.md",
   "skills/proofpilot/references/plan.md",
   "skills/proofpilot/references/review.md",
+  "skills/proofpilot/references/event-assessment.md",
+  "skills/proofpilot/references/event-intake.md",
+  "skills/proofpilot/references/event-profiles.json",
+  "skills/proofpilot/scripts/event-score.js",
+  "scripts/test-event-score.js",
   "skills/proofpilot/references/submit.md",
   "skills/proofpilot/references/evidence.md",
+  "skills/proofpilot/references/freshness.md",
+  "scripts/freshness.js",
+  "skills/proofpilot/references/decisions.md",
+  "skills/proofpilot/references/quality.md",
+  "skills/proofpilot/references/quality-review.md",
+  "skills/proofpilot/scripts/quality.js",
+  "skills/proofpilot/scripts/package.json",
+  "skills/proofpilot/references/product-market-fit.md",
+  "skills/proofpilot/references/ai-product-validation.md",
   "skills/proofpilot/references/safety.md",
   "skills/proofpilot/references/accelerator-programs.json",
   "skills/proofpilot/references/accelerator-checklist.json",
@@ -43,7 +64,12 @@ const requiredFiles = [
   "skills/proofpilot/references/solana-new.md",
   "skills/proofpilot/references/source-orchestration.md",
   "skills/proofpilot/references/source-playbooks.json",
-  "skills/proofpilot/scripts/discover-sources.js"
+  "skills/proofpilot/references/onboarding.md",
+  "skills/proofpilot/references/service-access.json",
+  "skills/proofpilot/scripts/setup.js",
+  "skills/proofpilot/scripts/colosseum-read.js",
+  "skills/proofpilot/scripts/discover-sources.js",
+  "skills/proofpilot/scripts/validate-response.js"
 ];
 
 const registrySpecs = [
@@ -91,6 +117,39 @@ function formatAjvErrors(errors) {
     .join("; ");
 }
 
+function createAjv() {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  ajv.addFormat("date", isDate);
+  ajv.addFormat("date-time", isDateTime);
+  ajv.addFormat("uri", (value) => {
+    try { return value.startsWith("https://") && new URL(value).protocol === "https:"; }
+    catch { return false; }
+  });
+  return ajv;
+}
+
+export function createResponseValidator({
+  schema = readJson("skills/proofpilot/references/response.schema.json"),
+  rubrics = readJson("skills/proofpilot/references/rubrics.json"),
+  sources = readJson("skills/proofpilot/references/source-registry.json"),
+  tools = readJson("skills/proofpilot/references/tool-registry.json"),
+  credentials = readJson("skills/proofpilot/references/credential-registry.json")
+} = {}) {
+  const validate = createAjv().compile(schema);
+  return (response) => {
+    if (!validate(response)) return [formatAjvErrors(validate.errors)];
+    return validateResponseSemantics(response, { rubrics, sources, tools, credentials });
+  };
+}
+
+export function validateResponseFile(filePath) {
+  const fullPath = path.resolve(filePath);
+  const response = JSON.parse(fs.readFileSync(fullPath, "utf8"));
+  const errors = createResponseValidator()(response);
+  if (errors.length) fail(`${fullPath} failed response validation: ${errors.join("; ")}`);
+  return response;
+}
+
 export function validateRepository() {
   for (const file of requiredFiles) {
     if (!fs.existsSync(path.join(root, file))) {
@@ -98,16 +157,7 @@ export function validateRepository() {
     }
   }
 
-  const ajv = new Ajv2020({ allErrors: true, strict: true });
-  ajv.addFormat("date", /^\d{4}-\d{2}-\d{2}$/);
-  ajv.addFormat("date-time", (value) => Number.isFinite(Date.parse(value)) && value.includes("T"));
-  ajv.addFormat("uri", (value) => {
-    try {
-      return new URL(value).protocol === "https:";
-    } catch {
-      return false;
-    }
-  });
+  const ajv = createAjv();
 
   for (const [dataFile, schemaFile] of registrySpecs) {
     const data = readJson(path.join("skills", "proofpilot", "references", dataFile));
@@ -119,11 +169,8 @@ export function validateRepository() {
   }
 
   const responseSchema = readJson("skills/proofpilot/references/response.schema.json");
-  const validateResponse = ajv.compile(responseSchema);
-  const exampleResponse = readJson("examples/responses/unknown-idea.json");
-  if (!validateResponse(exampleResponse)) {
-    fail(`unknown-idea.json failed response validation: ${formatAjvErrors(validateResponse.errors)}`);
-  }
+  // Event profiles use fixed 100-point weights, independently of venture rubrics.
+  runEventScore(["list"]);
 
   const taxonomy = readJson("skills/proofpilot/references/taxonomy.json");
   const credentials = readJson("skills/proofpilot/references/credential-registry.json");
@@ -139,6 +186,16 @@ export function validateRepository() {
   const presentationChecklist = readJson("skills/proofpilot/references/presentation-checklist.json");
   const presentationDecks = readJson("skills/proofpilot/references/presentation-decks.json");
   const sourcePlaybooks = readJson("skills/proofpilot/references/source-playbooks.json");
+  const serviceAccess = readJson("skills/proofpilot/references/service-access.json");
+  const serviceErrors = validateServiceAccess(serviceAccess);
+  if (serviceErrors.length) fail(serviceErrors.join("; "));
+
+  for (const [entries, kind] of [[tools.tools, "tool"], [sources.sources, "source"], [acceleratorPrograms.programs, "program"]]) {
+    for (const entry of entries) {
+      const errors = validateFreshnessSemantics(entry, { kind });
+      if (errors.length) fail(errors.join("; "));
+    }
+  }
 
   if (packageManifest.version !== taxonomy.version) {
     fail(`package.json version ${packageManifest.version} does not match taxonomy version ${taxonomy.version}`);
@@ -217,7 +274,7 @@ export function validateRepository() {
         fail(`High-risk capability ${tool.id}.${capability.id} cannot be available_public`);
       }
       if (capability.credential_class === "wallet_session" && capability.status !== "deferred") {
-        fail(`Wallet capability ${tool.id}.${capability.id} must remain deferred in v0.2`);
+        fail(`Wallet capability ${tool.id}.${capability.id} must remain deferred`);
       }
     }
     if (tool.capabilities.some(({ status }) => status === "available_public") && !tool.last_verified_at) {
@@ -281,12 +338,12 @@ export function validateRepository() {
     fail("agents/openai.yaml default prompt must explicitly mention $proofpilot");
   }
 
-  const sourceIds = new Set(sources.sources.map(({ id }) => id));
-  for (const evidence of exampleResponse.evidence) {
-    assertReferences([evidence.source_id], sourceIds, `source in evidence ${evidence.id}`);
-  }
-  for (const sourceCheck of [...exampleResponse.sources_checked, ...exampleResponse.sources_not_checked]) {
-    assertReferences([sourceCheck.source_id], sourceIds, "source in example response");
+  const validateResponse = createResponseValidator({ schema: responseSchema, rubrics, sources });
+  const responseDir = path.join(root, "examples", "responses");
+  for (const filename of fs.readdirSync(responseDir).filter((name) => name.endsWith(".json"))) {
+    const response = readJson(path.join("examples", "responses", filename));
+    const errors = validateResponse(response);
+    if (errors.length) fail(`${filename} failed response validation: ${errors.join("; ")}`);
   }
 
   const expectedToolDocs = renderToolDocs({ sources: sources.sources, tools: tools.tools });

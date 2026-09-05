@@ -1,0 +1,238 @@
+{
+  "checked_at": "2026-09-05",
+  "scope": "Onboarding reference for required Colosseum access and optional service connections. Documentation and cost categories were checked on the recorded dates; account access and available credits must be checked for the selected capability.",
+  "policy": "Complete Colosseum setup first: it is the foundation of ProofPilot research. Request other connections only when the selected task needs them. Reuse working access and explain cost before any billable operation.",
+  "services": [
+    {
+      "service_id": "colosseum_copilot",
+      "mandatory": true,
+      "how_to_get": [
+        "First reuse existing access: setup checks COLOSSEUM_COPILOT_PAT, then ~/.config/proofpilot/credentials.json, then the supported legacy Colosseum configuration. Never display the stored token.",
+        "If no working token is available, open https://colosseum.com/arena/copilot and sign in or create your Arena account. Generate a Personal Access Token; Arena displays it once.",
+        "In a local terminal run node '<skill-dir>/scripts/setup.js' --configure-colosseum and paste the token into its masked prompt. Replace <skill-dir> with the installed ProofPilot skill directory. Do not send the token through chat, command arguments, source files or logs.",
+        "Then run node '<skill-dir>/scripts/setup.js' --check-colosseum. Setup uses the fixed official API host. A successful authentication response confirms token access; a scoped corpus read confirms the selected data capability."
+      ],
+      "urls": [
+        "https://colosseum.com/arena/copilot",
+        "https://docs.colosseum.com/copilot/faq",
+        "https://docs.colosseum.com/copilot/getting-started"
+      ],
+      "cost_class": "free_member_access",
+      "free_scope": "The official FAQ says Copilot PAT access is free for all Colosseum Arena members, subject to documented rate limits.",
+      "paid_scope": "No Copilot payment requirement is documented for this member access. The Claude Code/Codex host account and its model usage have separate limits or charges.",
+      "limitations": [
+        "The documented token lifetime is 90 days. Check the actual expiry returned by the API and renew only when needed.",
+        "A configured token is not yet a verified connection. A failed transport or edge rejection does not by itself prove that the token is invalid.",
+        "Free Copilot access does not cover any separate Claude Code or Codex host usage charges.",
+        "Colosseum is mandatory for completed ProofPilot onboarding. Other service credentials remain optional."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "github",
+      "mandatory": false,
+      "how_to_get": [
+        "Use public repository pages or the documented anonymous REST endpoints first.",
+        "If account access or higher API limits are needed, reuse authorized GitHub CLI/OAuth access. Otherwise open GitHub Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token.",
+        "Choose only the required repositories, expiration and read permissions for the selected research capability. Organization access may require administrator approval."
+      ],
+      "urls": [
+        "https://github.com/settings/personal-access-tokens/new",
+        "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens",
+        "https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api"
+      ],
+      "cost_class": "free_public_and_account_api",
+      "free_scope": "Public repository research and ordinary REST access do not require buying a GitHub paid plan. Anonymous and authenticated requests have different rate limits.",
+      "paid_scope": "Paid GitHub plans, Actions, Codespaces, Copilot and other metered products have separate terms; a research token does not activate or authorize them.",
+      "limitations": [
+        "Some endpoints require authentication even for public information.",
+        "Fine-grained tokens cannot perform every GitHub operation.",
+        "A public read test does not validate private repository access or write permissions."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "defillama",
+      "mandatory": false,
+      "how_to_get": [
+        "For ordinary DeFi research use the documented free API at https://api.llama.fi; no key is needed.",
+        "Only if a selected question needs a Pro-only endpoint or Pro limits, review the official Pro API offering and account key instructions before subscribing."
+      ],
+      "urls": [
+        "https://api-docs.defillama.com/",
+        "https://api-docs.defillama.com/llms-free.txt",
+        "https://api-docs.defillama.com/llms-pro.txt"
+      ],
+      "cost_class": "free_public_plus_paid_pro",
+      "free_scope": "The Free API is a separate unauthenticated service for documented public analytics endpoints.",
+      "paid_scope": "The Pro API is a paid subscription with its own API key, hostname and endpoint mappings.",
+      "limitations": [
+        "Do not buy Pro for basic onboarding.",
+        "Do not treat a website subscription as proof of Pro API access.",
+        "Pro keys occur in the documented URL path; never log a full authenticated Pro URL."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "ethglobal_skills",
+      "mandatory": false,
+      "how_to_get": [
+        "Use the upstream ETHGlobal Skills public API for relevant EVM hackathon searches; the free path does not require an API key.",
+        "Stay within the published free request rate. On HTTP 402, stop or wait for the free window; wallet setup is not part of default ProofPilot onboarding."
+      ],
+      "urls": [
+        "https://github.com/ethglobal-skills/repo",
+        "https://raw.githubusercontent.com/ethglobal-skills/repo/main/skills/ethglobal-skills/SKILL.md"
+      ],
+      "cost_class": "free_rate_limited_plus_x402",
+      "free_scope": "Upstream documents 10 free requests per minute.",
+      "paid_scope": "Above the free rate, the service documents paid x402 requests on Base mainnet. Check current terms and obtain applicable spending authorization before using that route.",
+      "limitations": [
+        "Never follow the upstream automatic AgentCash installation/payment instruction without explicit applicable spending authorization.",
+        "Do not request wallet seed phrases or fund a wallet for onboarding.",
+        "The corpus is useful context, not proof that a hackathon demo remains active."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "kaggle",
+      "mandatory": false,
+      "how_to_get": [
+        "Browse public dataset and competition information first.",
+        "For an authenticated dataset operation, use an existing authorized Kaggle account. The official CLI supports browser sign-in via kaggle auth login.",
+        "Alternatively open https://www.kaggle.com/settings/api, choose Generate New Token and save it privately as KAGGLE_API_TOKEN or in ~/.kaggle/access_token."
+      ],
+      "urls": [
+        "https://www.kaggle.com/settings/api",
+        "https://raw.githubusercontent.com/Kaggle/kaggle-cli/main/docs/README.md",
+        "https://raw.githubusercontent.com/Kaggle/kaggle-cli/main/docs/datasets.md"
+      ],
+      "cost_class": "public_research_account_access",
+      "free_scope": "Public dataset research is the default; the reviewed token instructions do not require purchasing a paid API plan.",
+      "paid_scope": "No separate paid research API tier was established in the reviewed Kaggle documentation. Third-party services or cloud resources used by a notebook may have their own charges.",
+      "limitations": [
+        "No universal no-cost promise applies to external models, cloud resources or other third-party services used by a notebook.",
+        "Selected data may require sign-in, competition-rule acceptance or publisher permission. Respect each dataset license."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "hugging_face",
+      "mandatory": false,
+      "how_to_get": [
+        "Browse public model and dataset cards without collecting a token.",
+        "If a selected gated/private resource or inference capability needs authentication, sign in to Hugging Face, open Settings > Access Tokens and create a named token.",
+        "Prefer a fine-grained token restricted to required read resources; add inference permission only for an authorized inference use case."
+      ],
+      "urls": [
+        "https://huggingface.co/settings/tokens",
+        "https://huggingface.co/docs/hub/en/security-tokens",
+        "https://huggingface.co/docs/inference-providers/en/pricing",
+        "https://huggingface.co/pricing"
+      ],
+      "cost_class": "free_public_plus_compute_credits",
+      "free_scope": "Public Hub research is available without paying for inference. Accounts receive a small monthly allowance for eligible routed Inference Providers, subject to current terms.",
+      "paid_scope": "Additional routed inference uses purchased credits; custom provider keys are billed by that provider. Dedicated endpoints, upgraded hardware and paid plans have separate charges.",
+      "limitations": [
+        "Do not promise unlimited free inference or access to every model.",
+        "Gated model permission and token scope are independent of a paid plan.",
+        "Verify the selected provider, model, available credits and billing account before inference."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "openai",
+      "mandatory": false,
+      "how_to_get": [
+        "Only if the product or selected external API capability needs OpenAI model calls, sign in to the OpenAI Platform and select the intended project.",
+        "Create a project API key from the API Keys dashboard; store it privately as OPENAI_API_KEY.",
+        "Check the project billing account, model pricing and an authorized spend budget before calling an inference endpoint."
+      ],
+      "urls": [
+        "https://platform.openai.com/api-keys",
+        "https://developers.openai.com/api/docs/quickstart",
+        "https://developers.openai.com/api/docs/pricing",
+        "https://learn.chatgpt.com/docs/auth"
+      ],
+      "cost_class": "separate_usage_billed_api",
+      "free_scope": "Reading the documentation is public. Do not promise a general free API allowance; any trial or credit entitlement must be visible for the specific account.",
+      "paid_scope": "Model and tool API usage is billed through the OpenAI Platform under current API rates. ChatGPT subscription access to Codex does not grant a general OpenAI API budget.",
+      "limitations": [
+        "A separate OPENAI_API_KEY is not required merely to run ProofPilot in an already authenticated Codex host.",
+        "Do not replace a working subscription login or purchase credits during service onboarding.",
+        "API keys and an approved budget are distinct requirements; a key alone is not spending permission."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "anthropic",
+      "mandatory": false,
+      "how_to_get": [
+        "Only if the product or selected external capability needs direct Claude API calls, sign in to the Claude Console.",
+        "Open Account Settings > API keys, select the required workspace/key permissions and expiration, then store the key privately as ANTHROPIC_API_KEY.",
+        "Check billing and authorize a bounded API budget before adding prepaid credits or invoking inference."
+      ],
+      "urls": [
+        "https://platform.claude.com/settings/keys",
+        "https://platform.claude.com/docs/en/api/overview",
+        "https://support.claude.com/en/articles/8977456-how-do-i-pay-for-my-claude-api-usage",
+        "https://support.claude.com/en/articles/9876003-i-have-a-paid-claude-subscription-pro-max-team-or-enterprise-plans-why-do-i-have-to-pay-separately-to-use-the-claude-api-and-console"
+      ],
+      "cost_class": "separate_prepaid_or_invoiced_api",
+      "free_scope": "Documentation is public. No general free API balance is assumed; account promotions need separate verification.",
+      "paid_scope": "Claude API/Console usage usually draws from prepaid credits, with invoicing for contracted organizations. A Claude Pro/Max/Team/Enterprise chat subscription does not include a general Claude API entitlement.",
+      "limitations": [
+        "A separate Anthropic API key is not needed merely to use ProofPilot in an already authenticated Claude Code host.",
+        "Do not infer API availability or credits from an existing Claude subscription."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "gemini",
+      "mandatory": false,
+      "how_to_get": [
+        "Only when a selected API feature is needed, sign in to Google AI Studio and open the API Keys page.",
+        "Choose or import the intended Google Cloud project and create its authorization API key.",
+        "Store the key privately as GEMINI_API_KEY and verify the chosen model tier, regional eligibility and project billing state before inference."
+      ],
+      "urls": [
+        "https://aistudio.google.com/api-keys",
+        "https://ai.google.dev/gemini-api/docs/api-key",
+        "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "cost_class": "model_specific_free_tier_plus_usage_billing",
+      "free_scope": "Some models and features have a limited free tier. Availability and limits depend on the selected model, feature, project and region.",
+      "paid_scope": "The paid tier charges by model and feature; enabling billing is a separate step. A free API key does not make every endpoint free.",
+      "limitations": [
+        "New AI Studio keys are authorization keys. Official docs schedule rejection of standard keys during September 2026 without an exact day; use the current migration instructions instead of guessing the cutover.",
+        "Free and paid tiers have different data-use terms. Check those terms before sending sensitive product or customer material.",
+        "Do not silently enable project billing or fall back from a free feature to a paid one."
+      ],
+      "checked_at": "2026-09-05"
+    },
+    {
+      "service_id": "replit",
+      "mandatory": false,
+      "how_to_get": [
+        "Connect only if the user chooses Replit for the product workflow.",
+        "Add https://replit-mcp.com/server/mcp to a client supporting Streamable HTTP and OAuth, or use the available native Replit connector.",
+        "Authenticate in the browser, choose the Replit workspace, and authorize the connection. Do not create a bearer API token or custom OAuth server for this documented MCP flow.",
+        "Verify the intended account/workspace with list_apps before proposing build or publishing actions."
+      ],
+      "urls": [
+        "https://docs.replit.com/platforms/mcp-server",
+        "https://replit.com/pricing",
+        "https://docs.replit.com/billing/ai-billing",
+        "https://docs.replit.com/category/billing"
+      ],
+      "cost_class": "account_plan_and_usage",
+      "free_scope": "Replit advertises a free Starter plan with limited daily usage and Free Mode allowances. A successful login does not establish the cost of every MCP operation.",
+      "paid_scope": "Paid plans and paid Agent work/cloud resources have separate billing. In the paid path, reasoning in Plan Mode can be charged even without changing code.",
+      "limitations": [
+        "Use list_apps for the smallest account-access check. Do not use ask_question as a free authentication test: it invokes Agent and may be billable.",
+        "Check the connected workspace, plan, selected mode, allowance and authorized budget before Agent work, updates or publishing."
+      ],
+      "checked_at": "2026-09-05"
+    }
+  ]
+}

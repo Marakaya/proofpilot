@@ -1,6 +1,6 @@
 {
   "$schema": "./source-registry.schema.json",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "sources": [
     {
       "id": "user_artifacts",
@@ -9,14 +9,36 @@
       "official_url": null,
       "authority": "high",
       "access": "user_provided",
-      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
       "domains": [],
       "program_contexts": [],
       "credential_class": "no_secret",
       "status": "runtime_input",
       "query_strategy": "Inspect only the artifacts supplied or explicitly connected for this run.",
       "evidence_use": "Claims about the project, shipped work, user behavior, repository state, and submitted assets.",
-      "last_verified_at": null
+      "last_verified_at": null,
+      "source_roles": [
+        "project_evidence"
+      ],
+      "verification": {
+        "scope": "runtime_required",
+        "claims": "Inspect selected artifacts or resolve the actual primary source during this run.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "runtime_selected",
+        "content_status": "runtime_required",
+        "limitations": [
+          "This entry is a runtime source-selection rule, not a preverified artifact, archive, URL or current program. Inspect the actual selected material during the project run."
+        ]
+      }
     },
     {
       "id": "target_program",
@@ -25,14 +47,79 @@
       "official_url": null,
       "authority": "high",
       "access": "runtime_selected",
-      "stages": ["review", "submit"],
+      "stages": [
+        "review",
+        "submit"
+      ],
       "domains": [],
-      "program_contexts": ["hackathon", "grant", "accelerator", "incubator", "competition"],
+      "program_contexts": [
+        "hackathon",
+        "grant",
+        "accelerator",
+        "incubator",
+        "competition"
+      ],
       "credential_class": "no_secret",
       "status": "runtime_input",
       "query_strategy": "Resolve the program named by the user, then use its current official rules, rubric, dates, and application fields.",
       "evidence_use": "Eligibility, deadlines, judging criteria, required assets, bounties, and submission format.",
-      "last_verified_at": null
+      "last_verified_at": null,
+      "source_roles": [
+        "program_rules"
+      ],
+      "verification": {
+        "scope": "runtime_required",
+        "claims": "Inspect selected artifacts or resolve the actual primary source during this run.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "runtime_selected",
+        "content_status": "runtime_required",
+        "limitations": [
+          "This entry is a runtime source-selection rule, not a preverified artifact, archive, URL or current program. Inspect the actual selected material during the project run."
+        ]
+      }
+    },
+    {
+      "id": "current_primary",
+      "label": "Runtime-selected primary project, competitor or provider source",
+      "source_type": "official_docs",
+      "official_url": null,
+      "authority": "high",
+      "access": "runtime_selected",
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
+      "domains": [],
+      "program_contexts": [],
+      "credential_class": "no_secret",
+      "status": "runtime_input",
+      "query_strategy": "Resolve the relevant official product, competitor or provider page. Record its actual direct URL and retrieval date on each evidence item; a catalog ID is not a citation.",
+      "evidence_use": "Specific primary claims absent from the named registry. Separate self-reported vendor claims from observed project behavior; broad provider benchmarks do not establish project quality or demand.",
+      "last_verified_at": null,
+      "source_roles": [
+        "project_evidence",
+        "technical_reference",
+        "market_context"
+      ],
+      "verification": {
+        "scope": "runtime_required",
+        "claims": "Verify the exact URL and claim during this run.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "runtime_selected",
+        "content_status": "runtime_required",
+        "limitations": [
+          "This entry is a runtime source-selection rule, not a preverified artifact, archive, URL or current program. Inspect the actual selected material during the project run."
+        ]
+      }
     },
     {
       "id": "local_archive",
@@ -41,14 +128,47 @@
       "official_url": null,
       "authority": "high",
       "access": "platform",
-      "stages": ["discover", "validate", "review"],
-      "domains": ["community", "web2", "ai", "web3", "data_ml", "physical_world"],
-      "program_contexts": ["hackathon", "grant", "accelerator", "competition"],
+      "stages": [
+        "discover",
+        "validate",
+        "review"
+      ],
+      "domains": [
+        "community",
+        "web2",
+        "ai",
+        "web3",
+        "data_ml",
+        "physical_world"
+      ],
+      "program_contexts": [
+        "hackathon",
+        "grant",
+        "accelerator",
+        "competition"
+      ],
       "credential_class": "service_identity",
       "status": "platform_only",
       "query_strategy": "Search prior projects, event history, mentor feedback, judging outcomes, and recurring community needs with an explicit evidence cutoff.",
       "evidence_use": "Local demand, repeated project patterns, prior feedback, and ecosystem-specific context.",
-      "last_verified_at": null
+      "last_verified_at": null,
+      "source_roles": [
+        "project_evidence",
+        "market_context"
+      ],
+      "verification": {
+        "scope": "runtime_required",
+        "claims": "Inspect selected artifacts or resolve the actual primary source during this run.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "runtime_selected",
+        "content_status": "runtime_required",
+        "limitations": [
+          "This entry is a runtime source-selection rule, not a preverified artifact, archive, URL or current program. Inspect the actual selected material during the project run."
+        ]
+      }
     },
     {
       "id": "github",
@@ -57,14 +177,91 @@
       "official_url": "https://github.com/",
       "authority": "medium",
       "access": "public_or_connected",
-      "stages": ["discover", "validate", "plan", "review", "submit"],
-      "domains": ["web2", "ai", "web3", "data_ml", "community", "no_code", "deep_tech"],
-      "program_contexts": ["none", "hackathon", "grant", "accelerator", "incubator", "competition"],
-      "credential_class": "api_token",
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
+      "domains": [
+        "web2",
+        "ai",
+        "web3",
+        "data_ml",
+        "community",
+        "no_code",
+        "deep_tech"
+      ],
+      "program_contexts": [
+        "none",
+        "hackathon",
+        "grant",
+        "accelerator",
+        "incubator",
+        "competition"
+      ],
+      "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Use public repository search first; connect a scoped token only for private repositories or higher rate limits.",
       "evidence_use": "Comparable implementations, repository activity, shipped proof, documentation quality, issues, and licenses.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "project_evidence",
+        "technical_reference",
+        "market_context"
+      ],
+      "verification": {
+        "scope": "live_api",
+        "claims": "Anonymous public repository metadata returned Marakaya/proofpilot, public, not archived, default branch main. single external public REST response; no ProofPilot adapter tested; private access, search, writes and other endpoints not tested. Public documentation checks are listed separately in reference_checks.",
+        "api_runtime_status": "verified"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "60/hour is the general REST quota, not a guarantee for every search endpoint.",
+          "No universal repository-content license: inspect each repository license.",
+          "Connected-repository and write capabilities remain connector_spec/deferred; public browsing proves no shipped connector."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://github.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public homepage links repositories, issues, reviews, and documentation."
+        },
+        {
+          "url": "https://docs.github.com/en/rest",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "REST documentation describes retrieving data and authenticated integrations."
+        },
+        {
+          "url": "https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public REST data may be fetched without authentication; unauthenticated primary quota is 60 requests/hour per originating IP. Search has tighter endpoint-specific limits."
+        },
+        {
+          "url": "https://github.com/garrytan/gstack",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "A public repository's README, file list, activity links, issues, and license were readable without login."
+        }
+      ],
+      "runtime_probes": [
+        {
+          "url": "https://api.github.com/repos/Marakaya/proofpilot",
+          "method": "GET",
+          "checked_at": "2026-09-05T13:41:31.397448+00:00",
+          "http_status": 200,
+          "observation": "Anonymous public repository metadata returned Marakaya/proofpilot, public, not archived, default branch main.",
+          "scope_limit": "single external public REST response; no ProofPilot adapter tested; private access, search, writes and other endpoints not tested."
+        }
+      ]
     },
     {
       "id": "defillama",
@@ -73,14 +270,80 @@
       "official_url": "https://defillama.com/",
       "authority": "medium",
       "access": "public",
-      "stages": ["discover", "validate", "plan", "review"],
-      "domains": ["web3", "data_ml"],
-      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
+      "domains": [
+        "web3",
+        "data_ml"
+      ],
+      "program_contexts": [
+        "none",
+        "hackathon",
+        "grant",
+        "accelerator"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Compare current protocol, chain, category, TVL, fee, and volume data, then confirm decision-critical implementation and security facts in official protocol sources.",
       "evidence_use": "DeFi market health, protocol traction, chain comparison, and ecosystem context.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "market_context"
+      ],
+      "verification": {
+        "scope": "live_api",
+        "claims": "One anonymous response contained 466 chain objects. Exact UTC time was not retained. Only this free public read; historical, fee, volume, Pro endpoints and packaged skill runtime not tested. Public documentation checks are listed separately in reference_checks.",
+        "api_runtime_status": "verified"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "corrected",
+        "limitations": [
+          "The one /v2/chains response proves that endpoint's isolated public read only. Historical, fees, volumes, Pro APIs and the installed skill integration were not executed.",
+          "No single software license was established for the whole service; retain license=null and API terms."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://defillama.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current public dashboard exposes protocol rankings, chains, TVL, fees and volumes; API link points to api-docs.defillama.com."
+        },
+        {
+          "url": "https://defillama.com/docs/api",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Redirects to https://api-docs.defillama.com/, which documents separate Free and Pro APIs."
+        },
+        {
+          "url": "https://api-docs.defillama.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Free API has no authentication; /v2/chains, TVL, volumes and fee endpoints documented. Pro-only data requires a paid key; current documentation lists $300/month."
+        },
+        {
+          "url": "https://api.llama.fi/v2/chains",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Exactly one anonymous GET returned HTTP 200 application/json, 466 chain objects. No API key, payment, wallet or write request."
+        }
+      ],
+      "runtime_probes": [
+        {
+          "url": "https://api.llama.fi/v2/chains",
+          "method": "GET",
+          "checked_at": "2026-09-05",
+          "http_status": 200,
+          "observation": "One anonymous response contained 466 chain objects. Exact UTC time was not retained.",
+          "scope_limit": "Only this free public read; historical, fee, volume, Pro endpoints and packaged skill runtime not tested."
+        }
+      ]
     },
     {
       "id": "yc_library",
@@ -89,14 +352,56 @@
       "official_url": "https://www.ycombinator.com/library",
       "authority": "high",
       "access": "public",
-      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
       "domains": [],
-      "program_contexts": ["none", "accelerator", "incubator"],
+      "program_contexts": [
+        "none",
+        "accelerator",
+        "incubator"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Select guidance relevant to the current stage instead of applying generic startup advice to every request.",
       "evidence_use": "Founder operating principles, customer discovery, MVP discipline, launch, and fundraising context.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "methodology"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "YC provides public founder guidance and a free Startup School curriculum supporting the catalog's use cases. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_applicable"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "partial",
+        "content_status": "partial",
+        "limitations": [
+          "Full Library index content was not extracted; Startup School and official application advice supply the verified content evidence.",
+          "Progress tools and cofounder matching require an account; no account flow tested.",
+          "Public-reference access does not establish an open redistribution license; retain license=null."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://www.startupschool.org/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public curriculum lists MVP planning, fundraising, launch, user growth, team leadership and applying to YC; course is free and self-paced."
+        },
+        {
+          "url": "https://www.ycombinator.com/howtoapply",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public Paul Graham guidance emphasizes clear factual answers, founder achievements and insight."
+        }
+      ]
     },
     {
       "id": "gstack",
@@ -105,14 +410,130 @@
       "official_url": "https://github.com/garrytan/gstack",
       "authority": "high",
       "access": "public",
-      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
       "domains": [],
-      "program_contexts": ["none", "accelerator", "incubator"],
+      "program_contexts": [
+        "none",
+        "accelerator",
+        "incubator"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Use as an attributed workflow reference; do not copy or depend on its implementation without checking its license and current revision.",
       "evidence_use": "Founder-role decomposition and specialist workflow patterns.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "methodology"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Founder-role decomposition and specialist workflows remain an accurate reference use. Repository is MIT-licensed at the checked main-branch snapshot. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "corrected",
+        "limitations": [
+          "No revision was pinned or code installed; license must be rechecked on the exact revision before reuse.",
+          "MIT covers repository software/documentation, not third-party services or model access."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://github.com/garrytan/gstack",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "README and repository tree describe CEO, design, engineering, QA, security and release specialist workflows."
+        },
+        {
+          "url": "https://github.com/garrytan/gstack/blob/main/LICENSE",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Repository license page located."
+        },
+        {
+          "url": "https://raw.githubusercontent.com/garrytan/gstack/main/LICENSE",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Independent public GET returned actual MIT license text, Copyright (c) 2026 Garry Tan, with copyright/permission notice preservation requirement."
+        }
+      ]
+    },
+    {
+      "id": "sequoia_pmf",
+      "label": "Sequoia Capital public PMF and founder methods",
+      "source_type": "official_docs",
+      "official_url": "https://sequoiacap.com/article/pmf-framework-2",
+      "authority": "high",
+      "access": "public",
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
+      "domains": [],
+      "program_contexts": [],
+      "credential_class": "no_secret",
+      "status": "available_public",
+      "query_strategy": "Load product-market-fit.md for explicit Sequoia, PMF, repeat-use, monetization or scaling questions. Read only the relevant primary method; Arc admission rules belong to the target-program profile.",
+      "evidence_use": "Choose and interpret experiments. Never use investor authority, portfolio examples or macro forecasts as evidence of this project's demand, retention, economics or eligibility.",
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "methodology"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Public PMF, retention and AI thesis pages and stated publication dates; no private investment process checked.",
+        "api_runtime_status": "not_applicable"
+      },
+      "reference_checks": [
+        {
+          "url": "https://sequoiacap.com/article/pmf-framework-2",
+          "published_at": "2025-02-12",
+          "claim_scope": "Four founder questions and iterative revisiting are still the published method; no fixed investment score is asserted.",
+          "checked_at": "2026-09-05"
+        },
+        {
+          "url": "https://sequoiacap.com/article/pmf-framework",
+          "published_at": "2024-04-09",
+          "claim_scope": "Three customer-problem archetypes; the page explicitly says the framework does not diagnose whether PMF exists.",
+          "checked_at": "2026-09-05"
+        },
+        {
+          "url": "https://articles.sequoiacap.com/retention",
+          "published_at": null,
+          "claim_scope": "Meaningful activity, natural recurrence, and temporal cohorts support the measurement method; historical company examples are not imported as current facts.",
+          "checked_at": "2026-09-05"
+        },
+        {
+          "url": "https://sequoiacap.com/article/services-the-new-software",
+          "published_at": "2026-03-05",
+          "claim_scope": "Author thesis on selling completed work and beginning with outsourced tasks; treated as a hypothesis, not project demand or autonomous safety proof.",
+          "checked_at": "2026-09-05"
+        },
+        {
+          "url": "https://sequoiacap.com/article/the-cognitive-revolution",
+          "published_at": "2026-09-02",
+          "claim_scope": "AI opportunity thesis and forecasts are still presented as context; no forecast is made a required skill rule.",
+          "checked_at": "2026-09-05"
+        }
+      ],
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "Only the named methodology or documentation claims were checked; this is not evidence of project demand, quality, admission, or deployed behavior."
+        ]
+      }
     },
     {
       "id": "founder_institute",
@@ -121,14 +542,56 @@
       "official_url": "https://fi.co/",
       "authority": "high",
       "access": "public",
-      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
       "domains": [],
-      "program_contexts": ["none", "accelerator", "incubator"],
+      "program_contexts": [
+        "none",
+        "accelerator",
+        "incubator"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Use public founder and idea-validation frameworks when they fit the current stage.",
       "evidence_use": "Founder readiness, idea validation, market framing, and structured progression.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "methodology"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Public founder/idea-validation materials remain available. Current positioning is an AI-native/agentic company builder. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_applicable"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "Public resources do not imply free program admission: homepage displayed a location-specific entrance fee and equity component.",
+          "Some resource links are curated third-party material; attribution should follow the actual author.",
+          "No blanket content license verified; retain license=null."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://fi.co/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current homepage presents FI Agentic Program, public resource links, local fees, and equity/program agreements."
+        },
+        {
+          "url": "https://fi.co/startup-idea-validation",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public ideation/validation guide discusses focusing on one customer/problem, early products, interviews and testing assumptions."
+        }
+      ]
     },
     {
       "id": "devpost",
@@ -137,14 +600,75 @@
       "official_url": "https://devpost.com/",
       "authority": "medium",
       "access": "public",
-      "stages": ["discover", "validate", "review", "submit"],
-      "domains": ["web2", "ai", "web3", "data_ml", "community"],
-      "program_contexts": ["hackathon", "competition"],
+      "stages": [
+        "discover",
+        "validate",
+        "review",
+        "submit"
+      ],
+      "domains": [
+        "web2",
+        "ai",
+        "web3",
+        "data_ml",
+        "community"
+      ],
+      "program_contexts": [
+        "hackathon",
+        "competition"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Inspect current official event pages and public projects; do not assume a public submission API.",
       "evidence_use": "Project patterns, judging criteria, prize tracks, required fields, and public demos.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "project_evidence",
+        "program_rules",
+        "market_context"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Public comparison and submission-preparation use is confirmed. Manual final submission requires participant context and event-specific rules. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "Guide's example MIT/public-repository fields are not universal event requirements.",
+          "No official general submission API or OAuth integration contract was verified; deferred status must remain.",
+          "Source update dates are not publication dates; published_at retained null.",
+          "Participant project licenses are project/event-specific; license=null remains appropriate."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://devpost.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public site links hackathons, project galleries, organizer content and participant account login."
+        },
+        {
+          "url": "https://devpost.com/software",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public software project gallery was readable."
+        },
+        {
+          "url": "https://help.devpost.com/article/126-know-your-submission-steps",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public guide lists submission stages and explicitly says event-specific additional fields vary; last updated 2026-08-12."
+        },
+        {
+          "url": "https://help.devpost.com/article/120-whate28099s-the-difference-between-signing-up-for-devpost-and-registering-for-a-hackathon",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Account signup and individual event registration are separate; some events additionally require acceptance. Last updated 2026-05-27."
+        }
+      ]
     },
     {
       "id": "colosseum_copilot",
@@ -153,14 +677,143 @@
       "official_url": "https://docs.colosseum.com/copilot/getting-started",
       "authority": "high",
       "access": "connected",
-      "stages": ["discover", "validate", "review", "submit"],
-      "domains": ["web3"],
-      "program_contexts": ["hackathon", "accelerator"],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
+      "domains": [
+        "web3"
+      ],
+      "program_contexts": [
+        "hackathon",
+        "accelerator"
+      ],
       "credential_class": "api_token",
-      "status": "connector_spec",
-      "query_strategy": "Verify the read token, load filters, search projects and archives, then fetch full details only for the strongest matches.",
+      "status": "implemented",
+      "query_strategy": "Required onboarding foundation: reuse a verified read PAT. Use scripts/colosseum-read.js for bounded project/archive reads; it performs a fresh status check first. Supplement Solana-focused corpus coverage with relevant market sources and user evidence.",
       "evidence_use": "Solana project similarity, winner patterns, archive evidence, gap analysis, and accelerator context.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "project_evidence",
+        "market_context"
+      ],
+      "verification": {
+        "scope": "live_api",
+        "claims": "The packaged setup/read helpers reused the existing PAT. Live GET /status returned authenticated:true with read scope; bounded POST /search/projects returned two stablecoin-payment projects on 2026-09-05. Other fixed routes have contract/fixture tests, not live verification. Historical Python 403 observations do not establish failed documented curl access.",
+        "api_runtime_status": "verified"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "corrected",
+        "limitations": [
+          "The package now ships setup.js and a bounded Colosseum read helper. Live evidence covers status and one project search through this helper; historical filters success was a separate curl probe. Other helper routes were not tested against the live account.",
+          "Historical Python urllib calls returned Cloudflare 403. The token and documented curl path succeeded; do not infer invalid credentials or recommend token rotation/provider support from those earlier failures.",
+          "The locally installed Colosseum entrypoint is an older Superstack wrapper. Its telemetry/config setup and blanket invalid-token diagnosis were not executed; use the current official documentation and bounded read instructions.",
+          "Archive retrieval, Grid/web research, compare/analyze, complete reports, write feedback and source suggestions remain untested. Corpus sizes and historical examples in documentation are not project demand evidence."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://docs.colosseum.com/copilot/getting-started",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current setup uses npx skills add ColosseumOrg/colosseum-copilot, COLOSSEUM_COPILOT_API_BASE=https://copilot.colosseum.com/api/v1, and a PAT."
+        },
+        {
+          "url": "https://docs.colosseum.com/copilot/api-reference",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "All requests require Bearer PAT. Documented searches, archives, filters/clusters, project detail and accelerator filters. Limits: search 30/min, analyze/compare 10/min, two in-flight data requests."
+        },
+        {
+          "url": "https://docs.colosseum.com/copilot/authentication",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "PAT acquisition is account-backed at colosseum.com/arena/copilot; tokens expire after 90 days."
+        },
+        {
+          "url": "https://api.github.com/repos/ColosseumOrg/colosseum-copilot",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Anonymous metadata GET: archived=false, disabled=false, no repository license detected; pushed_at=2026-07-13T01:51:28Z."
+        },
+        {
+          "url": "https://docs.colosseum.com/copilot/introduction",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Copilot is a research skill for coding assistants. Conversational mode is default; Deep Dive is explicit opt-in. It combines projects, archives and current context under evidence requirements; no separate desktop client is required."
+        },
+        {
+          "url": "https://github.com/ColosseumOrg/colosseum-copilot/blob/main/skills/colosseum-copilot/SKILL.md",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Canonical skill path documents Bearer PAT, status-first preflight and the ordinary API/curl contract. X-Copilot-Skill-Version is a response header; no special client User-Agent is required."
+        },
+        {
+          "url": "https://copilot.colosseum.com/api/v1/search/projects",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Executed bounded read-only POST search (stablecoin payments, limit 2): HTTP 200 returned MISK.FI and StablePal. No app mutation or full research workflow performed."
+        },
+        {
+          "url": "https://docs.colosseum.com/copilot/faq",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Official FAQ confirms PAT access is free for Colosseum Arena members, subject to limits; host Claude Code/Codex usage has separate costs."
+        },
+        {
+          "url": "https://copilot.colosseum.com/api/v1/search/projects",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Packaged colosseum-read.js live read-only POST at 2026-09-05T16:09:57.822Z after fresh auth: query stablecoin payments, limit 2, HTTP 200, returned MISK.FI and StablePal. No other packaged corpus route tested live."
+        }
+      ],
+      "runtime_probes": [
+        {
+          "url": "https://copilot.colosseum.com/api/v1/status",
+          "method": "GET",
+          "checked_at": "2026-09-05T13:57:08.305165+00:00",
+          "http_status": 403,
+          "observation": "One status read with the existing configured PAT returned HTTP 403. The response body and credential were not recorded; the cause was not established.",
+          "scope_limit": "Named read-only status endpoint; search, filters, analysis, rate limits and installed skill runtime not tested."
+        },
+        {
+          "url": "https://copilot.colosseum.com/api/v1/filters",
+          "method": "GET",
+          "checked_at": "2026-09-05",
+          "http_status": 403,
+          "observation": "One documented filters GET with the existing PAT returned a Cloudflare JSON error whose detail states that the site owner blocked access based on the client browser signature. No credential or full response body was recorded.",
+          "scope_limit": "This establishes the denial reason for this request, not token validity or corpus availability. Do not work around the access restriction; use a supported authorized client or ask the provider to enable access."
+        },
+        {
+          "url": "https://copilot.colosseum.com/api/v1/status",
+          "method": "GET",
+          "checked_at": "2026-09-05T15:31:28.996288+00:00",
+          "http_status": 200,
+          "observation": "Documented curl transport with the existing PAT returned authenticated:true and scope colosseum_copilot:read; server-confirmed expiresAt 2026-09-30T17:11:37.000Z.",
+          "scope_limit": "Authenticated status only. Ordinary curl defaults were used; no token rotation, browser impersonation, proxy change or TLS bypass. Earlier Python failures do not establish failure of the documented skill path."
+        },
+        {
+          "url": "https://copilot.colosseum.com/api/v1/filters",
+          "method": "GET",
+          "checked_at": "2026-09-05",
+          "http_status": 200,
+          "observation": "The documented curl filters GET returned HTTP 200 JSON before a project-search probe. Exact timestamp and filter contents were not retained.",
+          "scope_limit": "Filter access only; no claim that every endpoint or full nested skill workflow was tested."
+        },
+        {
+          "url": "https://copilot.colosseum.com/api/v1/status",
+          "method": "GET",
+          "checked_at": "2026-09-05T16:09:57.823Z",
+          "http_status": 200,
+          "observation": "Packaged setup/read resolver reused the existing legacy PAT; authenticated:true and colosseum_copilot:read, expiry 2026-09-30T17:11:37.000Z. No token value recorded.",
+          "scope_limit": "Authentication only; corpus search evidence is the separate read-only POST in reference_checks. No new account, token or paid operation."
+        }
+      ]
     },
     {
       "id": "ethglobal",
@@ -169,14 +822,48 @@
       "official_url": "https://ethglobal.com/",
       "authority": "high",
       "access": "public",
-      "stages": ["discover", "validate", "review", "submit"],
-      "domains": ["web3"],
-      "program_contexts": ["hackathon"],
+      "stages": [
+        "discover",
+        "validate",
+        "review",
+        "submit"
+      ],
+      "domains": [
+        "web3"
+      ],
+      "program_contexts": [
+        "hackathon"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Use current event, project, prize, and sponsor pages; verify rules against the named event before drafting.",
       "evidence_use": "Ethereum hackathon projects, event requirements, sponsors, prizes, and submission patterns.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "program_rules",
+        "market_context"
+      ],
+      "verification": {
+        "scope": "public_page",
+        "claims": "Official public event/project website checked as the route to event-specific pages. No chosen event, current rules or submission was verified. Separate community corpus/API checks do not confer official authority.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "Select the actual official event and current rules during the run; no event-specific eligibility or deadline was certified by this catalog audit."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://ethglobal.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public official event/project website is the registry fallback; event-specific rules still require the relevant official event page."
+        }
+      ]
     },
     {
       "id": "kaggle",
@@ -185,14 +872,59 @@
       "official_url": "https://www.kaggle.com/",
       "authority": "medium",
       "access": "public_or_connected",
-      "stages": ["discover", "validate", "plan", "review"],
-      "domains": ["ai", "data_ml"],
-      "program_contexts": ["none", "hackathon", "competition"],
-      "credential_class": "api_token",
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
+      "domains": [
+        "ai",
+        "data_ml"
+      ],
+      "program_contexts": [
+        "none",
+        "hackathon",
+        "competition"
+      ],
+      "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Search public datasets, notebooks, and competitions first; connect a user token only for account-backed operations.",
       "evidence_use": "Dataset availability, benchmark conventions, notebooks, and competition requirements.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "technical_reference",
+        "program_rules"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Official CLI documentation supports the platform's dataset/notebook/competition use cases. Token-based account operations remain a valid documented option; OAuth is another current option. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "partial",
+        "content_status": "partial",
+        "limitations": [
+          "Kaggle app/docs body was not directly inspectable in this extractor; public capability is supported by official source documentation, not runtime tests.",
+          "General CLI includes writes and submissions; ProofPilot's account_api must remain explicitly read-only.",
+          "CLI Apache-2.0 does not license all Kaggle datasets/models; platform license=null retained."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://github.com/Kaggle/kaggle-api",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Official repository redirects to Kaggle/kaggle-cli; README lists competitions, datasets, models, notebooks and forums."
+        },
+        {
+          "url": "https://github.com/Kaggle/kaggle-cli/blob/main/skills/references/auth.md",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Official auth reference supports OAuth, API tokens and legacy credentials; only selected public dataset flows are allowed logged out."
+        }
+      ]
     },
     {
       "id": "hugging_face",
@@ -201,14 +933,77 @@
       "official_url": "https://huggingface.co/",
       "authority": "medium",
       "access": "public_or_connected",
-      "stages": ["discover", "validate", "plan", "review"],
-      "domains": ["ai", "data_ml"],
-      "program_contexts": ["none", "hackathon", "competition"],
-      "credential_class": "api_token",
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
+      "domains": [
+        "ai",
+        "data_ml"
+      ],
+      "program_contexts": [
+        "none",
+        "hackathon",
+        "competition"
+      ],
+      "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Inspect public model cards, datasets, and Spaces first; request a read token only when needed.",
       "evidence_use": "Model and dataset availability, licenses, benchmarks, demos, and comparable AI products.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "technical_reference"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Public model/dataset/Space discovery and card/license research is supported. Private/account-backed Hub resources use appropriately scoped authentication. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "Gated models and private/org resources may need additional approval; merely possessing a token does not grant access.",
+          "Hub access does not establish that inference providers are free or available.",
+          "No platform-wide artifact license; license=null should remain.",
+          "No token or inference call made."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://huggingface.co/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public homepage exposes models, datasets, Spaces and repository discovery."
+        },
+        {
+          "url": "https://huggingface.co/docs",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public documentation hub was readable."
+        },
+        {
+          "url": "https://huggingface.co/docs/hub/security-tokens",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Read and fine-grained tokens documented; organization policy can require fine-grained scopes and approval."
+        },
+        {
+          "url": "https://huggingface.co/docs/hub/rate-limits",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "API, resolver and page requests have separate five-minute quotas; anonymous/free limits may change with platform health. Table identifies its baseline as September 2025."
+        },
+        {
+          "url": "https://huggingface.co/docs/hub/repositories-licenses",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Licenses belong to individual repositories/cards; inspect their metadata and license terms."
+        }
+      ]
     },
     {
       "id": "openzeppelin",
@@ -217,14 +1012,56 @@
       "official_url": "https://docs.openzeppelin.com/",
       "authority": "high",
       "access": "public",
-      "stages": ["plan", "review"],
-      "domains": ["web3"],
-      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": [
+        "plan",
+        "review"
+      ],
+      "domains": [
+        "web3"
+      ],
+      "program_contexts": [
+        "none",
+        "hackathon",
+        "grant",
+        "accelerator"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Use current official contract and security documentation for EVM implementation and review guidance.",
       "evidence_use": "Smart-contract patterns, security controls, upgradeability, and implementation readiness.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "technical_reference"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Current contract/security reference role and no-secret public guidance remain appropriate. Upgradeable contract patterns and controls are documented. Documentation access does not require running a deployment service. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "Keep umbrella license=null: Solidity Contracts repository is MIT, but other OpenZeppelin products have different terms/licenses.",
+          "Defender must not be introduced as the default new operational platform; current docs call it legacy maintenance mode.",
+          "No local package/contract build, audit scan, upgrade simulation or MCP test was performed."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://docs.openzeppelin.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current hub supports Solidity Contracts, Upgrades Plugins, Wizard, Contracts MCP and other chain libraries. Defender explicitly labeled legacy/maintenance mode."
+        },
+        {
+          "url": "https://api.github.com/repos/OpenZeppelin/openzeppelin-contracts",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Anonymous metadata GET: archived=false, disabled=false, MIT; pushed_at=2026-09-04T22:58:35Z."
+        }
+      ]
     },
     {
       "id": "trail_of_bits",
@@ -233,14 +1070,116 @@
       "official_url": "https://github.com/trailofbits",
       "authority": "high",
       "access": "public",
-      "stages": ["plan", "review"],
-      "domains": ["web3", "web2", "deep_tech"],
-      "program_contexts": ["none", "hackathon", "grant", "accelerator"],
+      "stages": [
+        "plan",
+        "review"
+      ],
+      "domains": [
+        "web3",
+        "web2",
+        "deep_tech"
+      ],
+      "program_contexts": [
+        "none",
+        "hackathon",
+        "grant",
+        "accelerator"
+      ],
       "credential_class": "no_secret",
       "status": "available_public",
       "query_strategy": "Select current official security guidance and local analysis tools relevant to the implementation under review.",
       "evidence_use": "Threat modeling, secure development, smart-contract analysis, and review procedures.",
-      "last_verified_at": "2026-07-11"
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "technical_reference",
+        "methodology"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Security methodology and technical_reference roles are supported. The local_analysis capability correctly remains catalogued; public source availability does not establish that a selected CLI is installed or runnable. Only the listed public references and claims were checked; see freshness_review.limitations.",
+        "api_runtime_status": "not_tested"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "corrected",
+        "limitations": [
+          "Keep umbrella license=null; skills, publications and individual analyzers have different licenses.",
+          "Some analysis tools compile project code and create caches/reports; a blanket read_only permission must not be interpreted as a guarantee of zero filesystem writes.",
+          "No analyzer, compiler or third-party plugin was executed; local prerequisites were not verified."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://github.com/trailofbits",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Verified organization links its blockchain security work to crytic and exposes current security skills/publications."
+        },
+        {
+          "url": "https://github.com/trailofbits/skills",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current security marketplace includes analysis/testing/audit skills; CC-BY-SA-4.0 for this repository. Publicly documented install path exists."
+        },
+        {
+          "url": "https://api.github.com/repos/trailofbits/skills",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Anonymous metadata GET: archived=false, disabled=false; pushed_at=2026-09-02T17:44:12Z."
+        },
+        {
+          "url": "https://github.com/crytic/slither",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Official linked blockchain group hosts Solidity/Vyper static analysis tooling and installation guidance."
+        }
+      ]
+    },
+    {
+      "id": "solana_docs",
+      "label": "Official Solana developer documentation",
+      "source_type": "official_docs",
+      "official_url": "https://solana.com/docs/frontend",
+      "authority": "high",
+      "access": "public",
+      "stages": [
+        "plan",
+        "review"
+      ],
+      "domains": [
+        "web3"
+      ],
+      "program_contexts": [],
+      "credential_class": "no_secret",
+      "status": "available_public",
+      "query_strategy": "Use current official SDK and frontend guides; for an existing repository first inspect dependency versions and protocol-client compatibility.",
+      "evidence_use": "Frontend stack and integration guidance; documentation does not prove a scaffold builds, a wallet works or a deployment is safe.",
+      "last_verified_at": "2026-09-05",
+      "source_roles": [
+        "technical_reference"
+      ],
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Frontend SDK recommendation only; no scaffold, local integration or onchain operation executed.",
+        "api_runtime_status": "not_tested"
+      },
+      "reference_checks": [
+        {
+          "url": "https://solana.com/docs/frontend",
+          "published_at": null,
+          "claim_scope": "Official guide still identifies Kit, Kit plugins and React bindings for new frontends and calls web3.js v1 / wallet-adapter legacy.",
+          "checked_at": "2026-09-05"
+        }
+      ],
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "confirmed",
+        "limitations": [
+          "Only the named methodology or documentation claims were checked; this is not evidence of project demand, quality, admission, or deployed behavior."
+        ]
+      }
     }
   ]
 }

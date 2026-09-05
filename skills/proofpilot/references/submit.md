@@ -7,9 +7,10 @@ Use this workflow for a pitch, grant, accelerator, competition, Devpost, Colosse
 1. Load the current official application fields, eligibility rules, rubric, deadline, and asset requirements.
 2. Record the source URL and retrieval date for every program requirement.
 3. Map existing project evidence to each required field.
+   Use [decisions.md](decisions.md) for mandatory conditions. Check the current window, geography, stage, prior-work rules, event-period contributions, and live integration requirements when relevant. Map each requirement to proof; a mock is not a live integration.
 4. Draft concise answers that distinguish shipped proof, user proof, plans, and assumptions.
 5. Flag missing fields, weak claims, broken links, and unsupported metrics.
-6. Prepare an asset checklist and a two-minute value-first demo narrative.
+6. Prepare an asset checklist and a value-first demo narrative within the actual program's duration limit.
 7. Keep the final external submission under human control.
 
 ## Required Output
@@ -22,4 +23,4 @@ Use this workflow for a pitch, grant, accelerator, competition, Devpost, Colosse
 - demo and pitch outline
 - final human verification checklist
 
-Do not fabricate traction, partnerships, team history, technical completion, eligibility, or links. Do not submit externally without explicit approval at the final action boundary.
+Do not fabricate traction, partnerships, team history, technical completion, eligibility, or links. A completed draft is `artifact` + `complete`; readiness to send is `apply` + `proceed` only after the required checks pass. Obtain scoped authorization before external submission and honor it if already given.

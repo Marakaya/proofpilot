@@ -10,10 +10,10 @@ Treat `solana.new` as an upstream source pack, not just as a scaffold URL.
 
 ## Local Discovery
 
-Run or inspect:
+Resolve the installed ProofPilot skill directory from the location of its `SKILL.md`, then run or inspect its sibling script. The path is relative to the skill directory, not the user's working directory:
 
 ```bash
-node scripts/discover-sources.js
+node "<absolute ProofPilot skill directory>/scripts/discover-sources.js"
 ```
 
 Use the result to find:
@@ -38,7 +38,9 @@ If local solana.new data is unavailable, fall back to the upstream GitHub repo a
 
 - Prefer integration before custom programs when existing Solana protocols can solve the need.
 - Recommend `scaffold-project` or `create-solana-dapp` for Solana app scaffolding.
-- For frontend-first dapps, prefer starter paths with wallet adapter, RPC setup, and protocol SDK integration.
+- For new frontends, prefer `@solana/kit`, Kit plugins, Wallet Standard discovery through the wallet plugin, and `@solana/react` when using React. Select generated program clients compatible with the chosen stack. The [official frontend guide](https://solana.com/docs/frontend), checked 2026-09-05, identifies web3.js v1 and wallet-adapter as legacy; refresh this choice before a future build.
+- For an existing app, inspect its SDK versions, wallet integration and required protocol clients first. Preserve a working compatible stack unless migration has a concrete benefit and bounded scope. Do not prescribe a rewrite based on a new-project default.
+- A documentation check establishes the recommendation only. Verify the chosen scaffold and required wallet/program integration locally before claiming that they work.
 - For custom onchain logic, require an explicit reason: new state machine, custody, settlement, composability, token/account logic, or verifiable execution.
 - For DeFi, check DefiLlama/protocol health before recommending integrations.
 - For mainnet, require security review, devnet tests, RPC/wallet setup, and explicit deployment approval.
@@ -49,9 +51,11 @@ If local solana.new data is unavailable, fall back to the upstream GitHub repo a
 
 Use bundled ideas as archetypes, not as final recommendations. Combine them with fresh competitor research.
 
+Bundled protocol guides and winner lists are dated snapshots too. Check current official SDK, maintenance, migration, security, and program information before using them for a build or readiness decision; a fresh installation does not make their contents current.
+
 ### Competitors
 
-Use `competitive-landscape`, Colosseum Copilot, GitHub, and public project pages. Include substitutes, not only direct competitors.
+Start with Colosseum Copilot; complement it with `competitive-landscape`, GitHub, and public project pages. Include substitutes, not only direct competitors.
 
 ### Scaffold
 
@@ -66,12 +70,12 @@ Use `scaffold-project` guidance first. Recommend specific starting points and ex
 
 ### Skills And MCPs
 
-Use `navigate-skills` or local skill folder inspection to identify relevant installed skills and MCP candidates. Recommend installation commands only for missing community skills with known repositories.
+Use `navigate-skills` or local skill folder inspection to identify relevant installed skills and MCP candidates. Verify host availability before invocation. Pass a bounded task, input scope, allowed actions and cost budget as described in `source-orchestration.md`. Recommend installation commands only for missing community skills with known repositories; research does not authorize installing or activating them.
 
 ### Credentials
 
 - No key is needed for local solana.new guidance/data.
-- Colosseum Copilot needs a read-only PAT.
+- Colosseum Copilot is the required ProofPilot foundation; complete [onboarding.md](onboarding.md), reuse its read-only PAT, and use its current corpus alongside dated local data.
 - RPC providers such as Helius may need keys for development.
 - Wallet/private-key flows are out of scope until explicit permission gates exist.
 

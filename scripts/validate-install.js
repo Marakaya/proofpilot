@@ -20,6 +20,8 @@ const skillNames = [
 function validateMode(modeArgs) {
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-profiles-"));
   try {
+    // Installed scripts must work even when the host project defaults to CommonJS.
+    fs.writeFileSync(path.join(temporaryRoot, "package.json"), JSON.stringify({ type: "commonjs" }));
     const install = spawnSync(
       process.execPath,
       [installScript, "--target", temporaryRoot, ...modeArgs],
@@ -37,9 +39,21 @@ function validateMode(modeArgs) {
         "references/source-registry.json",
         "references/tool-registry.json",
         "references/rubrics.json",
+        "references/event-assessment.md",
+        "references/event-intake.md",
+        "references/event-profiles.json",
+        "scripts/event-score.js",
         "references/accelerator-programs.json",
         "references/presentation-decks.json",
         "references/honest-evaluation.md",
+        "references/decisions.md",
+        "references/quality.md",
+        "references/quality-review.md",
+        "scripts/quality.js",
+        "scripts/package.json",
+        "references/product-market-fit.md",
+        "references/ai-product-validation.md",
+        "scripts/validate-response.js",
         "scripts/discover-sources.js"
       ];
       for (const relativePath of requiredPaths) {
@@ -47,6 +61,17 @@ function validateMode(modeArgs) {
           throw new Error(`Installed profile is missing ${skillName}/${relativePath}`);
         }
       }
+
+      const qualityHelp = spawnSync(process.execPath, [path.join(skillDir, "scripts", "quality.js"), "--help"], { cwd: os.tmpdir(), encoding: "utf8" });
+      if (qualityHelp.status !== 0 || !Array.isArray(JSON.parse(qualityHelp.stdout).criteria)) {
+        throw new Error(`Installed quality helper cannot run independently: ${skillName}`);
+      }
+
+      const eventList = spawnSync(process.execPath, [path.join(skillDir, "scripts", "event-score.js"), "list"], { cwd: os.tmpdir(), encoding: "utf8" });
+      if (eventList.status !== 0) {
+        throw new Error(`Installed event helper cannot run independently: ${skillName}: ${eventList.stderr}`);
+      }
+      JSON.parse(eventList.stdout);
 
       const skillText = fs.readFileSync(path.join(skillDir, "SKILL.md"), "utf8");
       const nameMatch = skillText.match(/^name:\s*([a-z0-9-]+)$/m);

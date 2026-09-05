@@ -9,6 +9,8 @@ Classify the request across independent dimensions. Do not force the project int
 
 Never combine coaching edits and a formal score in the same evaluation pass.
 
+For hackathon/workshop scoring, event-rubric design or participant self-review, route to [event-assessment.md](event-assessment.md) at the `review` stage. Infer organizer/judge/participant role and choose published/custom rules or a matching ProofPilot preset. The event scorecard has its own event context; do not force a workshop into the venture response taxonomy. An event assessment does not automatically trigger demand validation or accelerator research.
+
 ## Stages
 
 Run stages in this order when more than one applies:

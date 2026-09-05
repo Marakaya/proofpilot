@@ -1,6 +1,6 @@
 {
   "name": "proofpilot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Evidence-first open-source skill for venture discovery, validation, planning, review, and submission.",
   "type": "module",
   "license": "MIT",
@@ -14,7 +14,9 @@
     "install:profiles": "node scripts/install-skills.js",
     "validate": "node scripts/validate.js",
     "validate:profiles": "node scripts/validate-install.js",
-    "test": "node scripts/test.js"
+    "test": "node scripts/test.js",
+    "test:responses": "node scripts/test-response.js",
+    "eval:behavior": "node scripts/eval-behavior.js"
   },
   "files": [
     "skills",

@@ -1,26 +1,44 @@
 {
   "$schema": "./rubrics.schema.json",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "scale": {
     "minimum": 0,
     "maximum": 4,
     "bands": [
-      { "id": "red", "minimum": 0, "maximum": 1.49 },
-      { "id": "yellow", "minimum": 1.5, "maximum": 2.99 },
-      { "id": "green", "minimum": 3, "maximum": 4 }
+      {
+        "id": "red",
+        "minimum": 0,
+        "maximum": 1.49
+      },
+      {
+        "id": "yellow",
+        "minimum": 1.5,
+        "maximum": 2.99
+      },
+      {
+        "id": "green",
+        "minimum": 3,
+        "maximum": 4
+      }
     ],
     "intermediate_rule": "Use 1 or 3 only when the evidence falls clearly between the adjacent anchors."
   },
   "evidence_policy": {
-    "allowed_states": ["scored", "insufficient_evidence", "not_applicable"],
+    "allowed_states": [
+      "scored",
+      "insufficient_evidence",
+      "not_applicable"
+    ],
     "provisional_below_coverage": 0.5,
-    "rule": "Report weighted score and evidence coverage separately. Do not convert missing evidence into positive evidence or hide it inside a confidence label."
+    "rule": "A scored dimension requires observed evidence, including for a real zero. Missing evidence is insufficient_evidence with a null score. Normalize weighted_score over scored weights; evidence_coverage is scored weight / applicable weight, excluding not_applicable. Return null score and zero coverage when nothing is scored. Accept numeric rounding within 0.000001. Mark provisional below the coverage threshold, for any applicable unknown dimension, or any unknown gate for the recommendation target; conservative provisional=true is allowed for low-quality evidence. Gates are independent of scores: a failed or unknown requirement blocks proceed for that target, regardless of the score. Program eligibility follows current official requirements and never generically requires customer traction."
   },
   "rubrics": [
     {
       "id": "discovery_opportunity",
       "label": "Discovery opportunity",
-      "applies_to_stages": ["discover"],
+      "applies_to_stages": [
+        "discover"
+      ],
       "dimensions": [
         {
           "id": "founder_access",
@@ -82,7 +100,10 @@
     {
       "id": "venture_validation",
       "label": "Venture validation",
-      "applies_to_stages": ["validate", "review"],
+      "applies_to_stages": [
+        "validate",
+        "review"
+      ],
       "dimensions": [
         {
           "id": "customer_specificity",
@@ -144,7 +165,10 @@
     {
       "id": "mvp_readiness",
       "label": "MVP readiness",
-      "applies_to_stages": ["plan", "review"],
+      "applies_to_stages": [
+        "plan",
+        "review"
+      ],
       "dimensions": [
         {
           "id": "outcome_clarity",
@@ -206,7 +230,9 @@
     {
       "id": "venture_readiness",
       "label": "Venture readiness",
-      "applies_to_stages": ["review"],
+      "applies_to_stages": [
+        "review"
+      ],
       "dimensions": [
         {
           "id": "problem_clarity",
@@ -268,7 +294,10 @@
     {
       "id": "submission_readiness",
       "label": "Submission readiness",
-      "applies_to_stages": ["review", "submit"],
+      "applies_to_stages": [
+        "review",
+        "submit"
+      ],
       "dimensions": [
         {
           "id": "criteria_fit",

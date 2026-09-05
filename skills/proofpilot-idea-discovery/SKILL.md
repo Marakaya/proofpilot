@@ -1,45 +1,21 @@
 ---
 name: proofpilot-idea-discovery
-description: Use when a user has no clear idea and needs ProofPilot to generate promising startup, web2, web3, AI, data, grant, community, accelerator, or hackathon directions from their skills, constraints, interests, timeline, and target outcome, with blunt non-flattering judgment.
+description: Use when choosing a venture direction from founder access, skills, and constraints, before there is a concrete idea.
 ---
 
 # ProofPilot Idea Discovery
 
-## Resources
+This optional profile selects the `discover` stage of the shared ProofPilot workflow.
 
-- Load `references/taxonomy.json` to classify domains, venture type, and program context independently.
-- Load `references/decision-lenses.json` for applicable domain and context filters.
-- Load `references/source-registry.json` to name evidence sources that should be checked next.
-- Load `references/source-playbooks.json` to pick sources by track.
-- Load `references/judgment-policy.json` and apply `references/honest-evaluation.md`.
-- Load `references/accelerator-programs.json` when the user wants YC, Techstars, 500 Global, Antler, EF, Sequoia Arc, or non-web3 accelerator paths.
-- For Solana/web3 idea discovery, read `references/solana-new.md` and use local solana.new skills/data when available.
+First read [onboarding.md](references/onboarding.md). Colosseum access is required for completed ProofPilot setup in this profile too. Check existing access, reuse a verified key, and guide secure local setup if needed; keep the original task pending. Other keys are optional. Apply the explicit limited/offline-work exception from that reference.
 
-## Process
+1. For substantial assessments, follow [quality.md](references/quality.md) from frozen evidence through checks and bounded repair, even for prose output and on every model. Read [routing.md](references/routing.md), [decisions.md](references/decisions.md), [evidence.md](references/evidence.md), and [safety.md](references/safety.md). Classify mode, stages, domains, venture type, program context, and sensitivity independently.
+2. Follow [discover.md](references/discover.md). Add another stage only when the user's request needs it. Ask at most three questions when they materially change the decision; otherwise state assumptions and continue.
+3. Start relevant project/archive research with Colosseum, then select the smallest useful complementary source set from [source-registry.json](references/source-registry.json) and applicable [source-playbooks.json](references/source-playbooks.json). Check actual availability and current official facts. Read [source-orchestration.md](references/source-orchestration.md) for local discovery or nested skills.
+4. For validation or readiness, apply [honest-evaluation.md](references/honest-evaluation.md). Use [rubrics.json](references/rubrics.json) for scoring, with supported scores and evidence coverage; never substitute tone for rigor.
+5. Load [accelerators.md](references/accelerators.md), [presentations.md](references/presentations.md), or [solana-new.md](references/solana-new.md) only when relevant. Load [product-market-fit.md](references/product-market-fit.md) for value, retention, monetization, scaling, or Sequoia; [ai-product-validation.md](references/ai-product-validation.md) when AI quality, economics, or automation materially affects the decision.
+6. Return the checked stage output and next defensible decision; disclose unresolved material checks from [quality.md](references/quality.md). Narrow edits need only relevant accuracy/format checks. For structured output use [response.schema.json](references/response.schema.json) and resolve `scripts/validate-response.js` from this installed profile's directory.
 
-1. Capture skills, interests, constraints, team, timeline, budget, technical comfort, and target outcome.
-2. Ask up to five clarifying questions only if the missing information blocks useful recommendations.
-3. Generate 3 to 5 directions across suitable domains and venture types.
-4. For each direction, state customer, pain, why now, first MVP, proof needed, and what not to build yet.
-5. Select sources from `references/source-playbooks.json`; use local/no-secret sources first.
-6. Reject or downgrade ideas with weak evidence, vague customers, or fake accelerator fit.
-7. Rank by feasibility, evidence potential, urgency, distribution, and fit with the user.
-8. Recommend one direction and explain why.
+Generate three to five materially different directions and recommend one bounded test. Do not reject an unknown hypothesis solely for missing evidence.
 
-## Lens Handling
-
-Do not create separate workflows for web2 and web3. Use the same discovery process and apply every relevant domain or program lens.
-
-- For web2, prefer workflow pain, buyer clarity, pricing, distribution, and integration simplicity.
-- For web3, require a reason onchain state or wallets are necessary; otherwise recommend a web2 MVP first.
-- For accelerator, prefer ideas that can produce user proof quickly; do not recommend applying to YC or similar programs just because the idea sounds ambitious.
-
-## Output
-
-- directions table
-- recommended direction
-- chosen routing dimensions and applied lenses
-- first validation task
-- what not to build yet
-- sources to check next
-- local source packs used or skipped
+Respect the user's actual business goal and existing scoped authorization. Local drafts and requested reversible edits are within the task; external writes, payment, deployment, signing, or submission require authorization covering that action. Pass these bounds into delegated tools.

@@ -8,6 +8,7 @@ Use this workflow when the user has no sufficiently concrete direction.
 2. Identify repeated, costly, urgent, or poorly served jobs within that access.
 3. Generate three to five materially different directions. Do not produce cosmetic variations of one trend.
 4. For each direction, specify customer, painful job, current workaround, why the founder can reach the customer, smallest test, and evidence still needed.
+   Explain why now through a concrete change in the customer, technology, cost, distribution, or rules. Verify the causal claim; a popular technology alone is not an explanation.
 5. Compare directions on founder access, problem urgency, customer reachability, distribution advantage, buildability, and existing evidence.
 6. Recommend one direction for testing, not for unconditional building.
 

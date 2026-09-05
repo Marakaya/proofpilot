@@ -1,0 +1,179 @@
+{
+  "version": "0.3.0",
+  "run": {
+    "mode": "evaluator",
+    "stages": [
+      "review",
+      "submit"
+    ],
+    "domains": [
+      "community",
+      "no_code"
+    ],
+    "venture_type": "startup",
+    "program_context": "accelerator",
+    "sensitivity": "team",
+    "generated_at": "2026-09-05T10:00:00Z",
+    "evaluation_snapshot": {
+      "evidence_cutoff": "2026-09-05T09:00:00Z",
+      "allowed_source_ids": [
+        "user_artifacts",
+        "target_program"
+      ],
+      "artifacts": [
+        {
+          "id": "provided_packet_v1",
+          "location": "examples/responses/ineligible-application.json (embedded synthetic input facts)",
+          "version": "fixture-v1"
+        }
+      ]
+    }
+  },
+  "diagnosis": "Synthetic contract fixture: a polished application can score highly on most dimensions while failing a mandatory program requirement. The eligibility gate independently prevents applying.",
+  "assumptions": [
+    "All project facts in this example are synthetic test inputs."
+  ],
+  "evidence": [
+    {
+      "id": "observed_packet",
+      "claim": "The synthetic project has a complete application package, a reliable demo, observed user results, and an applicant location outside the permitted region.",
+      "source_id": "user_artifacts",
+      "source_url": null,
+      "retrieved_at": "2026-09-05T08:00:00Z",
+      "evidence_type": "user_verified",
+      "stance": "supports",
+      "confidence": "medium",
+      "summary": "Fixture-v1 supplies a complete application packet with an 80-second working demo, verified claims and links, and applicant country B. The synthetic program permits country A only.",
+      "artifact_ref": "provided_packet_v1"
+    },
+    {
+      "id": "official_fixture_rules",
+      "claim": "The synthetic program permits applicants in country A only and lists the required materials.",
+      "source_id": "target_program",
+      "source_url": "https://example.org/synthetic-program/rules",
+      "retrieved_at": "2026-09-05T08:00:00Z",
+      "evidence_type": "primary_current",
+      "stance": "supports",
+      "confidence": "high",
+      "summary": "Synthetic official-rules fixture for contract testing. No real program or fetched page is represented."
+    }
+  ],
+  "recommendation": {
+    "decision": "revise",
+    "rationale": "The synthetic applicant fails the program location requirement. High narrative and proof scores cannot compensate; select an eligible program or resolve the requirement.",
+    "confidence": "high",
+    "success_threshold": "Official rules and applicant evidence establish eligibility; all required materials are verified.",
+    "kill_or_pivot_condition": "Stop this application if the mandatory location requirement cannot be met.",
+    "target": "apply"
+  },
+  "sources_checked": [
+    {
+      "source_id": "user_artifacts",
+      "status": "checked",
+      "note": "Read only the embedded synthetic input packet fixture-v1."
+    },
+    {
+      "source_id": "target_program",
+      "status": "checked",
+      "note": "Synthetic rules fixture only; no external browsing is implied."
+    }
+  ],
+  "sources_not_checked": [],
+  "credential_requests": [],
+  "next_actions": [
+    {
+      "order": 1,
+      "action": "Choose a program whose official rules admit the applicant.",
+      "owner": "Founder",
+      "done_when": "A current rules source and applicant evidence confirm eligibility."
+    }
+  ],
+  "blocking_checks": [
+    {
+      "id": "program_eligibility",
+      "target": "apply",
+      "requirement": "Applicant must operate in permitted country A.",
+      "status": "failed",
+      "evidence_ids": [
+        "official_fixture_rules",
+        "observed_packet"
+      ]
+    },
+    {
+      "id": "required_materials",
+      "target": "apply",
+      "requirement": "Every field, declaration, proof link, and demo in the rules is present.",
+      "status": "passed",
+      "evidence_ids": [
+        "official_fixture_rules",
+        "observed_packet"
+      ]
+    }
+  ],
+  "scorecards": [
+    {
+      "rubric_id": "submission_readiness",
+      "rubric_version": "0.3.0",
+      "weighted_score": 3,
+      "evidence_coverage": 1,
+      "provisional": false,
+      "dimensions": [
+        {
+          "dimension_id": "criteria_fit",
+          "state": "scored",
+          "score": 0,
+          "confidence": "high",
+          "evidence_ids": [
+            "official_fixture_rules",
+            "observed_packet"
+          ],
+          "finding": "Observed synthetic applicant facts fail the mandatory location requirement."
+        },
+        {
+          "dimension_id": "proof_quality",
+          "state": "scored",
+          "score": 4,
+          "confidence": "high",
+          "evidence_ids": [
+            "official_fixture_rules",
+            "observed_packet"
+          ],
+          "finding": "Synthetic input packet supports the top anchor for this dimension."
+        },
+        {
+          "dimension_id": "narrative_clarity",
+          "state": "scored",
+          "score": 4,
+          "confidence": "high",
+          "evidence_ids": [
+            "official_fixture_rules",
+            "observed_packet"
+          ],
+          "finding": "Synthetic input packet supports the top anchor for this dimension."
+        },
+        {
+          "dimension_id": "completeness",
+          "state": "scored",
+          "score": 4,
+          "confidence": "high",
+          "evidence_ids": [
+            "official_fixture_rules",
+            "observed_packet"
+          ],
+          "finding": "Synthetic input packet supports the top anchor for this dimension."
+        },
+        {
+          "dimension_id": "demo_quality",
+          "state": "scored",
+          "score": 4,
+          "confidence": "high",
+          "evidence_ids": [
+            "official_fixture_rules",
+            "observed_packet"
+          ],
+          "finding": "Synthetic input packet supports the top anchor for this dimension."
+        }
+      ]
+    }
+  ]
+}

@@ -4,41 +4,373 @@
   "title": "ProofPilot source registry",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "version", "sources"],
+  "required": [
+    "$schema",
+    "version",
+    "sources"
+  ],
   "properties": {
-    "$schema": { "type": "string" },
-    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
     "sources": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/source" }
+      "items": {
+        "$ref": "#/$defs/source"
+      }
     }
   },
   "$defs": {
-    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
-    "text": { "type": "string", "minLength": 1 },
-    "idList": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
-    "nullableUrl": { "anyOf": [{ "type": "string", "format": "uri", "pattern": "^https://" }, { "type": "null" }] },
-    "nullableDate": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "idList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "nullableUrl": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableDate": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sourceRoles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "project_evidence",
+          "methodology",
+          "program_rules",
+          "technical_reference",
+          "market_context"
+        ]
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "claims",
+        "api_runtime_status"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "runtime_required",
+            "legacy_metadata",
+            "public_page",
+            "official_documentation",
+            "local_runtime",
+            "live_api"
+          ]
+        },
+        "claims": {
+          "$ref": "#/$defs/text"
+        },
+        "api_runtime_status": {
+          "enum": [
+            "not_tested",
+            "verified",
+            "not_applicable"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "api_runtime_status": {
+                "const": "verified"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "live_api"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "live_api"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "api_runtime_status": {
+                "const": "verified"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "referenceChecks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "published_at",
+          "checked_at",
+          "claim_scope"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "published_at": {
+            "$ref": "#/$defs/nullableDate"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "claim_scope": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label", "source_type", "official_url", "authority", "access", "stages", "domains", "program_contexts", "credential_class", "status", "query_strategy", "evidence_use", "last_verified_at"],
+      "required": [
+        "id",
+        "label",
+        "source_type",
+        "official_url",
+        "authority",
+        "access",
+        "stages",
+        "domains",
+        "program_contexts",
+        "credential_class",
+        "status",
+        "query_strategy",
+        "evidence_use",
+        "last_verified_at",
+        "freshness_review",
+        "verification"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "label": { "$ref": "#/$defs/text" },
-        "source_type": { "enum": ["user_artifact", "platform_archive", "official_docs", "official_repository", "program_page", "public_catalog"] },
-        "official_url": { "$ref": "#/$defs/nullableUrl" },
-        "authority": { "enum": ["high", "medium", "low"] },
-        "access": { "enum": ["user_provided", "runtime_selected", "platform", "public", "public_or_connected", "connected"] },
-        "stages": { "$ref": "#/$defs/idList" },
-        "domains": { "$ref": "#/$defs/idList" },
-        "program_contexts": { "$ref": "#/$defs/idList" },
-        "credential_class": { "$ref": "#/$defs/id" },
-        "status": { "enum": ["runtime_input", "platform_only", "available_public", "connector_spec", "catalogued", "deprecated"] },
-        "query_strategy": { "$ref": "#/$defs/text" },
-        "evidence_use": { "$ref": "#/$defs/text" },
-        "last_verified_at": { "$ref": "#/$defs/nullableDate" }
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "source_type": {
+          "enum": [
+            "user_artifact",
+            "platform_archive",
+            "official_docs",
+            "official_repository",
+            "program_page",
+            "public_catalog"
+          ]
+        },
+        "official_url": {
+          "$ref": "#/$defs/nullableUrl"
+        },
+        "authority": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "access": {
+          "enum": [
+            "user_provided",
+            "runtime_selected",
+            "platform",
+            "public",
+            "public_or_connected",
+            "connected"
+          ]
+        },
+        "stages": {
+          "$ref": "#/$defs/idList"
+        },
+        "domains": {
+          "$ref": "#/$defs/idList"
+        },
+        "program_contexts": {
+          "$ref": "#/$defs/idList"
+        },
+        "credential_class": {
+          "$ref": "#/$defs/id"
+        },
+        "status": {
+          "enum": [
+            "runtime_input",
+            "platform_only",
+            "available_public",
+            "connector_spec",
+            "catalogued",
+            "deprecated",
+            "implemented"
+          ]
+        },
+        "query_strategy": {
+          "$ref": "#/$defs/text"
+        },
+        "evidence_use": {
+          "$ref": "#/$defs/text"
+        },
+        "last_verified_at": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "source_roles": {
+          "$ref": "#/$defs/sourceRoles"
+        },
+        "verification": {
+          "$ref": "#/$defs/verification"
+        },
+        "reference_checks": {
+          "$ref": "#/$defs/referenceChecks"
+        },
+        "freshness_review": {
+          "$ref": "#/$defs/freshnessReview"
+        },
+        "runtime_probes": {
+          "$ref": "#/$defs/runtimeProbes"
+        }
+      }
+    },
+    "freshnessReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checked_at",
+        "availability",
+        "content_status",
+        "limitations"
+      ],
+      "properties": {
+        "checked_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "availability": {
+          "enum": [
+            "reachable",
+            "partial",
+            "blocked",
+            "unavailable",
+            "runtime_selected"
+          ]
+        },
+        "content_status": {
+          "enum": [
+            "confirmed",
+            "corrected",
+            "partial",
+            "unverified",
+            "runtime_required"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "runtimeProbes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "method",
+          "checked_at",
+          "http_status",
+          "observation",
+          "scope_limit"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "method": {
+            "const": "GET"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "http_status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_limit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     }
   }

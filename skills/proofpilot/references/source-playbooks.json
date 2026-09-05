@@ -1,21 +1,80 @@
 {
   "playbooks": [
     {
+      "id": "colosseum_copilot",
+      "label": "Colosseum Copilot",
+      "priority": "required_research_foundation",
+      "lenses": [
+        "startup",
+        "web2",
+        "web3",
+        "ai_app",
+        "data_ml",
+        "hackathon",
+        "grant",
+        "community",
+        "accelerator",
+        "presentation"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
+      "credential_policy": "required_read_only_pat_during_onboarding; reuse_verified_access",
+      "use_for": [
+        "Solana project archive search",
+        "winner patterns",
+        "gap analysis",
+        "similar project checks"
+      ],
+      "reference": "onboarding.md",
+      "freshness_policy": "PAT setup is required across profiles. Start relevant project/archive research here, then add domain sources. Corpus coverage is Solana/ecosystem-focused, not a global-market census; do not force irrelevant queries or treat no results as no competitors."
+    },
+    {
       "id": "local_archive",
       "label": "Local Community Archive",
-      "priority": "platform_first_when_available",
-      "lenses": ["startup", "community", "hackathon", "grant"],
-      "stages": ["discover", "validate", "review", "submit"],
+      "priority": "supporting_local_context_with_sensitivity_controls",
+      "lenses": [
+        "startup",
+        "community",
+        "hackathon",
+        "grant"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "review",
+        "submit"
+      ],
       "credential_policy": "platform_owned",
-      "use_for": ["past local projects", "mentor feedback", "judging outcomes", "community needs"],
+      "use_for": [
+        "past local projects",
+        "mentor feedback",
+        "judging outcomes",
+        "community needs"
+      ],
       "reference": "source-orchestration.md"
     },
     {
       "id": "solana_new",
       "label": "solana.new / superstack",
-      "priority": "first_for_solana",
-      "lenses": ["web3", "hackathon", "grant", "community"],
-      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "priority": "solana_technical_guidance_complementing_colosseum",
+      "lenses": [
+        "web3",
+        "hackathon",
+        "grant",
+        "community"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
       "credential_policy": "no_secret_for_local_data_and_guidance",
       "use_for": [
         "Solana idea discovery",
@@ -25,7 +84,11 @@
       ],
       "local_detection": {
         "script": "scripts/discover-sources.js",
-        "skill_roots": ["~/.codex/skills", "~/.agents/skills", "~/.claude/skills"],
+        "skill_roots": [
+          "~/.codex/skills",
+          "~/.agents/skills",
+          "~/.claude/skills"
+        ],
         "shared_data": [
           "data/solana-knowledge/",
           "data/ideas/",
@@ -52,84 +115,184 @@
           "debug-program",
           "deploy-to-mainnet",
           "submit-to-hackathon"
-        ]
+        ],
+        "script_resolution": "Resolve scripts/discover-sources.js relative to the installed ProofPilot SKILL.md directory, not the caller working directory."
       },
-      "freshness_policy": "Use local catalog/knowledge first, then refresh with GitHub/web/official docs when recommendations affect spend, build stack, or current protocol health.",
+      "freshness_policy": "Use local knowledge as a starting point. Refresh build choices from official Solana docs; prefer Kit defaults for new frontends and inspect compatibility before changing existing apps. A source-pack discovery or page check is not runtime verification.",
       "reference": "solana-new.md"
-    },
-    {
-      "id": "colosseum_copilot",
-      "label": "Colosseum Copilot",
-      "priority": "first_for_solana_hackathon_precedents",
-      "lenses": ["web3", "hackathon"],
-      "stages": ["discover", "validate", "review", "submit"],
-      "credential_policy": "read_only_pat_optional",
-      "use_for": ["Solana project archive search", "winner patterns", "gap analysis", "similar project checks"],
-      "reference": "source-orchestration.md"
     },
     {
       "id": "ethglobal_skills",
       "label": "ETHGlobal Skills",
       "priority": "first_for_evm_hackathon_precedents",
-      "lenses": ["web3", "hackathon"],
-      "stages": ["discover", "validate", "review", "submit"],
-      "credential_policy": "free_rate_limit_then_x402",
-      "use_for": ["Ethereum hackathon projects", "sponsors", "bounties", "winner and finalist patterns"],
-      "reference": "source-orchestration.md"
+      "lenses": [
+        "web3",
+        "hackathon"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "review",
+        "submit"
+      ],
+      "credential_policy": "free_read_within_limit_then_stop_or_public_pages; paid_wallet_path_deferred",
+      "use_for": [
+        "Ethereum hackathon projects",
+        "sponsors",
+        "bounties",
+        "winner and finalist patterns"
+      ],
+      "reference": "source-orchestration.md",
+      "freshness_policy": "Upstream README checked 2026-09-05 documents 10 free requests/minute and x402 after the limit. On 402 stop or fall back to public event/project pages; no automatic installs, wallet funding or paid retries. One free sponsors GET returned HTTP 200 on 2026-09-05; other endpoints, throttling/payment and installed-wrapper runtime remain untested. Read tool-registry runtime_probes and version-mismatch limitations."
     },
     {
       "id": "defillama",
       "label": "DefiLlama",
       "priority": "first_for_defi_market_health",
-      "lenses": ["web3", "data_ml"],
-      "stages": ["discover", "validate", "plan", "review"],
+      "lenses": [
+        "web3",
+        "data_ml"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
       "credential_policy": "no_secret_for_public_api",
-      "use_for": ["TVL and protocol health", "chain/category comparison", "DeFi opportunity validation"],
+      "use_for": [
+        "observed TVL and liquidity/activity context, not proof of security",
+        "chain/category comparison",
+        "DeFi opportunity validation with protocol-source corroboration"
+      ],
       "reference": "source-orchestration.md"
     },
     {
       "id": "github",
       "label": "GitHub",
       "priority": "default_for_implementation_and_competitors",
-      "lenses": ["startup", "web2", "web3", "ai_app", "data_ml", "hackathon"],
-      "stages": ["discover", "validate", "plan", "review"],
+      "lenses": [
+        "startup",
+        "web2",
+        "web3",
+        "ai_app",
+        "data_ml",
+        "hackathon"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
       "credential_policy": "public_first_token_only_for_private_or_rate_limits",
-      "use_for": ["active OSS", "starter repos", "implementation proof", "activity and issue signals"],
+      "use_for": [
+        "active OSS",
+        "starter repos",
+        "implementation proof",
+        "activity and issue signals"
+      ],
       "reference": "source-orchestration.md"
     },
     {
       "id": "yc_library",
       "label": "YC Library and Startup School",
       "priority": "default_for_startup_discipline",
-      "lenses": ["startup", "web2", "ai_app"],
-      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "lenses": [
+        "startup",
+        "web2",
+        "ai_app"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
       "credential_policy": "no_secret",
-      "use_for": ["customer discovery", "MVP discipline", "launch and founder operating principles"],
+      "use_for": [
+        "customer discovery",
+        "MVP discipline",
+        "launch and founder operating principles"
+      ],
       "reference": "source-orchestration.md"
+    },
+    {
+      "id": "sequoia_pmf",
+      "label": "Sequoia public PMF methods",
+      "priority": "when_pmf_retention_monetization_scaling_or_explicit_sequoia",
+      "lenses": [
+        "startup",
+        "web2",
+        "ai_app",
+        "community",
+        "grant"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
+      "credential_policy": "no_secret",
+      "use_for": [
+        "customer-problem relationship and experiment selection",
+        "stage-appropriate PMF diagnosis",
+        "meaningful repeat use, paid conversion and renewal",
+        "scaling readiness aligned to founder goals"
+      ],
+      "freshness_policy": "Use the dated primary methods in source-registry.json; obtain project claims from project evidence. Resolve Arc application rules separately.",
+      "reference": "product-market-fit.md"
     },
     {
       "id": "founder_institute",
       "label": "Founder Institute Frameworks",
       "priority": "supporting_for_founder_readiness",
-      "lenses": ["startup", "grant", "community"],
-      "stages": ["discover", "validate", "review"],
+      "lenses": [
+        "startup",
+        "grant",
+        "community"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "review"
+      ],
       "credential_policy": "no_secret",
-      "use_for": ["founder-market fit", "idea validation", "market sizing", "structured curriculum framing"],
+      "use_for": [
+        "founder-market fit",
+        "idea validation",
+        "market sizing",
+        "structured curriculum framing"
+      ],
       "reference": "source-orchestration.md"
     },
     {
       "id": "accelerator_programs",
       "label": "Non-web3 Accelerator Programs",
       "priority": "first_for_accelerator_readiness",
-      "lenses": ["startup", "web2", "ai_app", "data_ml", "accelerator"],
-      "stages": ["discover", "validate", "plan", "review", "submit"],
+      "lenses": [
+        "startup",
+        "web2",
+        "ai_app",
+        "data_ml",
+        "accelerator"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review",
+        "submit"
+      ],
       "credential_policy": "public_official_pages_first",
       "use_for": [
         "YC application readiness",
         "Techstars program fit",
-        "500 Global growth-stage fit",
-        "Antler and Entrepreneur First founder-profile fit",
-        "Sequoia Arc seed-stage story and company-building fit",
+        "500 Global program- and geography-specific fit",
+        "Antler and Entrepreneurs First founder-profile fit",
+        "Sequoia Arc open-call fit; distinguish the separate intensive for Sequoia-backed founders",
         "accelerator interview preparation"
       ],
       "freshness_policy": "Always verify deadlines, terms, batch format, geography, and application links from official pages before final application advice.",
@@ -139,8 +302,21 @@
       "id": "presentation_frameworks",
       "label": "Presentation and Deck Frameworks",
       "priority": "first_for_deck_work",
-      "lenses": ["presentation", "startup", "web2", "web3", "ai_app", "hackathon", "grant", "accelerator"],
-      "stages": ["plan", "review", "submit"],
+      "lenses": [
+        "presentation",
+        "startup",
+        "web2",
+        "web3",
+        "ai_app",
+        "hackathon",
+        "grant",
+        "accelerator"
+      ],
+      "stages": [
+        "plan",
+        "review",
+        "submit"
+      ],
       "credential_policy": "no_secret_for_local_deck_guidance",
       "use_for": [
         "hackathon demo deck structure",
@@ -157,40 +333,89 @@
       "id": "devpost",
       "label": "Devpost",
       "priority": "default_for_public_hackathon_examples",
-      "lenses": ["hackathon", "web2", "ai_app"],
-      "stages": ["discover", "validate", "submit"],
+      "lenses": [
+        "hackathon",
+        "web2",
+        "ai_app"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "submit"
+      ],
       "credential_policy": "public_pages_only",
-      "use_for": ["submission fields", "public examples", "demo and judging patterns"],
+      "use_for": [
+        "submission fields",
+        "public examples",
+        "demo and judging patterns"
+      ],
       "reference": "source-orchestration.md"
     },
     {
       "id": "kaggle",
       "label": "Kaggle",
       "priority": "default_for_data_ml",
-      "lenses": ["data_ml", "ai_app", "hackathon"],
-      "stages": ["discover", "validate", "plan", "review"],
+      "lenses": [
+        "data_ml",
+        "ai_app",
+        "hackathon"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
       "credential_policy": "public_first_optional_api_key",
-      "use_for": ["datasets", "competitions", "notebooks", "benchmark examples"],
+      "use_for": [
+        "datasets",
+        "competitions",
+        "notebooks",
+        "benchmark examples"
+      ],
       "reference": "source-orchestration.md"
     },
     {
       "id": "hugging_face",
       "label": "Hugging Face",
       "priority": "default_for_ai_and_model_discovery",
-      "lenses": ["ai_app", "data_ml"],
-      "stages": ["discover", "validate", "plan", "review"],
+      "lenses": [
+        "ai_app",
+        "data_ml"
+      ],
+      "stages": [
+        "discover",
+        "validate",
+        "plan",
+        "review"
+      ],
       "credential_policy": "public_first_optional_read_token",
-      "use_for": ["models", "datasets", "Spaces", "AI demos and baselines"],
+      "use_for": [
+        "models",
+        "datasets",
+        "Spaces",
+        "AI demos and baselines"
+      ],
       "reference": "source-orchestration.md"
     },
     {
       "id": "security_guides",
       "label": "OpenZeppelin, Trail of Bits, and local security guides",
       "priority": "required_for_web3_readiness",
-      "lenses": ["web3"],
-      "stages": ["plan", "review"],
+      "lenses": [
+        "web3"
+      ],
+      "stages": [
+        "plan",
+        "review"
+      ],
       "credential_policy": "no_secret",
-      "use_for": ["smart contract safety", "audit checklist", "threat modeling", "deployment readiness"],
+      "use_for": [
+        "smart contract safety",
+        "audit checklist",
+        "threat modeling",
+        "deployment readiness"
+      ],
       "reference": "source-orchestration.md"
     }
   ]

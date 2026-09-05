@@ -1,52 +1,23 @@
 ---
 name: proofpilot-readiness-review
-description: Use when a ProofPilot idea, MVP, repo, pitch, grant, accelerator application, YC application, Techstars application, web2 product, web3 product, AI project, data project, or hackathon submission needs a structured readiness scorecard with blunt blockers and fixes.
+description: Use when a project, product, pitch, or application needs an evidence-backed readiness review, or hackathon/workshop submissions need an event rubric and evaluator scorecard.
 ---
 
 # ProofPilot Readiness Review
 
-## Resources
+This optional profile selects the `review` stage of the shared ProofPilot workflow.
 
-- Load `references/rubrics.json` for the core readiness rubric.
-- Load `references/decision-lenses.json` for domain and program-context checks.
-- Load `references/source-playbooks.json` for required source checks by stage and applicable lenses.
-- Load `references/judgment-policy.json` and apply `references/honest-evaluation.md`.
-- Load `references/accelerator-checklist.json` and `references/accelerator-programs.json` for accelerator applications.
-- Load `references/presentation-checklist.json`, `references/presentation-decks.json`, and `references/presentations.md` for deck reviews.
-- Load `references/source-registry.json` to identify missing evidence sources.
-- For Solana/web3 reviews, read `references/solana-new.md` and check local solana.new/security guidance.
+For hackathon/workshop judging, organizer rubric/intake design or participant self-review, complete applicable [onboarding](references/onboarding.md), then go directly to [event-assessment.md](references/event-assessment.md). Follow its event context/checker and quality review; skip the general venture workflow below unless the user also requests it. Explicit submitted-material-only work uses onboarding's limited-work exception.
 
-## Process
+First read [onboarding.md](references/onboarding.md). Colosseum access is required for completed ProofPilot setup in this profile too. Check existing access, reuse a verified key, and guide secure local setup if needed; keep the original task pending. Other keys are optional. Apply the explicit limited/offline-work exception from that reference.
 
-1. Identify the artifact under review: idea, MVP, repo, pitch, grant, application, or submission.
-2. Confirm the independent routing dimensions and apply relevant lenses.
-3. Select required source checks from `references/source-playbooks.json`.
-4. Score the applicable anchored rubric dimensions from 0 to 4 and report evidence coverage.
-5. Ground findings in evidence from the user's artifacts and connected sources.
-6. Separate critical blockers from quick wins.
-7. Produce fixes that can be completed before the deadline.
+1. For substantial assessments, follow [quality.md](references/quality.md) from frozen evidence through checks and bounded repair, even for prose output and on every model. Read [routing.md](references/routing.md), [decisions.md](references/decisions.md), [evidence.md](references/evidence.md), and [safety.md](references/safety.md). Classify mode, stages, domains, venture type, program context, and sensitivity independently.
+2. Follow [review.md](references/review.md). Event judging, organizer rubric/intake design and participant self-review use [event-assessment.md](references/event-assessment.md) with a published/custom rubric or hackathon/workshop preset. Add another stage only when the user's request needs it. Ask at most three questions when they materially change the decision; otherwise state assumptions and continue.
+3. Start relevant project/archive research with Colosseum, then select the smallest useful complementary source set from [source-registry.json](references/source-registry.json) and applicable [source-playbooks.json](references/source-playbooks.json). Check actual availability and current official facts. Read [source-orchestration.md](references/source-orchestration.md) for local discovery or nested skills.
+4. For validation or readiness, apply [honest-evaluation.md](references/honest-evaluation.md). Use the event profiles/checker for event scoring and [rubrics.json](references/rubrics.json) otherwise; keep supported scores and evidence coverage, never substitute tone for rigor.
+5. Load [accelerators.md](references/accelerators.md), [presentations.md](references/presentations.md), or [solana-new.md](references/solana-new.md) only when relevant. Load [product-market-fit.md](references/product-market-fit.md) for value, retention, monetization, scaling, or Sequoia; [ai-product-validation.md](references/ai-product-validation.md) when AI quality, economics, or automation materially affects the decision.
+6. Return the checked stage output and next defensible decision; disclose unresolved material checks from [quality.md](references/quality.md). Narrow edits need only relevant accuracy/format checks. Event cards use `scripts/event-score.js`; other structured output uses [response.schema.json](references/response.schema.json) and `scripts/validate-response.js`. Resolve helpers from this installed profile's directory.
 
-## Review Standard
+Use coach mode for improvements and evaluator mode for formal judging. Freeze evaluator evidence snapshots. Missing evidence is unknown, and mandatory conditions remain separate from numerical quality.
 
-Lead with concrete weaknesses. Do not soften missing evidence, unclear customer pain, unsafe web3 assumptions, or over-scoped MVPs.
-
-This skill must not flatter. If the readiness verdict is red, say that first. If the user should not apply, submit, or build yet, say so directly.
-
-For web3 reviews, include security, wallet UX, onchain necessity, and permission-gated action risks.
-
-For web2 reviews, include buyer clarity, workflow fit, distribution, pricing, and implementation complexity.
-
-For accelerator reviews, include founder edge, one-sentence clarity, people-want-it evidence, execution speed, market scale, program fit, and interview readiness.
-
-For presentation reviews, include audience fit, hook, demo/product proof, evidence, ask, visual clarity, and objection readiness.
-
-## Output
-
-- readiness scorecard
-- routing dimensions and applied lenses
-- blunt verdict
-- critical blockers
-- quick wins
-- missing evidence
-- sources checked and missing source checks
-- revised next actions
+Respect the user's actual business goal and existing scoped authorization. Local drafts and requested reversible edits are within the task; external writes, payment, deployment, signing, or submission require authorization covering that action. Pass these bounds into delegated tools.

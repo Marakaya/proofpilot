@@ -4,59 +4,455 @@
   "title": "ProofPilot tool registry",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "version", "tools"],
+  "required": [
+    "$schema",
+    "version",
+    "tools"
+  ],
   "properties": {
-    "$schema": { "type": "string" },
-    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
     "tools": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/tool" }
+      "items": {
+        "$ref": "#/$defs/tool"
+      }
     }
   },
   "$defs": {
-    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
-    "text": { "type": "string", "minLength": 1 },
-    "idList": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
-    "nullableUrl": { "anyOf": [{ "type": "string", "format": "uri", "pattern": "^https://" }, { "type": "null" }] },
-    "nullableDate": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "idList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "nullableUrl": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableDate": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sourceRoles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "project_evidence",
+          "methodology",
+          "program_rules",
+          "technical_reference",
+          "market_context"
+        ]
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "claims",
+        "api_runtime_status"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "runtime_required",
+            "legacy_metadata",
+            "public_page",
+            "official_documentation",
+            "local_runtime",
+            "live_api"
+          ]
+        },
+        "claims": {
+          "$ref": "#/$defs/text"
+        },
+        "api_runtime_status": {
+          "enum": [
+            "not_tested",
+            "verified",
+            "not_applicable"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "api_runtime_status": {
+                "const": "verified"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "live_api"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "live_api"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "api_runtime_status": {
+                "const": "verified"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "referenceChecks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "published_at",
+          "checked_at",
+          "claim_scope"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "published_at": {
+            "$ref": "#/$defs/nullableDate"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "claim_scope": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
+    "costPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "on_payment_required",
+        "paid_path"
+      ],
+      "properties": {
+        "free_requests_per_minute": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "on_payment_required": {
+          "const": "stop_or_public_fallback"
+        },
+        "paid_path": {
+          "const": "deferred_requires_explicit_authorization"
+        }
+      }
+    },
     "capability": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label", "permission_class", "credential_class", "status"],
+      "required": [
+        "id",
+        "label",
+        "permission_class",
+        "credential_class",
+        "status"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "label": { "$ref": "#/$defs/text" },
-        "permission_class": { "$ref": "#/$defs/id" },
-        "credential_class": { "$ref": "#/$defs/id" },
-        "status": { "enum": ["available_public", "connector_spec", "implemented", "deferred", "catalogued", "deprecated"] }
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "permission_class": {
+          "$ref": "#/$defs/id"
+        },
+        "credential_class": {
+          "$ref": "#/$defs/id"
+        },
+        "status": {
+          "enum": [
+            "available_public",
+            "connector_spec",
+            "implemented",
+            "deferred",
+            "catalogued",
+            "deprecated"
+          ]
+        }
       }
     },
     "tool": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label", "category", "domains", "program_contexts", "stages", "integration_types", "official_url", "docs_url", "capabilities", "use_for", "decision", "usage_basis", "license", "last_verified_at"],
+      "required": [
+        "id",
+        "label",
+        "category",
+        "domains",
+        "program_contexts",
+        "stages",
+        "integration_types",
+        "official_url",
+        "docs_url",
+        "capabilities",
+        "use_for",
+        "decision",
+        "usage_basis",
+        "license",
+        "last_verified_at",
+        "freshness_review",
+        "verification"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "label": { "$ref": "#/$defs/text" },
-        "category": { "enum": ["source_and_connector", "founder_framework", "hackathon_platform", "data_platform", "community_platform", "ai_and_data", "llm_provider", "build_platform", "deployment", "cloud_platform", "web3_scaffold", "web3_intelligence", "web3_action", "security"] },
-        "domains": { "$ref": "#/$defs/idList" },
-        "program_contexts": { "$ref": "#/$defs/idList" },
-        "stages": { "$ref": "#/$defs/idList" },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "category": {
+          "enum": [
+            "source_and_connector",
+            "founder_framework",
+            "hackathon_platform",
+            "data_platform",
+            "community_platform",
+            "ai_and_data",
+            "llm_provider",
+            "build_platform",
+            "deployment",
+            "cloud_platform",
+            "web3_scaffold",
+            "web3_intelligence",
+            "web3_action",
+            "security"
+          ]
+        },
+        "domains": {
+          "$ref": "#/$defs/idList"
+        },
+        "program_contexts": {
+          "$ref": "#/$defs/idList"
+        },
+        "stages": {
+          "$ref": "#/$defs/idList"
+        },
         "integration_types": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "enum": ["public_web", "api", "local_skill", "mcp", "cli", "manual"] }
+          "items": {
+            "enum": [
+              "public_web",
+              "api",
+              "local_skill",
+              "mcp",
+              "cli",
+              "manual"
+            ]
+          }
         },
-        "official_url": { "type": "string", "format": "uri", "pattern": "^https://" },
-        "docs_url": { "$ref": "#/$defs/nullableUrl" },
-        "capabilities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/capability" } },
-        "use_for": { "$ref": "#/$defs/text" },
-        "decision": { "$ref": "#/$defs/text" },
-        "usage_basis": { "enum": ["public_reference", "api_terms", "open_source", "manual_user_action"] },
-        "license": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
-        "last_verified_at": { "$ref": "#/$defs/nullableDate" }
+        "official_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "docs_url": {
+          "$ref": "#/$defs/nullableUrl"
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        },
+        "use_for": {
+          "$ref": "#/$defs/text"
+        },
+        "decision": {
+          "$ref": "#/$defs/text"
+        },
+        "usage_basis": {
+          "enum": [
+            "public_reference",
+            "api_terms",
+            "open_source",
+            "manual_user_action"
+          ]
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_verified_at": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "source_roles": {
+          "$ref": "#/$defs/sourceRoles"
+        },
+        "verification": {
+          "$ref": "#/$defs/verification"
+        },
+        "reference_checks": {
+          "$ref": "#/$defs/referenceChecks"
+        },
+        "cost_policy": {
+          "$ref": "#/$defs/costPolicy"
+        },
+        "freshness_review": {
+          "$ref": "#/$defs/freshnessReview"
+        },
+        "runtime_probes": {
+          "$ref": "#/$defs/runtimeProbes"
+        }
+      }
+    },
+    "freshnessReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checked_at",
+        "availability",
+        "content_status",
+        "limitations"
+      ],
+      "properties": {
+        "checked_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "availability": {
+          "enum": [
+            "reachable",
+            "partial",
+            "blocked",
+            "unavailable",
+            "runtime_selected"
+          ]
+        },
+        "content_status": {
+          "enum": [
+            "confirmed",
+            "corrected",
+            "partial",
+            "unverified",
+            "runtime_required"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "runtimeProbes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "method",
+          "checked_at",
+          "http_status",
+          "observation",
+          "scope_limit"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "method": {
+            "const": "GET"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "http_status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_limit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     }
   }

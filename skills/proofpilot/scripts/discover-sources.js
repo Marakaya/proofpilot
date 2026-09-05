@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { resolveColosseumCredential } from "./setup.js";
 
 const home = os.homedir();
 
@@ -94,12 +95,71 @@ function findSharedData() {
   return found;
 }
 
+function nonemptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function readCredentialText(filePath) {
+  const maximumBytes = 64 * 1024;
+  let descriptor;
+  try {
+    descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0));
+    const stat = fs.fstatSync(descriptor);
+    if (!stat.isFile() || stat.size > maximumBytes) {
+      return null;
+    }
+    // Bound the read even if the file grows after fstat; never read a pipe or device.
+    const buffer = Buffer.alloc(maximumBytes + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const count = fs.readSync(descriptor, buffer, length, buffer.length - length, null);
+      if (!count) break;
+      length += count;
+    }
+    return length > maximumBytes ? null : buffer.subarray(0, length).toString("utf8");
+  } catch {
+    return null;
+  } finally {
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+  }
+}
+
+function kaggleConfigured() {
+  // Presence hints only: do not introspect a token or load an OAuth session.
+  // Token paths follow Kaggle/kaggle-sdk-python's kagglesdk/kaggle_env.py.
+  const token = process.env.KAGGLE_API_TOKEN;
+  if (nonemptyString(token)) {
+    if (!exists(token) || nonemptyString(readCredentialText(token))) return true;
+  } else if (["access_token", "access_token.txt"].some(name =>
+    nonemptyString(readCredentialText(path.join(home, ".kaggle", name))))) {
+    return true;
+  }
+
+  // KAGGLE_CONFIG_DIR and the Linux fallback apply to legacy kaggle.json,
+  // not to the token paths above (Kaggle CLI's kaggle_api_extended.py).
+  let configDirectory = process.env.KAGGLE_CONFIG_DIR;
+  if (!configDirectory) {
+    configDirectory = path.join(home, ".kaggle");
+    if (process.platform === "linux" && !exists(configDirectory)) {
+      configDirectory = path.join(process.env.XDG_CONFIG_HOME || path.join(home, ".config"), "kaggle");
+    }
+  }
+  let legacy = {};
+  try {
+    const value = JSON.parse(readCredentialText(path.join(configDirectory, "kaggle.json")) || "{}");
+    if (value && typeof value === "object" && !Array.isArray(value)) legacy = value;
+  } catch {
+    // Invalid, missing, or unreadable credentials are not configured; emit no contents.
+  }
+  return nonemptyString(process.env.KAGGLE_USERNAME ?? legacy.username) &&
+    nonemptyString(process.env.KAGGLE_KEY ?? legacy.key);
+}
+
 function readCredentialStatus() {
-  const config = readJson(path.join(home, ".superstack", "config.json")) || {};
   return {
-    colosseum_copilot_pat_configured: Boolean(config.copilotToken || process.env.COLOSSEUM_COPILOT_PAT),
+    colosseum_copilot_pat_configured: resolveColosseumCredential().configured,
     github_token_configured: Boolean(process.env.GITHUB_TOKEN || process.env.GH_TOKEN),
-    kaggle_configured: Boolean(process.env.KAGGLE_USERNAME && process.env.KAGGLE_KEY),
+    kaggle_configured: kaggleConfigured(),
     hugging_face_token_configured: Boolean(process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN),
     openai_key_configured: Boolean(process.env.OPENAI_API_KEY),
     anthropic_key_configured: Boolean(process.env.ANTHROPIC_API_KEY),
@@ -121,7 +181,7 @@ const output = {
     installed_skills: installedSkills,
     shared_data: findSharedData(),
     notes: [
-      "Use local solana.new skills and shared data first for Solana/web3 tasks.",
+      "Colosseum is the required ProofPilot research foundation; use local solana.new skills/data as complementary technical guidance. Credential presence is not verified access.",
       "If legacy data/catalogs/*.json exists in a future install, treat it as an extra source, not a hard dependency."
     ]
   },

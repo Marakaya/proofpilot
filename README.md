@@ -11,8 +11,8 @@ ProofPilot is designed to resist confident but unsupported startup advice:
 - facts, user claims, assumptions, inferences, and unknowns stay separate
 - material external claims require direct sources and retrieval dates
 - missing evidence produces a provisional conclusion, not a fabricated opportunity
-- every recommendation includes a success threshold and a kill or pivot condition
-- public and no-secret workflows run before optional connectors
+- each experiment specifies success, inconclusive, and stop or pivot conditions
+- Colosseum is the required research foundation; other service connections are optional
 - coaching and formal evaluation use separate modes
 
 ## How It Routes Work
@@ -41,7 +41,7 @@ The response should include evidence and unknowns, three to five distinct direct
 
 ## Install And Inspect
 
-Requirements: Node.js 20 or later and npm.
+Requirements: Node.js 20 or later and npm. Live Colosseum access also requires curl.
 
 Clone the repository and install dependencies:
 
@@ -62,6 +62,24 @@ node scripts/cli.js install --target agents
 Use `--dir <path>` for an exact custom destination and `--force` only when replacing an existing installation intentionally.
 
 The CLI installs and validates the skill package. The selected agent runtime executes [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md). Restart or reopen the runtime after installation so it discovers the new skill.
+
+## First-Use Setup
+
+Both repository installers print the next setup step. A plain skill installation cannot initiate an agent conversation on its own: invoke `$proofpilot` after installation, and the agent will check existing access and explain setup in your language. All six entrypoints share the same setup.
+
+For higher-quality recommendations and assessments, ProofPilot recommends models in the **SOL or Opus 5 class or higher**, where available in your host. Weaker models may miss important details or draw incorrect conclusions; built-in checks cannot fully compensate for model limitations. This is a usage recommendation, not a benchmark guarantee or a setup requirement. Model access and costs depend on your host's plan.
+
+Colosseum Copilot access is required for completed setup and is [free for Arena members](https://docs.colosseum.com/copilot/faq). Open [Arena → Copilot](https://colosseum.com/arena/copilot) to generate a PAT if you do not have one. The agent reuses existing credentials. Enter a new PAT directly into your own interactive terminal, never into chat or command arguments:
+
+```bash
+# Replace the directory with your actual installed skill path.
+node "<installed skill directory>/scripts/setup.js" --configure-colosseum
+node "<installed skill directory>/scripts/setup.js" --check-colosseum
+```
+
+`proofpilot setup --status` also works when the repository CLI is installed on PATH. Status is offline; `--check-colosseum` performs one read-only status request using curl. The local credential file is private (mode 600), not encrypted; a host-managed environment secret is also supported. Read [onboarding](skills/proofpilot/references/onboarding.md) for storage, renewal, error handling, and the explicit limited/offline-work exception.
+
+The [service access guide](skills/proofpilot/references/service-access.json) covers ten services: how to connect, what is free, and where charges begin. Other keys are requested only for a concrete capability. Additional OpenAI/Claude API keys are unnecessary just to use ProofPilot in an already authenticated agent. Host/model usage is billed separately from free Colosseum access.
 
 ## Quick Start
 
@@ -100,13 +118,17 @@ The profile installer targets `$CODEX_HOME/skills` or `~/.codex/skills` by defau
 
 ## Focused Extensions
 
-The self-contained skill includes additional playbooks merged into the v0.2 evidence model:
+The self-contained skill includes focused playbooks in the v0.3 evidence model:
 
 - Solana tasks can use `solana-new.md` to discover installed journey skills, local knowledge, scaffold guidance, Colosseum context, and DefiLlama research paths.
-- Accelerator work uses current program profiles for YC, Techstars, 500 Global, Antler, Entrepreneur First, and Sequoia Arc, while requiring official-page refresh before final advice.
+- Accelerator work uses current program profiles for YC, Techstars, 500 Global, Antler, Entrepreneurs First, and Sequoia Arc, while requiring official-page refresh before final advice.
 - Pitch and presentation work selects a hackathon, investor, angel, accelerator, grant, or partner deck before drafting.
-- `honest-evaluation.md` requires explicit `wait`, `pivot`, `stop`, or not-ready verdicts when evidence does not justify encouragement.
-- Source playbooks prioritize local and public evidence before optional account connections.
+- `honest-evaluation.md` calibrates positive and negative verdicts to evidence and the actual program stage.
+- `product-market-fit.md` adapts Sequoia questions and archetypes into value, behavior, retention, and payment tests. Methodology is not project evidence.
+- `ai-product-validation.md` checks accepted outcomes, repeated trials, human fallback, and full variable delivery cost.
+- `decisions.md` separates test, build, application, and artifact decisions; mandatory gates remain independent of quality scores.
+- `quality.md` applies to substantial prose assessments too: freeze source-backed facts, check arithmetic and gates, review exact claims, and permit at most two repairs. A narrow edit keeps only applicable checks.
+- Source playbooks start relevant project/archive research with Colosseum, then add local, public and optional domain sources. Corpus coverage and the user's evidence remain explicit.
 
 Inspect which supported local skills, shared source packs, and credential classes are available without printing secret values:
 
@@ -120,15 +142,39 @@ npm run discover:sources
 
 `evaluator` mode freezes the rubric, evidence cutoff, and allowed sources before scoring. It does not silently rewrite a submission or use private coaching history. Scores are reported with evidence coverage and confidence so Superteam or another operator can audit the result.
 
+## Hackathons And Workshops
+
+Use the same `$proofpilot` entrypoint for organizers, judges and participants. The agent selects `evaluator` for formal judging or `coach` for a participant's self-review. An organizer can ask for a rubric and submission form before any projects exist.
+
+Two versioned ProofPilot defaults are included: `solana_hackathon` (product-focused, 25/25/15/10/10/10/5 points) and `learning_workshop` (working assignment, technology use, understanding, usability and task value: 40/20/20/10/10). A specific event's published or organizer-supplied rules take precedence. These presets are **not official Colosseum criteria**; unspecified official weights are never invented.
+
+```text
+$proofpilot Оцени проекты Solana-хакатона по нашему базовому профилю.
+$proofpilot Подготовь форму заявки и правила оценки для учебного воркшопа по API.
+$proofpilot Проверь мою заявку перед хакатоном в режиме coach по приложенным правилам.
+```
+
+See the [event workflow](skills/proofpilot/references/event-assessment.md) and [five-part intake](skills/proofpilot/references/event-intake.md). Event scorecards preserve evidence status and admission separately. Missing criteria keep their weight: partial results show earned points and unresolved coverage, with no final `/100` total or normalized ranking. Video transcripts, recorded demos and independently reproduced behavior are distinct evidence.
+
+The agent handles the internal files. For a direct local check:
+
+```bash
+node scripts/cli.js event list
+node scripts/cli.js event init learning_workshop /absolute/new-workshop-card.json
+node scripts/cli.js event check /absolute/new-workshop-card.json
+```
+
+Fill the generated card from actual evidence before checking it. The portable installed helper is `scripts/event-score.js` and needs no additional API key. Mechanical checks verify consistency, not source authenticity or judging quality. Formal evaluation still requires the shared quality review. The event card is separate from the general venture response schema.
+
 ## Tools And Credentials
 
-ProofPilot delivers value from public sources first. A tool can expose several capabilities with different controls: public research may need no secret, private repository access may need a scoped token, and deployment may remain deferred.
+ProofPilot requires Colosseum read access for completed setup and uses public/local sources before other optional connections. A tool can expose several capabilities with different controls: public research may need no secret, private repository access may need a scoped token, and deployment may remain deferred.
 
 The generated [tool catalog](docs/included-tools.md) distinguishes:
 
 - public references available now
 - connector specifications that do not yet ship a live adapter
-- implemented adapters, when present; v0.2 does not ship any
+- a bounded Colosseum read helper sharing the secure setup credential resolver
 - catalogued candidates requiring verification
 - deferred actions requiring stronger permission, cost, or security controls
 
@@ -141,7 +187,7 @@ skills/proofpilot/
   SKILL.md                 Canonical routing and safety instructions
   agents/openai.yaml       Agent UI metadata
   references/              Workflows, registries, rubrics, and schemas
-  scripts/                 Local source discovery without secret disclosure
+  scripts/                 Setup, Colosseum reads, discovery, response validation
 docs/                      Human-facing architecture and generated tool catalog
 examples/                  Requests, structured output, and evaluation cases
 scripts/                   CLI, documentation generator, and validator
@@ -157,11 +203,21 @@ npm test
 npm pack --dry-run
 ```
 
-`npm test` validates JSON Schemas, cross-registry references, unique IDs, rubric weights, workflow links, example responses, evaluation contracts, and generated documentation.
+`npm test` validates JSON Schemas, cross-registry references, unique IDs, rubric weights, workflow links, example responses, score arithmetic, evidence/gate semantics, routing contracts, installation modes, and generated documentation. These are deterministic checks, not a measurement of model quality.
+
+Use `node scripts/cli.js validate-response response.json` for full Ajv and semantic validation. An installed skill can use its own `scripts/validate-response.js` with no npm dependencies. For actual model comparisons, see [evaluation.md](docs/evaluation.md); recorded outputs and explicit judgments are required.
+
+Use `proofpilot quality --help` (or the installed `scripts/quality.js --help`) for the local quality workflow. It snapshots evidence, retains drafts and reviewer findings, checks source-quote bindings, arithmetic, word limits and recorded action prerequisites, and stops on unresolved review or the repair limit. Follow [quality.md](skills/proofpilot/references/quality.md) for the compact packet and review process. It does not call model APIs, certify source truth, or secretly switch models. Separate review uses the host's available, authorized resources; self-review is recorded as such.
+
+New quality packets declare `mode: coach` or `mode: evaluator`. Application judgments and evaluator mode automatically require separate-context review; material source conflicts additionally set `requires_independent_review: true`. If only self-review is available for those runs, the helper returns `needs_review`; it does not turn unanimous self-checks into acceptance. Ordinary bounded validation can still use explicitly labeled self-review.
+
+The registries include a scoped freshness audit dated 2026-09-05: 50 tools, 18 sources and 6 accelerator profiles. Review dates include partial checks. Follow-up documented curl calls authenticated and searched Colosseum successfully with the existing PAT; earlier Python 403 responses did not prove the skill path unavailable. Replit has a documented optional MCP route; account access remains untested. The package now includes a bounded Colosseum read helper; its operation-specific checks and limitations are recorded separately. Read [freshness.md](skills/proofpilot/references/freshness.md) and the per-entry evidence before reusing volatile claims.
+
+Version 0.3 changes the response contract: scoped target/action decisions replace legacy verdicts; evaluator snapshots and evidence-backed mandatory checks are required. Regenerate old responses from their evidence rather than inventing missing fields.
 
 ## Status
 
-Alpha. Version 0.2 is a portable skill and evidence contract. Public research is usable through the host agent's tools, but ProofPilot does not yet ship a hosted UI, secret vault, persistence layer, or live external API adapters.
+Alpha. Version 0.3 is a portable skill with executable response validation, mandatory Colosseum setup and a bounded Colosseum read helper. Other research uses the host agent's tools. There is no hosted UI, encrypted secret vault or hosted persistence layer.
 
 ## License
 

@@ -1,6 +1,6 @@
 {
   "$schema": "./taxonomy.schema.json",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "modes": [
     { "id": "coach", "label": "Coach", "description": "Help the user discover, improve, plan, or prepare a project." },
     { "id": "evaluator", "label": "Evaluator", "description": "Apply a fixed rubric to an evidence snapshot without silently improving the artifact." }

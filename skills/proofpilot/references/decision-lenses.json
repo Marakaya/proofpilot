@@ -7,7 +7,9 @@
         "current workaround and urgency",
         "willingness to pay or strong usage pull",
         "distribution path to first users",
-        "founder-market fit and team capability"
+        "founder-market fit and team capability",
+        "why now: a specific change linked to this customer and opportunity, supported by evidence",
+        "repeat value, payment and renewal as separate claims when product history exists; use product-market-fit.md"
       ],
       "mvp_defaults": [
         "manual or concierge proof before automation",
@@ -27,7 +29,8 @@
         "buyer or user clarity",
         "current spreadsheet, manual, or incumbent workaround",
         "pricing and willingness to pay",
-        "integration, privacy, and operational constraints"
+        "integration, privacy, and operational constraints",
+        "meaningful return event and natural usage interval; separate buyer, user, first payment and renewal via product-market-fit.md"
       ],
       "mvp_defaults": [
         "thin web app or no-code workflow",
@@ -68,8 +71,9 @@
         "model capability for the task",
         "eval criteria and failure cases",
         "data access and permissions",
-        "latency and cost per completed task",
-        "provider dependence and fallback path"
+        "latency and full variable cost per accepted result, including retries, human review and corrections",
+        "provider dependence and fallback path",
+        "representative task set, non-AI baseline, critical failures and human escalation; use ai-product-validation.md"
       ],
       "mvp_defaults": [
         "single workflow",
@@ -79,7 +83,7 @@
       "red_flags": [
         "demo-only chatbot",
         "no evals",
-        "unclear cost per user action"
+        "unclear accepted-result definition or unmeasured human work in delivery cost"
       ]
     },
     {
@@ -168,11 +172,11 @@
         "founder-market fit and founder edge",
         "clear one-sentence company description",
         "specific customer pain and current workaround",
-        "evidence that people want this: users, usage, revenue, LOIs, pilots, waitlist quality, or credible founder access",
+        "evidence appropriate to the target program and stage: founder capability/access, prototype, usage or revenue; assess eligibility separately from venture quality",
         "speed of execution and recent progress",
         "market size and venture-scale outcome",
         "sharp differentiation from incumbents and adjacent startups",
-        "program fit: YC, Techstars, 500 Global, Antler, Entrepreneur First, Sequoia Arc, or another target"
+        "program fit: YC, Techstars, 500 Global, Antler, Entrepreneurs First, Sequoia Arc, or another target"
       ],
       "mvp_defaults": [
         "working demo or concierge proof before polished deck",
@@ -181,7 +185,7 @@
         "application answers written plainly, with no marketing-speak"
       ],
       "red_flags": [
-        "vague idea with no user evidence",
+        "unsupported claims or missing evidence required at this program and stage",
         "founder story does not explain why this team should win",
         "large market claim without wedge",
         "deck polish replacing customer proof",
