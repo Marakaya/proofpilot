@@ -107,11 +107,11 @@
         "stages": ["validate"],
         "domains": ["web3"],
         "venture_type": "startup",
-        "program_context": "hackathon",
+        "program_context": "none",
         "sensitivity": "public"
       },
-      "must_include": ["public sources first", "source unavailable", "provisional conclusion", "minimum read scope"],
-      "must_not_include": ["claim that no competitor exists", "request token in chat"]
+      "must_include": ["official sign-in without token", "setup incomplete until verified", "original task preserved", "provisional conclusion", "minimum read scope", "public-source fallback only for explicit limited, declined or unavailable scope"],
+      "must_not_include": ["claim that no competitor exists", "request token in chat", "access verified without V2 check"]
     }
   ]
 }

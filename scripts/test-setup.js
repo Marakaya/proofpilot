@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { getSetupStatus, checkColosseum, runSetupCli } from "../skills/proofpilot/scripts/setup.js";
-import { runConnectionHelper, loginColosseum, helperFailureCode, COLOSSEUM_HELPER_PACKAGE } from "../skills/proofpilot/scripts/colosseum-connection.js";
+import { runConnectionHelper, loginColosseum, prepareColosseumHelper, helperFailureCode, COLOSSEUM_HELPER_PACKAGE } from "../skills/proofpilot/scripts/colosseum-connection.js";
 import { CONNECTION_HELPER_TREE_SHA256, createHelperInvocation, trustedNpmCli } from "../skills/proofpilot/scripts/connection-helper.js";
 
 const filename = fileURLToPath(import.meta.url);
@@ -126,6 +126,56 @@ export async function runSetupTests() {
     const status = await checkColosseum({ ...options, helperRunner: () => ({ status: 5, stdout: JSON.stringify({ state: "not-logged-in" }) }), statusRunner: () => { throw new Error("No API call expected"); } });
     assert.equal(status.colosseum.status, "missing");
     assert.equal(status.colosseum.configured, false);
+    assert.equal(status.colosseum.credential_presence, "missing");
+    assert.equal(status.colosseum.credential_required, true);
+    assert.equal(status.colosseum.credentials_inspected, true);
+  });
+  for (const result of [
+    { status: null, error: { code: "ETIMEDOUT", message: sentinel }, stdout: "", stderr: sentinel },
+    { status: 5, error: { code: "ETIMEDOUT", message: sentinel }, stdout: "", stderr: sentinel },
+    { status: 1, stdout: "", stderr: sentinel },
+    { status: 0, stdout: "{", stderr: sentinel },
+    { status: 0, stdout: JSON.stringify({ state: sentinel }), stderr: sentinel }
+  ]) {
+    await test("an uninspected local state cannot require new credentials", async () => {
+      let output = "";
+      const status = getSetupStatus({ helperRunner: () => result });
+      assert.equal(status.colosseum.configured, false);
+      assert.equal(status.colosseum.credential_presence, "unknown");
+      assert.equal(status.colosseum.credential_required, false);
+      assert.equal(status.colosseum.credentials_inspected, false);
+      assert.equal(status.colosseum.next_action, "check_colosseum");
+      const exit = await runSetupCli(["--status", "--json"], { helperRunner: () => result,
+        stdout: { write: value => { output += value; } } });
+      assert.equal(exit, 0);
+      assert.deepEqual(JSON.parse(output), status);
+      noLeak(output);
+    });
+  }
+  await test("a helper environment exception never forwards private exception text or requests credentials", () => {
+    const status = getSetupStatus({ helperRunner: () => { throw new Error(sentinel); } });
+    assert.equal(status.colosseum.reason, "helper_environment_unavailable");
+    assert.equal(status.colosseum.next_action, "repair_helper_environment");
+    assert.equal(status.colosseum.credential_presence, "unknown");
+    assert.equal(status.colosseum.credential_required, false);
+    assert.match(status.colosseum.diagnostic, /retry setup\.js --status/);
+    noLeak(status);
+  });
+  await test("fresh verified access after local exit 6 establishes a connection without falsely requiring credentials", async () => {
+    const localOptions = { ...options, helperRunner: () => ({ status: 6, stdout: "", stderr: sentinel }) };
+    const offline = getSetupStatus(localOptions).colosseum;
+    assert.equal(offline.status, "refresh_pending");
+    assert.equal(offline.credential_presence, "unknown");
+    assert.equal(offline.credential_required, false);
+    const live = (await checkColosseum(localOptions)).colosseum;
+    assert.equal(live.status, "verified");
+    assert.equal(live.configured, true);
+    assert.equal(live.credential_presence, "present");
+    assert.equal(live.credential_required, false);
+    assert.equal(live.credentials_inspected, false, "A live grant does not retroactively inspect local storage");
+    assert.equal(live.live_check_performed, true);
+    assert.equal(live.credential_source, "copilot_connect");
+    noLeak(live);
   });
   for (const [exit, expected] of [[1, "unavailable"], [2, "expired"], [3, "revoked"], [4, "unavailable"], [5, "missing"], [6, "refresh_pending"], [7, "evidence_unavailable"], [8, "forbidden403"]]) {
     await test(`helper exit ${exit} remains distinct`, () => {
@@ -137,8 +187,11 @@ export async function runSetupTests() {
   await test("missing helper transport with null stdout reports preparation instead of an invalid response", () => {
     const status = getSetupStatus({ helperRunner: () => ({ status: null, stdout: null, stderr: null, error: { code: "ENOENT", message: sentinel } }) });
     assert.equal(status.colosseum.status, "helper_missing");
-    assert.equal(status.colosseum.next_action, "connect_colosseum");
+    assert.equal(status.colosseum.next_action, "prepare_helper");
     assert.equal(status.colosseum.configured, false);
+    assert.equal(status.colosseum.credential_presence, "unknown");
+    assert.equal(status.colosseum.credential_required, false);
+    assert.equal(status.colosseum.next_command.at(-1), "--prepare-colosseum-helper");
     noLeak(status);
   });
   await test("damaged managed helper cache is distinguished from an absent one and gives recovery instead of a connect loop", async () => {
@@ -176,10 +229,23 @@ export async function runSetupTests() {
         assert.ok(path.isAbsolute(status.colosseum.helper_cache));
         assert.ok(status.colosseum.diagnostic.includes(JSON.stringify(helperRoot)));
         assert.match(status.colosseum.diagnostic, /Preserve it.*belongs to your account.*move the whole directory aside.*explicitly retry helper preparation/);
+        assert.match(status.colosseum.diagnostic, /--prepare-colosseum-helper.*--status/);
+        assert.doesNotMatch(status.colosseum.diagnostic, /--connect-colosseum/);
         assert.equal(status.colosseum.credentials_inspected, false);
         assert.equal(status.colosseum.credential_required, false, "Only helper trust failed; credentials are not reported absent");
         assert.equal(status.colosseum.live_check_performed, false);
         assert.match(status.colosseum.reason, /not inspected or changed/);
+
+        let preparationOutput = "", preparationError = "";
+        const preparationExit = await runSetupCli(["--prepare-colosseum-helper"], {
+          env: { PATH: process.env.PATH }, helperCache: cache, spawn: noSpawn, spawnSync: noSpawn,
+          helperRunner: noSpawn, loginRunner: noSpawn, statusRunner: noSpawn,
+          stdout: { write: text => { preparationOutput += text; } }, stderr: { write: text => { preparationError += text; } }
+        });
+        assert.equal(preparationExit, 1);
+        assert.equal(preparationOutput, "");
+        assert.match(preparationError, /--prepare-colosseum-helper.*--status/);
+        assert.doesNotMatch(preparationError, /--connect-colosseum/);
 
         let output = "";
         let errorText = "";
@@ -206,7 +272,7 @@ export async function runSetupTests() {
       const absent = getSetupStatus({ env: { PATH: process.env.PATH }, helperCache: cache,
         spawnSync: () => ({ status: 1, stdout: "", stderr: "ENOTCACHED: exact connection helper is not installed in the managed helper cache\n" }) });
       assert.equal(absent.colosseum.status, "helper_missing", "After operator quarantine the cache is absent and can be prepared again");
-      assert.equal(absent.colosseum.next_action, "connect_colosseum");
+      assert.equal(absent.colosseum.next_action, "prepare_helper");
       assert.equal(absent.colosseum.helper_cache, undefined);
       assert.ok(fs.existsSync(path.join(`${helperRoot}.quarantine`, "node_modules", "@colosseum-org", "copilot-connect", "src", "cli.js")));
       assert.equal(fs.existsSync(marker), false);
@@ -450,6 +516,8 @@ export async function runSetupTests() {
             try {
               assert.equal(invocation.helperPrerequisiteIssue?.code, "helper_npm_unavailable");
               assert.match(invocation.helperPrerequisiteIssue.diagnostic, /preparing it needs the npm CLI/);
+              assert.match(invocation.helperPrerequisiteIssue.diagnostic, /--prepare-colosseum-helper.*--status/);
+              assert.doesNotMatch(invocation.helperPrerequisiteIssue.diagnostic, /--connect-colosseum/);
               assert.equal(invocation.helperCacheIssue, undefined);
               assert.equal(invocation.cwd, home, "No preparation workspace is created");
               assert.equal(invocation.args.includes("login"), false, "No helper operation may run");
@@ -460,6 +528,8 @@ export async function runSetupTests() {
             assert.equal(result.status, 1, result.stderr);
             assert.match(result.stderr, /EHELPERNPM: .*preparing it needs the npm CLI/);
             assert.doesNotMatch(result.stderr, /ENOTCACHED/);
+            assert.match(result.stderr, /--prepare-colosseum-helper.*--status/);
+            assert.doesNotMatch(result.stderr, /--connect-colosseum/);
             assert.notEqual(helperFailureCode(result), "helper_missing", "A missing npm prerequisite is not a missing helper");
             const spawned = [];
             const login = await loginColosseum({ env, helperCache: emptyCache, spawn: (command, args) => { spawned.push(args); return exited(1); } });
@@ -527,7 +597,97 @@ export async function runSetupTests() {
       for (const file of files) assert.equal(fs.readFileSync(path.join(home, file), "utf8"), sentinel);
     } finally { fs.rmSync(home, { recursive: true, force: true }); }
   });
-  for (const args of [["--configure-colosseum"], ["--token", sentinel], ["--connect-colosseum", sentinel], ["--device"], ["--status", "--device"], ["--json", "--json"], ["--status", "--check-colosseum"]]) {
+  for (const kind of ["non-directory-parent", "unsafe-config", ...(process.platform === "win32" ? [] : ["writable-parent", "symlinked-parent"])]) {
+    await test(`unsafe helper environment ${kind} is actionable offline and on connect without starting a process`, async () => {
+      const home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-unsafe-helper-environment-")));
+      const userInfo = os.userInfo, homedir = os.homedir;
+      const parent = path.join(home, ".proofpilot", "helpers");
+      const issuePath = kind === "unsafe-config" ? path.join(home, ".config") : parent;
+      try {
+        fs.mkdirSync(path.dirname(parent), { mode: 0o700 });
+        if (kind === "non-directory-parent" || kind === "unsafe-config") fs.writeFileSync(issuePath, "synthetic preserved obstruction\n", { mode: 0o600 });
+        else if (kind === "writable-parent") { fs.mkdirSync(parent, { mode: 0o700 }); fs.chmodSync(parent, 0o775); }
+        else {
+          const target = path.join(home, "preserved-target");
+          fs.mkdirSync(target, { mode: 0o700 });
+          fs.symlinkSync(target, parent, "dir");
+        }
+        const before = fs.lstatSync(issuePath);
+        os.homedir = () => home;
+        os.userInfo = options => ({ ...userInfo(options), homedir: home });
+        let forbidden = 0;
+        const noOperation = () => { forbidden++; throw new Error(sentinel); };
+        const options = { env: {}, spawn: noOperation, spawnSync: noOperation, statusRunner: noOperation };
+        const status = getSetupStatus(options).colosseum;
+        assert.equal(status.status, "unavailable");
+        assert.equal(status.reason, "helper_environment_unavailable");
+        assert.equal(status.next_action, "repair_helper_environment");
+        assert.equal(status.credential_presence, "unknown");
+        assert.equal(status.credential_required, false);
+        assert.equal(status.credentials_inspected, false);
+        assert.ok(status.diagnostic.includes(JSON.stringify(issuePath)), "The constructed diagnostic must identify the actual unsafe path");
+        assert.match(status.diagnostic, /Preserve the path.*retry setup\.js --status/);
+        assert.equal((await checkColosseum(options)).colosseum.next_action, "repair_helper_environment");
+        let stderr = "", stdout = "";
+        const exit = await runSetupCli(["--connect-colosseum"], { ...options,
+          stdout: { write: value => { stdout += value; } }, stderr: { write: value => { stderr += value; } } });
+        assert.equal(exit, 1);
+        assert.equal(stdout, "");
+        assert.match(stderr, /sign-in was not started/);
+        assert.ok(stderr.includes(status.diagnostic), "Connect must preserve the safe offline diagnostic");
+        const prepared = prepareColosseumHelper(options);
+        assert.equal(prepared.error, "helper_environment_unavailable");
+        assert.equal(prepared.diagnostic, status.diagnostic);
+        const after = fs.lstatSync(issuePath);
+        assert.equal(after.ino, before.ino);
+        assert.equal(after.mode, before.mode);
+        assert.equal(forbidden, 0, "Unsafe paths must be rejected before helper, npm, login or API execution");
+        noLeak({ status, stderr, prepared });
+      } finally { os.userInfo = userInfo; os.homedir = homedir; fs.rmSync(home, { recursive: true, force: true }); }
+    });
+  }
+  await test("helper-only preparation invokes a version check and leaves login, accounts and installation preferences alone", async () => {
+    let prepared = 0, spawned = 0, cleaned = 0, output = "";
+    const noAccount = () => { throw new Error("Preparation must not inspect an account or start login"); };
+    const exit = await runSetupCli(["--prepare-colosseum-helper", "--json"], {
+      env: {}, helperRunner: noAccount, statusRunner: noAccount, loginRunner: noAccount,
+      createHelperInvocation: (args, options) => {
+        prepared++;
+        assert.deepEqual(args, ["--version"]);
+        assert.equal(options.online, true);
+        return { command: process.execPath, args: ["synthetic-version-only"], env: {}, cwd: os.homedir(), shell: false,
+          cleanup() { cleaned++; } };
+      },
+      spawnSync: (command, args, transport) => {
+        spawned++;
+        assert.deepEqual(args, ["synthetic-version-only"]);
+        assert.equal(transport.shell, false);
+        assert.deepEqual(transport.stdio, ["ignore", "pipe", "pipe"]);
+        return { status: 0, stdout: "0.2.2\n", stderr: sentinel };
+      },
+      stdout: { write: value => { output += value; } }
+    });
+    assert.equal(exit, 0);
+    assert.deepEqual([prepared, spawned, cleaned], [1, 1, 1]);
+    const result = JSON.parse(output);
+    assert.equal(result.helper_prepared, true);
+    assert.equal(result.credentials_inspected, false);
+    assert.equal(result.live_check_performed, false);
+    assert.equal(result.next_command.at(-1), "--status");
+    assert.equal(Object.hasOwn(result, "colosseum"), false, "Helper preparation must not claim connection readiness");
+    noLeak(output);
+  });
+  await test("helper-only preparation does not expose failed version output", async () => {
+    let stderr = "";
+    const exit = await runSetupCli(["--prepare-colosseum-helper"], { env: {},
+      createHelperInvocation: () => ({ command: process.execPath, args: [], env: {}, cwd: os.homedir(), shell: false, cleanup() {} }),
+      spawnSync: () => ({ status: 0, stdout: sentinel, stderr: sentinel }),
+      stderr: { write: value => { stderr += value; } } });
+    assert.equal(exit, 1);
+    assert.match(stderr, /No login or account inspection was attempted/);
+    noLeak(stderr);
+  });
+  for (const args of [["--configure-colosseum"], ["--token", sentinel], ["--connect-colosseum", sentinel], ["--device"], ["--status", "--device"], ["--prepare-colosseum-helper", "--device"], ["--prepare-colosseum-helper", "--connect-colosseum"], ["--json", "--json"], ["--status", "--check-colosseum"]]) {
     await test("invalid CLI cannot open login or echo arguments", async () => {
       let output = "";
       const status = await runSetupCli(args, { stdout: { write: text => { output += text; } }, stderr: { write: text => { output += text; } }, loginRunner: () => { throw new Error("Must not login"); } });

@@ -1,7 +1,7 @@
 // Official Copilot 2.0 connection helper. Tokens stay inside a private
 // helper-to-curl transfer; callers receive only sanitized response data.
 import { spawn, spawnSync } from "node:child_process";
-import { createHelperInvocation, helperEnvironment, trustedSystemExecutable } from "./connection-helper.js";
+import { CONNECTION_HELPER_VERSION, createHelperInvocation, helperEnvironment, helperEnvironmentDiagnostic, trustedSystemExecutable } from "./connection-helper.js";
 
 export const COLOSSEUM_API_BASE = "https://copilot.colosseum.com/api/v2";
 export const COLOSSEUM_HELPER_PACKAGE = "@colosseum-org/copilot-connect@0.2.2";
@@ -35,14 +35,38 @@ export function helperFailureCode(result) {
   if (result?.helperCacheIssue || /\bEHELPERCACHE\b/.test(result?.stderr ?? "")) return "helper_untrusted";
   if (result?.missing || ["ENOENT", "ENOTCACHED"].includes(result?.error?.code) ||
       /\bENOTCACHED\b|could not determine executable to run/i.test(result?.stderr ?? "")) return "helper_missing";
+  // A transport/timeout error does not establish a trustworthy helper exit
+  // state, even if a status value was also attached to the failed result.
+  if (result?.error) return "unavailable";
   return ({ 2: "expired", 3: "revoked", 4: "unavailable", 5: "missing", 6: "refresh_pending", 7: "evidence_unavailable", 8: "forbidden403" })[result?.status] ?? "unavailable";
+}
+
+/** Prepare the pinned helper with a version check only; never inspect an account. */
+export function prepareColosseumHelper(options = {}) {
+  let invocation;
+  try { invocation = (options.createHelperInvocation ?? createHelperInvocation)(["--version"], {
+    online: true, env: connectionEnvironment(options.env), cache: options.helperCache
+  }); }
+  catch (error) { return { status: null, error: "helper_environment_unavailable", diagnostic: helperEnvironmentDiagnostic(error) }; }
+  try {
+    if (invocation.helperCacheIssue) return { status: null, error: "helper_untrusted", diagnostic: invocation.helperCacheIssue.diagnostic };
+    if (invocation.helperPrerequisiteIssue) return { status: null, error: invocation.helperPrerequisiteIssue.code,
+      diagnostic: invocation.helperPrerequisiteIssue.diagnostic };
+    const result = (options.spawnSync ?? spawnSync)(invocation.command, invocation.args, {
+      env: invocation.env, cwd: invocation.cwd, encoding: "utf8", timeout: 120000,
+      maxBuffer: 128 * 1024, windowsHide: true, shell: invocation.shell, stdio: ["ignore", "pipe", "pipe"]
+    });
+    return !result.error && result.status === 0 && typeof result.stdout === "string" && result.stdout.trim() === CONNECTION_HELPER_VERSION ?
+      { status: 0 } : { status: null, error: "helper_preparation_failed" };
+  } catch { return { status: null, error: "helper_preparation_failed" }; }
+  finally { invocation.cleanup(); }
 }
 
 /** Explicit user-triggered browser/device sign-in; official helper owns storage. */
 export async function loginColosseum(options = {}) {
   let invocation;
   try { invocation = createHelperInvocation(["login", ...(options.device ? ["--device"] : [])], { online: true, env: connectionEnvironment(options.env), cache: options.helperCache }); }
-  catch { return { status: null, error: "helper_environment_unavailable" }; }
+  catch (error) { return { status: null, error: "helper_environment_unavailable", diagnostic: helperEnvironmentDiagnostic(error) }; }
   if (invocation.helperCacheIssue) {
     invocation.cleanup();
     return { status: null, error: "helper_untrusted", helper_cache: invocation.helperCacheIssue.path, diagnostic: invocation.helperCacheIssue.diagnostic };

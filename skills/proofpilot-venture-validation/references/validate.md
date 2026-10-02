@@ -35,7 +35,15 @@ Prefer tests that expose behavior rather than compliments:
 
 Rank assumptions by consequences if wrong, evidence weakness, and test cost. Link each experiment to an assumption and its evidence. Demand, feasibility, and economics require separate proof; repeated summaries of one interview are not independent observations.
 
-Specify target participants, recruitment channel, current alternative or baseline, metric numerator and denominator, threshold rationale, and an inconclusive outcome. Small samples provide learning, not automatic statistical significance. Fit duration to actual budget and the natural usage cycle. Use A/B testing only when randomization, sample size, and data quality support it.
+Specify target participants, recruitment channel, current alternative or baseline, metric numerator and denominator, threshold rationale, and outcome actions. Small samples provide learning, not automatic statistical significance. Fit duration to actual budget and the natural usage cycle. Size the sample and promised units to the binding capacity of the days the test actually runs, using the capacity rule in [plan.md](plan.md). Use A/B testing only when randomization, sample size, and data quality support it.
+
+Define three outcomes before the test so every measured result maps to an action:
+
+- **Success:** every stated threshold and prerequisite passes; only then continue.
+- **Measured miss:** valid data shows any threshold or prerequisite unmet. Name the unmet condition. One explicit stop/revise fallback covers every such combination, including near misses; leave no measured range between success and stop without an action, and do not call a measured shortfall inconclusive.
+- **Inconclusive:** only when valid data is genuinely insufficient to measure a criterion, such as too few eligible observations or broken instrumentation.
+
+Keep the user's stated thresholds unless you explain a change. Any retry or further evidence-gathering must fit the user's remaining time and budget; label a longer or costlier extension as an option needing additional resources, not as authorized.
 
 Load [product-market-fit.md](product-market-fit.md) for value, behavior, retention, payment, or scaling decisions. Load [ai-product-validation.md](ai-product-validation.md) when AI quality, cost, or automation risk changes the decision.
 

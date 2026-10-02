@@ -451,7 +451,9 @@ else {
     fs.mkdirSync(emptyCache);
     const missing = getSetupStatus({ env: { PATH: process.env.PATH }, helperCache: emptyCache });
     assert.equal(missing.colosseum.status, "helper_missing");
-    assert.equal(missing.colosseum.next_action, "connect_colosseum");
+    assert.equal(missing.colosseum.next_action, "prepare_helper");
+    assert.equal(missing.colosseum.credential_presence, "unknown");
+    assert.equal(missing.colosseum.credential_required, false);
     cases++;
     const missingCachedHelper = await runColosseumRequest(request, { env: { PATH: process.env.PATH }, helperCache: emptyCache });
     assert.equal(missingCachedHelper.helper_error, "helper_missing", "The async transport must retain its isolated npm config and explicit empty cache");

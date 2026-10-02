@@ -29,6 +29,21 @@ const forwardedEnvironmentNames = new Map([
 // Fixed subcommands and flags only; nothing shell-sensitive reaches a subprocess.
 const safeArgument = /^(?:[A-Za-z0-9@][A-Za-z0-9@._:=+\/-]{0,199}|--?[A-Za-z][A-Za-z0-9-]{0,63})$/;
 
+// Only diagnostics constructed here may reach setup output. Native filesystem
+// errors and helper replies can contain private caller context and stay hidden.
+class HelperEnvironmentError extends Error {
+  constructor(message) {
+    super(`${message} Preserve the path and confirm its ownership, permissions and non-symlinked directory chain before repairing it, then retry setup.js --status. Saved credentials were not inspected or changed; do not reconnect on this failure.`);
+    this.name = "HelperEnvironmentError";
+    this.code = "EHELPERENV";
+  }
+}
+
+export function helperEnvironmentDiagnostic(error) {
+  return error instanceof HelperEnvironmentError ? error.message :
+    "The connection-helper environment could not be prepared. Check the account home and helper/config directory ownership and permissions, then retry setup.js --status. Saved credentials were not inspected or changed; do not reconnect on this failure.";
+}
+
 function projectBinEntry(entry) {
   const parts = entry.replace(/\\/g, "/").split("/").filter(Boolean).map(part => part.toLowerCase());
   return parts.some((part, index) => part === "node_modules" && parts[index + 1] === ".bin");
@@ -43,18 +58,18 @@ function securePrivateBase() {
   // Resolve the account database home instead of trusting HOME/USERPROFILE.
   let home;
   try { home = os.userInfo().homedir; } catch { home = os.homedir(); }
-  if (!home || !path.isAbsolute(home)) throw new Error("The account home directory is unavailable for the connection helper.");
+  if (!home || !path.isAbsolute(home)) throw new HelperEnvironmentError("The account home directory is unavailable for the connection helper.");
   const candidate = fs.realpathSync(home);
   const stat = fs.lstatSync(candidate);
-  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("The user home is not a safe helper workspace.");
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new HelperEnvironmentError("The user home is not a safe helper workspace.");
   if (typeof process.getuid === "function") {
     const uid = process.getuid();
-    if (stat.uid !== uid || (stat.mode & 0o022) !== 0) throw new Error("The user home is not private enough for the connection helper.");
+    if (stat.uid !== uid || (stat.mode & 0o022) !== 0) throw new HelperEnvironmentError("The user home is not private enough for the connection helper.");
     let current = candidate;
     while (true) {
       const ancestor = fs.lstatSync(current);
       if (!ancestor.isDirectory() || (ancestor.uid !== uid && ancestor.uid !== 0) || ((ancestor.mode & 0o022) !== 0 && !(ancestor.mode & 0o1000))) {
-        throw new Error("A helper workspace ancestor is controlled or writable by another user.");
+        throw new HelperEnvironmentError("A helper workspace ancestor is controlled or writable by another user.");
       }
       const parent = path.dirname(current);
       if (parent === current) break;
@@ -69,7 +84,7 @@ function createPrivateWorkspace() {
   for (const name of [".proofpilot", "helper-work"]) {
     base = path.join(base, name);
     try { fs.mkdirSync(base, { mode: 0o700 }); } catch (error) { if (error.code !== "EEXIST") throw error; }
-    if (!safeOwnedEntry(base, "directory")) throw new Error(`The helper workspace directory is unsafe: ${base}`);
+    if (!safeOwnedEntry(base, "directory")) throw new HelperEnvironmentError(`The helper workspace directory is unsafe: ${JSON.stringify(base)}.`);
   }
   for (const name of fs.readdirSync(base)) {
     if (!/^\.proofpilot-helper-\d+-[A-Za-z0-9]+$/.test(name)) continue;
@@ -92,7 +107,7 @@ function createPrivateWorkspace() {
   if (!stat.isDirectory() || stat.isSymbolicLink() || (typeof process.getuid === "function" &&
       (stat.uid !== process.getuid() || (stat.mode & 0o077) !== 0))) {
     fs.rmSync(cwd, { recursive: true, force: true });
-    throw new Error("Could not create a private helper workspace.");
+    throw new HelperEnvironmentError("Could not create a private helper workspace.");
   }
   const identity = fs.lstatSync(cwd, { bigint: true });
   fs.writeFileSync(path.join(cwd, ".proofpilot-owner.json"), JSON.stringify({ pid: process.pid, hostname: os.hostname(),
@@ -229,7 +244,8 @@ function missingHelperArgs() {
 // Only preparing an absent helper needs npm, so a missing npm is its own prerequisite.
 const npmUnavailableDiagnostic = "The pinned connection helper is not prepared, and preparing it needs the npm CLI installed with " +
   "the running Node.js; none passed the ownership and permission checks (same owner as the node executable, not writable by " +
-  "group or others). Install or repair npm for this Node.js, then retry setup.js --connect-colosseum. A validated prepared " +
+  "group or others). Install or repair npm for this Node.js, then retry setup.js --prepare-colosseum-helper, followed by " +
+  "setup.js --status. Inspect the resulting connection state before any sign-in. A validated prepared " +
   "helper runs without npm. Saved account credentials were not inspected or changed.";
 
 function npmUnavailableArgs() {
@@ -242,7 +258,7 @@ function untrustedHelperCacheDiagnostic(root) {
     "it was not executed, repaired or removed, and saved account credentials were not inspected. " +
     "Preserve it: confirm that this directory belongs to your account and is not in use, move the whole directory aside " +
     "(for example rename it with a .quarantine suffix) instead of deleting it, then explicitly retry helper preparation " +
-    "with setup.js --connect-colosseum or the dependency installer.";
+    "with setup.js --prepare-colosseum-helper, followed by setup.js --status. Inspect the resulting connection state before any sign-in.";
 }
 
 // lstat only: an absent root may be prepared; anything else present is kept untouched.
@@ -468,7 +484,7 @@ function trustedConfigHome(env) {
       if (isContained(home, resolved) && safeManagedPath(home, resolved, { allowMissing: true })) return resolved;
     } catch { /* Fall back to the fixed config directory under the verified home. */ }
   }
-  throw new Error(`The connection-helper config path is unsafe: ${path.join(home, ".config")}`);
+  throw new HelperEnvironmentError(`The connection-helper config path is unsafe: ${JSON.stringify(path.join(home, ".config"))}.`);
 }
 
 function trustedLinuxSessionEnvironment() {
@@ -543,6 +559,13 @@ export function createHelperInvocation(args, { online = false, env = process.env
   const cacheRoot = cache ? canonicalPath(cache) : null;
   const managedBase = cache ? cacheRoot : home;
   const managedRoot = managedHelperRoot(cacheRoot);
+  // Check an absent helper's parent before the offline ENOTCACHED branch too.
+  // Absence beneath an unsafe directory is an environment failure, not evidence
+  // that preparing a helper or signing in can repair the path.
+  const managedParent = path.dirname(managedRoot);
+  let parentSafe = false;
+  try { parentSafe = safeManagedPath(managedBase, managedParent, { allowMissing: true }); } catch { /* Report only the constructed path diagnostic below. */ }
+  if (!parentSafe) throw new HelperEnvironmentError(`The managed connection-helper parent path is unsafe: ${JSON.stringify(managedParent)}.`);
   const validated = managedHelperEntrypoint(managedRoot, managedBase);
   // An existing root that fails validation is never executed or prepared over.
   const helperCacheIssue = validated ? null : existingHelperCacheIssue(managedRoot);
@@ -568,9 +591,6 @@ export function createHelperInvocation(args, { online = false, env = process.env
     // offline lookup never prepares one: neither needs npm, its config or a workspace.
     if (validated || !online) return { command: process.execPath, args: validated ? [validated, ...args] : missingHelperArgs(),
       shell: false, cwd, env: helperEnv, cleanup };
-    if (!safeManagedPath(managedBase, path.dirname(managedRoot), { allowMissing: true })) {
-      throw new Error("The managed connection-helper path is unsafe.");
-    }
     const npmCli = trustedNpmCli();
     if (!npmCli) return { command: process.execPath, args: npmUnavailableArgs(), shell: false, cwd, env: helperEnv, cleanup,
       helperPrerequisiteIssue: { code: "helper_npm_unavailable", diagnostic: npmUnavailableDiagnostic } };

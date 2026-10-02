@@ -8,7 +8,7 @@ import crypto from "node:crypto";
 import { isUtf8 } from "node:buffer";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { createHelperInvocation } from "./connection-helper.js";
+import { createHelperInvocation, helperEnvironmentDiagnostic } from "./connection-helper.js";
 import { adaptSupportBundle, inspectSupportPolicy, stageExistingSupportBundle, supportPolicySidecarPath } from "./support-policy.js";
 import { readSkillName } from "./install-metadata.js";
 
@@ -633,7 +633,13 @@ export function getDependencyStatus(root, options = {}) {
   let helperCacheIssue = null;
   try { helperReady = (options.helperVersion ?? helperVersion)(manifest, false, options) === true; }
   catch (error) {
-    // Local availability remains false; only the rejected-cache diagnostic is kept.
+    // Unsafe environment paths require operator repair, not helper preparation.
+    // Only the helper's constructed diagnostic may escape; native errors can
+    // contain caller context even when a test/provider supplies the same code.
+    if (error?.code === "EHELPERENV") {
+      throw Object.assign(new Error(helperEnvironmentDiagnostic(error)), { code: "EHELPERENV" });
+    }
+    // Other local availability remains false; keep the rejected-cache diagnostic.
     if (error?.code === "EHELPERCACHE") helperCacheIssue = { cache_path: error.helperCache, recovery: error.message };
   }
   let requested = stateRead.status === "invalid" ? "unknown" : state.requested_install_mode ?? state.mode ?? "full";
@@ -1412,6 +1418,18 @@ export function legacyCorePathAliases(relative) {
   const normalized = relative.normalize("NFKC");
   return [...new Set([relative, normalized, normalized.toLowerCase().replaceAll("ß", "ss")])];
 }
+function restoredOwnershipIdentity(transaction, action, destination) {
+  if (!hasIdentity(destination, action.restored_identity)) throw new Error("active_path_ownership_changed");
+  // Files and directories keep the exclusively prepared inode on publication.
+  // Older journals may omit that anchor; their current pathname is not proof
+  // that a different restored inode belongs to this transaction.
+  if (["file", "directory"].includes(action.restored_identity.type) &&
+      !hasIdentity(destination, action.original_identity) && !hasIdentity(destination, action.restore_temporary_identity)) {
+    throw new Error(`restored_path_ownership_unproven: ${destination}. Active content, state bytes and pending journal ${journalFile(transaction.root)} were preserved; reconcile this older journal's restored identity before retrying installation.`);
+  }
+  // Never adopt an inode obtained by re-reading a pathname after the check.
+  return { ...action.restored_identity };
+}
 function updateRolledBackOwnership(transaction) {
   const file = path.join(transaction.root, stateName);
   if (!exists(file)) return;
@@ -1439,7 +1457,29 @@ function updateRolledBackOwnership(transaction) {
         if (![transaction.previous_state_hash, transaction.rollback_state_hash].includes(previousHash)) {
           throw new Error(`A concurrent state save prevents refreshing restored directory ownership: ${file}. The exact saved state bytes and restored content at ${destination} were preserved; pending journal ${journalFile(transaction.root)} was retained. Reconcile the saved asset ownership with this journal's proven restored directory identity before retrying installation.`);
         }
-        record.path_identity = pathIdentity(destination);
+        record.path_identity = restoredOwnershipIdentity(transaction, action, destination);
+        changed = true;
+      }
+    }
+    // A legacy (pre-marker) single-file asset and its detached sidecar are
+    // anchored only by inode. Refresh exactly the anchor that named this action's
+    // original file, and only while the active file is the inode this journal
+    // exclusively created for the restore; ownership then evaluates as before.
+    if (action.kind === "support" && action.original_identity.type === "file" &&
+        hasIdentity(destination, action.restore_temporary_identity)) {
+      const assets = state.asset_provenance && typeof state.asset_provenance === "object" && !Array.isArray(state.asset_provenance) ? state.asset_provenance : {};
+      for (const [relative, record] of Object.entries(assets)) {
+        if (!relativePath(relative) || !record || typeof record !== "object" || record.management_token || record.path_identity?.type !== "file") continue;
+        const field = relative === action.destination ? "path_identity" :
+          journalRelative(transaction.root, supportPolicySidecarPath(journalAbsolute(transaction.root, relative))) === action.destination ? "policy_sidecar_path_identity" : null;
+        const identity = field && record[field];
+        if (!identity || identity.dev !== action.original_identity.dev || identity.ino !== action.original_identity.ino || identity.type !== "file") continue;
+        const restored = restoredOwnershipIdentity(transaction, action, destination);
+        if (restored.dev === identity.dev && restored.ino === identity.ino) continue;
+        if (![transaction.previous_state_hash, transaction.rollback_state_hash].includes(previousHash)) {
+          throw new Error(`A concurrent state save prevents refreshing restored support-file ownership: ${file}. The exact saved state bytes and restored content at ${destination} were preserved; pending journal ${journalFile(transaction.root)} was retained. Reconcile the saved asset ownership with this journal's proven restored file identity before retrying installation.`);
+        }
+        record[field] = restored;
         changed = true;
       }
     }
@@ -1451,8 +1491,12 @@ function updateRolledBackOwnership(transaction) {
       if (!identity || identity.dev !== action.original_identity.dev || identity.ino !== action.original_identity.ino ||
           identity.type !== action.original_identity.type || typeof record.path !== "string" ||
           !legacyCorePathAliases(action.destination).includes(record.path)) continue;
+      if (![transaction.previous_state_hash, transaction.rollback_state_hash].includes(previousHash)) {
+        throw new Error(`A concurrent state save prevents refreshing restored core ownership: ${file}. The exact saved state bytes and restored content at ${destination} were preserved; pending journal ${journalFile(transaction.root)} was retained. Reconcile the saved core ownership with this journal's proven restored identity before retrying installation.`);
+      }
+      const restored = restoredOwnershipIdentity(transaction, action, destination);
       record.path = action.destination;
-      record.path_identity = pathIdentity(destination);
+      record.path_identity = restored;
       changed = true;
     }
   }
@@ -1668,6 +1712,12 @@ function recoverPendingTransactionLocked(root) {
       if (action.original_exists && action.backup_started === false && !exists(backup) &&
           !(quarantine && exists(quarantine)) && exists(destination) && !hasIdentity(destination, action.staged_identity)) continue;
       if (!action.original_exists && action.activation_started === false && exists(destination) && !hasIdentity(destination, action.staged_identity)) continue;
+      // Refuse a foreign active path before preparing another restore. Besides
+      // preserving that path, this keeps the journal's existing restore anchor
+      // intact so returning its proven inode remains a recoverable operation.
+      if (exists(destination) && !originalActive && !hasIdentity(destination, action.staged_identity)) {
+        throw new Error("active_path_ownership_changed");
+      }
       const backupBasePath = action.original_exists ? assertStoredBackupPath(transaction.root, backup) : null;
       if (action.original_exists && !originalActive && (!exists(backup) || recoveryFingerprint(backup) !== action.original_fingerprint)) {
         throw new Error("backup_missing_or_changed; active data left unchanged");
@@ -1719,9 +1769,16 @@ function recoverPendingTransactionLocked(root) {
             symlinkType: action.symlink_types?.[""],
             onPublished: identity => { action.restored_identity = identity; persistTransaction(transaction); }
           });
-          action.restored_identity = pathIdentity(destination);
-          persistTransaction(transaction);
+          // Directory rename and file link publication preserve the prepared
+          // inode; native symlink publication records its exclusively created
+          // inode through onPublished. A later pathname replacement is foreign.
+          if (!hasIdentity(destination, action.restored_identity)) throw new Error("active_path_ownership_changed");
+          if (["file", "directory"].includes(action.restored_identity.type) &&
+              !hasIdentity(destination, action.restore_temporary_identity)) throw new Error("active_path_ownership_changed");
           if (recoveryFingerprint(destination) !== action.original_fingerprint) throw new Error("restore_verification_failed");
+          // Retain the durable post-publication acknowledgment without replacing
+          // the already proven identity with a fresh pathname observation.
+          persistTransaction(transaction);
           if (exists(backup)) preservedBackups.push(backup);
           pruneEmptyParents(path.dirname(backup), backupBasePath);
         }
@@ -2219,6 +2276,9 @@ function installDependenciesLocked(root, options) {
       let prepared;
       try { prepared = versionCheck(manifest, true, options); }
       catch (error) {
+        if (error?.code === "EHELPERENV") {
+          throw Object.assign(new Error(helperEnvironmentDiagnostic(error)), { code: "EHELPERENV" });
+        }
         if (!["EHELPERCACHE", "EHELPERNPM"].includes(error?.code)) throw error;
         throw new Error(`Could not prepare the official connection helper. ${error.message} No account login or upstream setup was run.`);
       }

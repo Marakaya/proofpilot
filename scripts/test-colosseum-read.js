@@ -203,6 +203,27 @@ export async function runColosseumReadTests() {
     noLeak(result);
     cases++;
   }
+  for (const [helperRunner, expected, message] of [
+    [() => ({ status: 1, stdout: "", stderr: "ENOTCACHED" }), "helper_missing", /--prepare-colosseum-helper.*--status/],
+    [() => { throw new Error(sentinel); }, "helper_environment_unavailable", /setup\.js --status.*preserve saved credentials/]
+  ]) {
+    let calls = 0;
+    const result = await readColosseum(["filters"], { helperRunner,
+      statusRunner: () => { calls++; throw new Error("An unavailable local helper must stop before API access"); },
+      runner: () => { calls++; throw new Error("An unavailable local helper must stop before corpus access"); } });
+    assert.equal(result.error.code, expected);
+    assert.match(result.error.message, message);
+    assert.equal(result.phase, "authentication");
+    assert.equal(calls, 0);
+    noLeak(result);
+    cases++;
+  }
+  const environmentFailure = await readColosseum(["filters"], { ...options,
+    runner: () => ({ helper_error: "helper_environment_unavailable" }) });
+  assert.equal(environmentFailure.error.code, "helper_environment_unavailable");
+  assert.equal(environmentFailure.phase, "request");
+  noLeak(environmentFailure);
+  cases++;
   let output = "";
   assert.equal(await runColosseumReadCli(["--help"], { stdout: { write: text => { output += text; } } }), 0);
   assert.ok(output.includes("V2"));

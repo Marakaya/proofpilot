@@ -39,8 +39,13 @@ function date(value, label) {
   const [year, month, day] = value.slice(0, 10).split("-").map(Number);
   requireThat(month >= 1 && month <= 12 && day >= 1 && day <= new Date(Date.UTC(year, month, 0)).getUTCDate(), `${label} must be a valid ISO date`);
 }
+function decodeUtf8(bytes, message) {
+  const content = bytes.toString("utf8");
+  requireThat(Buffer.from(content, "utf8").equals(bytes), message);
+  return content;
+}
 function readJson(filename) {
-  try { return JSON.parse(fs.readFileSync(filename, "utf8")); }
+  try { return JSON.parse(decodeUtf8(fs.readFileSync(filename), `JSON input must contain valid UTF-8 text: ${filename}`)); }
   catch (error) { throw new Error(`Cannot read JSON ${filename}: ${error.message}`); }
 }
 function plainFile(filename) {
@@ -51,7 +56,7 @@ function readOwn(run, filename) {
   requireThat(typeof filename === "string" && /^[A-Za-z0-9_.-]+$/.test(filename), "Corrupt artifact filename");
   const full = path.join(run, filename);
   plainFile(full);
-  return fs.readFileSync(full, "utf8");
+  return decodeUtf8(fs.readFileSync(full), `Run artifact must contain valid UTF-8 text: ${full}`);
 }
 function createFile(filename, content, created = []) {
   let descriptor;
@@ -145,8 +150,7 @@ function validatePacket(packet, base, { frozen = false, legacy = false, historic
     requireThat(fs.statSync(sourcePath).isFile(), `Source must be a text file: ${sourcePath}`);
     const bytes = fs.readFileSync(sourcePath);
     // Reject lossy decoding so the snapshot preserves the complete input bytes as UTF-8 text.
-    const content = bytes.toString("utf8");
-    requireThat(Buffer.from(content, "utf8").equals(bytes), `Source must contain valid UTF-8 text: ${sourcePath}`);
+    const content = decodeUtf8(bytes, `Source must contain valid UTF-8 text: ${sourcePath}`);
     return { ...source, path: sourcePath, content, sha256: hash(content) };
   });
   const sourceMap = new Map(sources.map((source) => [source.id, source]));
@@ -471,8 +475,7 @@ function submit(run, draftFile, assessmentFile) {
   requireThat(state.drafts.length < MAX_DRAFTS, "Three-draft limit reached");
   requireThat(["draft_required", "repair"].includes(state.disposition), "Review the current draft before submitting a repair");
   const draftBytes = fs.readFileSync(path.resolve(draftFile));
-  const draft = draftBytes.toString("utf8");
-  requireThat(Buffer.from(draft, "utf8").equals(draftBytes), "Draft must contain valid UTF-8 text; no version was consumed");
+  const draft = decodeUtf8(draftBytes, "Draft must contain valid UTF-8 text; no version was consumed");
   const draftHash = hash(draft);
   const assessment = readJson(path.resolve(assessmentFile));
   const assessmentText = json(assessment);

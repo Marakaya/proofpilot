@@ -150,6 +150,28 @@ function validRecordedCorePath(value) {
   return typeof value === "string" && value.length > 0 && !value.includes("\\") && !path.posix.isAbsolute(value) &&
     value.split("/").every(part => part && ![".", ".."].includes(part));
 }
+function readCoreStateBytes(root) {
+  const file = path.join(root, ".proofpilot-bundle.json");
+  let stat;
+  try { stat = fs.lstatSync(file); }
+  catch (error) { if (error.code === "ENOENT") return null; throw error; }
+  if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error("incompatible state");
+  const bytes = fs.readFileSync(file);
+  if (bytes.length > 1024 * 1024) throw new Error("incompatible state");
+  return bytes;
+}
+function assertNoDuplicateCoreNames(root, destinations) {
+  if (!exists(root) || !fs.lstatSync(root).isDirectory()) return;
+  const expectedByName = new Map(destinations.map(entry => [entry.name, entry.path]));
+  for (const name of fs.readdirSync(root)) {
+    const candidate = path.join(root, name);
+    const declared = installedSkillName(candidate);
+    const expected = expectedByName.get(declared);
+    if (expected && !sameInstallDestination(candidate, expected)) {
+      throw new Error(`This skill root already contains another entry declaring name: ${declared}; move it aside before installing.`);
+    }
+  }
+}
 function rootHasProofPilotState(root, manifest, entry, allowLegacy = false) {
   try {
     const file = path.join(root, ".proofpilot-bundle.json");
@@ -228,11 +250,10 @@ export function installPackage(args, options = {}) {
   const recoveredBackups = recovered.backups ?? [];
   const initiallyMissingParents = missingParentChain(skillRoot);
   let recordedState = {};
+  let recordedStateBytes = null;
   try {
-    const stateFile = path.join(skillRoot, ".proofpilot-bundle.json");
-    const stateStat = fs.lstatSync(stateFile);
-    if (!stateStat.isFile() || stateStat.size > 1024 * 1024) throw new Error("incompatible state");
-    recordedState = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+    recordedStateBytes = readCoreStateBytes(skillRoot);
+    if (recordedStateBytes) recordedState = JSON.parse(recordedStateBytes.toString("utf8"));
     const recorded = recordedState.core_entries?.proofpilot?.path;
     if (validRecordedCorePath(recorded)) {
       const prior = path.join(skillRoot, recorded);
@@ -248,17 +269,7 @@ export function installPackage(args, options = {}) {
   const selectedProfileNames = args.profiles ? profileNames : recordedProfiles;
   const destinations = [{ name: "proofpilot", path: mainDestination, parts: [[mainSource, ""]] },
     ...selectedProfileNames.map(name => ({ name, path: path.join(skillRoot, name), parts: profileParts(name) }))];
-  if (exists(skillRoot) && fs.lstatSync(skillRoot).isDirectory()) {
-    const expectedByName = new Map(destinations.map(entry => [entry.name, entry.path]));
-    for (const name of fs.readdirSync(skillRoot)) {
-      const candidate = path.join(skillRoot, name);
-      const declared = installedSkillName(candidate);
-      const expected = expectedByName.get(declared);
-      if (expected && !sameInstallDestination(candidate, expected)) {
-        throw new Error(`This skill root already contains another entry declaring name: ${declared}; move it aside before installing.`);
-      }
-    }
-  }
+  assertNoDuplicateCoreNames(skillRoot, destinations);
   const reserved = [...profileNames, ...manifest.sources.flatMap(source => [...source.skills.map(skill => skill.id), ...source.assets.map(asset => asset.destination)]), ".proofpilot-bundle.json"]
     .map(relative => path.join(skillRoot, relative));
   const foldName = value => value.normalize("NFKC").toLowerCase().replaceAll("ß", "ss");
@@ -304,6 +315,20 @@ export function installPackage(args, options = {}) {
       hardenPreparedTree(entry.staging);
     }
     const validateCoreTargets = () => {
+      // Core destinations, retained profiles and original link kinds were selected
+      // from these exact state bytes. A completed competing install must be read
+      // afresh on retry rather than overwritten by this pre-lock preparation.
+      const currentStateBytes = readCoreStateBytes(skillRoot);
+      if (recordedStateBytes ? !currentStateBytes || !recordedStateBytes.equals(currentStateBytes) : currentStateBytes !== null) {
+        throw new Error("The ProofPilot bundle state changed while waiting for the installation lock; re-run installation to use the current core and profile records.");
+      }
+      const currentRecordedProfiles = profileNames.filter(name => recordedState.core_entries?.[name] && exists(path.join(skillRoot, name)));
+      if (!args.profiles && JSON.stringify(currentRecordedProfiles) !== JSON.stringify(recordedProfiles)) {
+        throw new Error("Recorded ProofPilot profiles changed while waiting for the installation lock; re-run installation to use their current paths.");
+      }
+      // A sibling can appear without changing state, so repeat the name inventory
+      // under the same lock before either dependency work or core activation.
+      assertNoDuplicateCoreNames(skillRoot, destinations);
       for (const entry of destinations) {
         if (overlapsSource(sourceRoot, entry.path)) throw new Error("Choose a destination outside the canonical source repository.");
         assertInstallDestination(skillRoot, entry.path, { replaceFinalLink: true });

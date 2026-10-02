@@ -26,7 +26,7 @@ Usage:
   proofpilot install --target <codex|claude|agents> [--dir <absolute-main-skill-directory>] [--force] [--profiles] [--adopt-legacy-core]
       [--core-only | --update-dependencies | --offline]
   proofpilot dependencies --root <skill-root> [--status | --update | --offline]
-  proofpilot setup [--status|--check-colosseum|--connect-colosseum [--device]] [--json]
+  proofpilot setup [--status|--prepare-colosseum-helper|--check-colosseum|--connect-colosseum [--device]] [--json]
   proofpilot quality <init|submit|review|status> ...
   proofpilot event <list|init|check> ...
 
@@ -37,7 +37,7 @@ Commands:
   validate-response  Check response structure, evidence, score arithmetic, and gates.
   install   Install ProofPilot and its locked full support bundle.
   dependencies  Install, inspect or update support skills and shared guidance.
-  setup     Show offline setup status; configure or verify Colosseum only when requested.
+  setup     Show offline status; prepare the helper without login, or connect/verify when requested.
   quality   Track local evidence, checks, review and at most two draft repairs. No model API calls.
   event     Prepare and check hackathon/workshop/custom scorecards with fixed 100-point weights.
 

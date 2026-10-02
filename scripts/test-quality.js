@@ -84,6 +84,16 @@ export function runQualityTests() {
     catch (error) { throw new Error(`Quality regression '${label}' failed: ${error.message}`, { cause: error }); }
   }
   function diagnostic(result, code) { assert(result.diagnostics.some((item) => item.code === code), `Missing diagnostic ${code}: ${JSON.stringify(result)}`); }
+  const encodingMarker = "Literal \uFFFD café 日本 🚀";
+  const invalidJsonInput = (value, malformed = Buffer.from([0xff])) => {
+    const bytes = Buffer.from(JSON.stringify(value)), index = bytes.indexOf(Buffer.from("\uFFFD"));
+    assert.notEqual(index, -1, "Encoding fixture must include a literal valid replacement character");
+    return write(Buffer.concat([bytes.subarray(0, index), malformed, bytes.subarray(index + 3)]), "json-bytes");
+  };
+  const runArtifacts = run => fs.readdirSync(run).sort().map(name => {
+    const file = path.join(run, name), stat = fs.lstatSync(file, { bigint: true });
+    return { name, bytes: fs.readFileSync(file), dev: stat.dev, ino: stat.ino, mode: stat.mode, mtimeNs: stat.mtimeNs, ctimeNs: stat.ctimeNs };
+  });
   const originalFetch = globalThis.fetch;
   globalThis.fetch = () => { throw new Error("Quality helper must not make external calls"); };
   try {
@@ -416,6 +426,85 @@ export function runQualityTests() {
       assert.equal(fs.existsSync(path.join(run.run_dir, "draft-1.md")), false);
       assert.equal(submit(run).draft_count, 1);
     });
+    test("invalid packet JSON encoding refuses initialization without creating or changing a run", () => {
+      for (const malformed of [Buffer.from([0xff]), Buffer.from([0xc3]), Buffer.from([0xed, 0xa0, 0x80])]) {
+        for (const preexisting of [false, true]) {
+          const input = clone(packet); input.task += ` ${encodingMarker}`;
+          const file = invalidJsonInput(input, malformed), beforeInput = fs.readFileSync(file);
+          const run = path.join(temporaryRoot, `encoding-init-${++sequence}`);
+          if (preexisting) fs.mkdirSync(run, { mode: 0o750 });
+          const stat = preexisting && fs.lstatSync(run, { bigint: true });
+          assert.throws(() => runQuality(["init", run, file]), /JSON input must contain valid UTF-8/);
+          assert.deepEqual(fs.readFileSync(file), beforeInput);
+          if (preexisting) {
+            const after = fs.lstatSync(run, { bigint: true });
+            assert.deepEqual([after.dev, after.ino, after.mode], [stat.dev, stat.ino, stat.mode]);
+            assert.deepEqual(fs.readdirSync(run), []);
+          } else assert.equal(fs.existsSync(run), false);
+          assert.equal(runQuality(["init", run, write(input)]).draft_count, 0, "A valid retry must use the same run destination.");
+        }
+      }
+    });
+    test("invalid assessment JSON encoding consumes no draft or artifact and allows a valid retry", () => {
+      const run = init(), draft = `${BASE_DRAFT} ${encodingMarker}`, input = clone(assessment);
+      input.claims[1].quote += ` ${encodingMarker}`;
+      const before = runArtifacts(run.run_dir), draftFile = write(draft, "md");
+      const invalid = invalidJsonInput(input), inputBytes = fs.readFileSync(invalid);
+      assert.throws(() => runQuality(["submit", run.run_dir, draftFile, invalid]), /JSON input must contain valid UTF-8/);
+      assert.deepEqual(runArtifacts(run.run_dir), before, "Rejected JSON must not reserve artifacts or change state/inodes.");
+      assert.deepEqual(fs.readFileSync(invalid), inputBytes);
+      assert.equal(runQuality(["status", run.run_dir]).draft_count, 0);
+      const current = runQuality(["submit", run.run_dir, draftFile, write(input)]);
+      assert.equal(current.draft_count, 1);
+      assert.deepEqual(current.diagnostics, []);
+      assert.equal(JSON.parse(fs.readFileSync(current.assessment_file)).claims[1].quote, input.claims[1].quote);
+    });
+    test("invalid review JSON encoding records no review and permits the same valid review afterward", () => {
+      const current = submit(init()), input = reviewFor(current);
+      input.checks[0].note += ` ${encodingMarker}`;
+      const before = runArtifacts(current.run_dir), invalid = invalidJsonInput(input), inputBytes = fs.readFileSync(invalid);
+      assert.throws(() => runQuality(["review", current.run_dir, invalid]), /JSON input must contain valid UTF-8/);
+      assert.deepEqual(runArtifacts(current.run_dir), before);
+      assert.deepEqual(fs.readFileSync(invalid), inputBytes);
+      assert.equal(runQuality(["status", current.run_dir]).disposition, "awaiting_review");
+      assert.equal(runQuality(["review", current.run_dir, write(input)]).disposition, "accepted");
+      const recorded = JSON.parse(fs.readFileSync(path.join(current.run_dir, "draft-1.review.json")));
+      assert.equal(recorded.checks[0].note, input.checks[0].note);
+    });
+    test("literal replacement characters and multibyte JSON text survive a complete quality run", () => {
+      const run = init(input => { input.task += ` ${encodingMarker}`; input.sources[0].locator += ` ${encodingMarker}`; });
+      const draft = `${BASE_DRAFT} ${encodingMarker}`;
+      const current = submit(run, draft, input => { input.claims[1].quote += ` ${encodingMarker}`; });
+      assert.deepEqual(current.diagnostics, []);
+      const result = review(current, input => { input.reviewer.model += ` ${encodingMarker}`; input.checks[0].note += ` ${encodingMarker}`; });
+      assert.equal(result.disposition, "accepted");
+      const storedPacket = JSON.parse(fs.readFileSync(run.packet_file));
+      assert.equal(storedPacket.packet.task, `${packet.task} ${encodingMarker}`);
+      assert.equal(storedPacket.packet.sources[0].locator, `${packet.sources[0].locator} ${encodingMarker}`);
+      assert.deepEqual(fs.readFileSync(current.draft_file), Buffer.from(draft));
+      assert.equal(JSON.parse(fs.readFileSync(current.assessment_file)).claims[1].quote, `${assessment.claims[1].quote} ${encodingMarker}`);
+      const storedReview = JSON.parse(fs.readFileSync(path.join(result.run_dir, "draft-1.review.json")));
+      assert.equal(storedReview.reviewer.model, `test-reviewer ${encodingMarker}`);
+      assert.equal(runQuality(["status", result.run_dir]).disposition, "accepted");
+    });
+    for (const artifact of ["packet.json", "draft-1.md", "draft-1.assessment.json", "draft-1.review.json"]) {
+      test(`invalid UTF-8 in archived ${artifact} cannot retain its decoded-text hash`, () => {
+        const run = init(input => { input.task += ` ${encodingMarker}`; });
+        const current = submit(run, `${BASE_DRAFT} ${encodingMarker}`, input => { input.claims[1].quote += ` ${encodingMarker}`; });
+        const result = review(current, input => { input.checks[0].note += ` ${encodingMarker}`; });
+        assert.equal(result.disposition, "accepted");
+        const file = path.join(result.run_dir, artifact), original = fs.readFileSync(file), index = original.indexOf(Buffer.from("\uFFFD"));
+        assert.notEqual(index, -1);
+        const altered = Buffer.concat([original.subarray(0, index), Buffer.from([0xff]), original.subarray(index + 3)]);
+        assert.notEqual(crypto.createHash("sha256").update(original).digest("hex"), crypto.createHash("sha256").update(altered).digest("hex"));
+        fs.writeFileSync(file, altered);
+        const before = runArtifacts(result.run_dir);
+        assert.throws(() => runQuality(["status", result.run_dir]), /Run artifact must contain valid UTF-8/);
+        assert.deepEqual(runArtifacts(result.run_dir), before, "Reject altered bytes without rewriting any history.");
+        fs.writeFileSync(file, original);
+        assert.equal(runQuality(["status", result.run_dir]).disposition, "accepted", "Restoring exact retained bytes preserves the original valid history.");
+      });
+    }
     for (const preexisting of [false, true]) {
       test(`failed initial state commit cleans its files and retries in ${preexisting ? "an existing empty" : "a new"} directory`, () => {
         const run = path.join(temporaryRoot, `initial-fault-${++sequence}`);

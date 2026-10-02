@@ -41,7 +41,7 @@ The response should include evidence and unknowns, three to five distinct direct
 
 ## Install And Inspect
 
-Requirements: Node.js 20 or later, npm and Git. First full installation needs network access; live Colosseum access also requires curl in a trusted system location (see [onboarding](skills/proofpilot/references/onboarding.md)).
+Installation requirements: Node.js 20 or later, npm and Git. First full installation needs network access and prepares the Colosseum connection helper. Live Colosseum access then needs Node.js and curl in a trusted system location; npm is needed again only if that helper must be prepared (see [onboarding](skills/proofpilot/references/onboarding.md)).
 
 Clone the repository and install dependencies:
 
@@ -80,23 +80,32 @@ See [installation.md](skills/proofpilot/references/installation.md) for repeat i
 
 Both repository installers print the next setup step. A plain skill installation cannot initiate an agent conversation on its own: invoke `$proofpilot` for research after installation, and the agent will check existing access and explain setup in your language. All six entrypoints share the same setup. A standalone skill-manager copy checks its support bundle on first use for actual work and adds missing dependencies unless core-only was chosen; a file copy alone cannot run installation hooks. Local capability lookup and scoped implementation/debugging/testing from an existing specification do not require Colosseum setup; normal research setup remains incomplete until verified.
 
-The welcome has two parts. First, the agent explains that a full installation already includes Colosseum Copilot and invites you to sign in or create a Colosseum account and authorize access. Copilot provides more than 8,000 hackathon project records for idea research and competitor analysis, with deepest coverage in Solana/web3 ([official page](https://colosseum.com/copilot), 8,286 projects checked on 2026-10-02). Ask **“Подключи Colosseum”** to start the official browser flow; no key needs to be pasted into chat. Existing working connections are reused.
+The welcome has two parts. First, the agent explains that a full installation already includes Colosseum Copilot, checks existing access, and invites you to sign in or create a Colosseum account and authorize access when the connection is missing or definitively expired/revoked. Copilot provides more than 8,000 hackathon project records for idea research and competitor analysis, with deepest coverage in Solana/web3 ([official page](https://colosseum.com/copilot), 8,286 projects checked on 2026-10-02). Ask **“Подключи Colosseum”** to start the official browser flow; no key needs to be pasted into chat. Existing working connections are reused.
 
 After authenticated V2 evidence access is verified, the agent describes the actual installed support skills and their uses: ideas and demand validation, MVP planning, Solana development, design, product/code review, pitches and applications, and learning. Ask **“Покажи состав ProofPilot”** for the names and purposes of the installed skills. The agent then continues your original task. Core-only/incomplete installations receive an accurate description of their available capabilities; a catalog request never requires account sign-in. See the localized message examples in [onboarding](skills/proofpilot/references/onboarding.md#welcome-and-connection-flow).
 
 For higher-quality recommendations and assessments, ProofPilot recommends models in the **SOL or Opus 5 class or higher**, where available in your host. Weaker models may miss important details or draw incorrect conclusions; built-in checks cannot fully compensate for model limitations. This is a usage recommendation, not a benchmark guarantee or a setup requirement. Model access and costs depend on your host's plan.
 
-Colosseum Copilot V2 access is required for completed research setup. Sign in with the official Copilot Connect helper through your browser; no PAT entry is needed. Existing official helper connections are reused:
+Colosseum Copilot V2 access is required for completed research setup. Inspect local state first and verify an existing connection. If it is missing or definitively expired/revoked, sign in with the official Copilot Connect helper through your browser; no PAT entry is needed:
 
 ```bash
 # Replace the directory with your actual installed skill path.
-node "<installed skill directory>/scripts/setup.js" --connect-colosseum
+node "<installed skill directory>/scripts/setup.js" --status
+# Verify existing access when status calls for a check.
 node "<installed skill directory>/scripts/setup.js" --check-colosseum
 ```
 
-For remote environments or blocked callbacks, add `--device` to the connect command. Connection uses pinned `@colosseum-org/copilot-connect@0.2.2` (Node.js 20+ and npm); live requests also need curl. ProofPilot prepares the exact package without lifecycle scripts, rejects writable or symlinked managed-store paths, validates its local copy, and runs its JavaScript entrypoint directly with the current Node executable. The official helper owns protected credential storage and renewal.
+When the latest state requires sign-in and you authorize it:
+
+```bash
+node "<installed skill directory>/scripts/setup.js" --connect-colosseum
+```
+
+For remote environments or blocked callbacks, add `--device` to the connect command. Connection uses pinned `@colosseum-org/copilot-connect@0.2.2` and needs Node.js 20+; live requests also need curl in a trusted system location. npm is needed only to prepare an absent helper: a validated managed copy runs without npm, and npx is never used. ProofPilot prepares the exact package without lifecycle scripts, rejects writable or symlinked managed-store paths, validates its local copy, and runs its JavaScript entrypoint directly with the current Node executable. The official helper owns protected credential storage and renewal.
 
 `proofpilot setup --status` also works with the repository CLI. It is offline and describes saved state only. `--check-colosseum` privately obtains helper authorization and checks authenticated evidence scope at the fixed API V2 status endpoint. ProofPilot creates no credential file or verification cache and ignores preserved V1 secrets. Read [onboarding](skills/proofpilot/references/onboarding.md) for connection, renewal and the limited/offline-work exception.
+
+If offline status returns `helper_missing`, use its `next_command` or run the installed `scripts/setup.js --prepare-colosseum-helper`, then `--status`. Preparation checks the pinned helper's version without login, account inspection or support-bundle installation. Status distinguishes saved, missing and unknown credentials; a failed local inspection does not mean a connection is missing. An unsafe helper environment returns a repair action and a safe diagnostic before sign-in.
 
 If no trusted curl is available, live checks return `transport_missing` with `next_action: prepare_curl` before token retrieval or renewal. Prepare system curl and retry the check; this does not establish an authorization failure. ProofPilot does not install curl automatically.
 

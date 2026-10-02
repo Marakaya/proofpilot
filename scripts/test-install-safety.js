@@ -35,6 +35,23 @@ function tracePersistence(run, beforeSync = () => {}) {
   try { return run(events); }
   finally { fs.openSync = original.open; fs.closeSync = original.close; fs.fsyncSync = original.sync; fs.renameSync = original.rename; fs.linkSync = original.link; }
 }
+function duringCorePreparation(change, run) {
+  const createTemporary = fs.mkdtempSync;
+  let changed = false;
+  fs.mkdtempSync = (prefix, ...args) => {
+    if (!changed && path.basename(String(prefix)).startsWith("proofpilot-core-")) {
+      changed = true;
+      fs.mkdtempSync = createTemporary;
+      change();
+    }
+    return createTemporary(prefix, ...args);
+  };
+  try { return run(); }
+  finally {
+    fs.mkdtempSync = createTemporary;
+    assert.equal(changed, true, "The fixture must intervene after core choices are captured and before the installation lock.");
+  }
+}
 export function runInstallSafetyTests({ testNamePattern } = {}) {
   const temporary = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-install-safety-")));
   let cases = 0;
@@ -110,6 +127,126 @@ export function runInstallSafetyTests({ testNamePattern } = {}) {
       const retry = core("core-rollback-ownership", { force: true });
       assert.deepEqual(retry.installed, ["proofpilot"]);
       assert.ok(retry.backups.some(backup => fs.existsSync(path.join(backup, "SKILL.md")) && fs.readFileSync(path.join(backup, "SKILL.md")).equals(original)));
+    });
+    test("pre-lock completed sibling-core installation keeps its core and profile ownership", () => {
+      const label = "prelock-sibling-core", target = destination(label), root = path.dirname(target);
+      const alternate = path.join(root, "custom"), stateFile = path.join(root, ".proofpilot-bundle.json");
+      let completedState;
+      duringCorePreparation(() => {
+        core(label, { profiles: true });
+        completedState = fs.readFileSync(stateFile);
+      }, () => assert.throws(() => installPackage({ destination: alternate, coreOnly: true }), /bundle state changed while waiting/));
+      assert.equal(fs.existsSync(alternate), false);
+      assert.deepEqual(fs.readFileSync(stateFile), completedState);
+      const state = JSON.parse(completedState);
+      assert.equal(state.core_entries.proofpilot.path, "proofpilot");
+      for (const name of profileNames) {
+        assert.deepEqual(state.core_entries[name].path_identity, pathIdentity(path.join(root, name)));
+      }
+      assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+      assert.deepEqual(core(label).reused.sort(), ["proofpilot", ...profileNames].sort());
+    });
+    test("pre-lock changed core choices stop before full-support downloads or helper calls", () => {
+      const label = "prelock-full-support", target = destination(label), root = path.dirname(target);
+      const alternate = path.join(root, "custom"), stateFile = path.join(root, ".proofpilot-bundle.json");
+      let completedState, helperCalls = 0, downloads = 0;
+      duringCorePreparation(() => {
+        core(label, { profiles: true });
+        completedState = fs.readFileSync(stateFile);
+      }, () => assert.throws(() => installPackage({ destination: alternate }, {
+        helperVersion: () => { helperCalls++; throw new Error("Unexpected helper access"); },
+        sourceProvider: () => { downloads++; throw new Error("Unexpected source download"); }
+      }), /bundle state changed while waiting/));
+      assert.equal(helperCalls, 0);
+      assert.equal(downloads, 0);
+      assert.equal(fs.existsSync(alternate), false);
+      assert.deepEqual(fs.readFileSync(stateFile), completedState);
+      assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+    });
+    test("pre-lock sibling names appearing without a state write are preserved and refused", () => {
+      for (const [index, name] of ["proofpilot", profileNames[0]].entries()) {
+        const label = `prelock-unrecorded-sibling-${index}`, target = destination(label), root = path.dirname(target);
+        fs.mkdirSync(root, { recursive: true });
+        const sibling = path.join(root, "foreign-entry"), entrypoint = path.join(sibling, "SKILL.md");
+        const bytes = `---\nname: ${name}\ndescription: Concurrently added personal skill.\n---\nKeep this skill.\n`;
+        let identity;
+        duringCorePreparation(() => {
+          write(entrypoint, bytes);
+          identity = pathIdentity(sibling);
+        }, () => assert.throws(() => core(label, { profiles: true }), /another entry declaring name/));
+        assert.deepEqual(pathIdentity(sibling), identity);
+        assert.equal(fs.readFileSync(entrypoint, "utf8"), bytes);
+        assert.equal(fs.existsSync(target), false);
+        assert.equal(fs.existsSync(path.join(root, ".proofpilot-bundle.json")), false);
+        assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+        for (const profile of profileNames) assert.equal(fs.existsSync(path.join(root, profile)), false);
+      }
+    });
+    test("pre-lock added profile records cannot be dropped while the main inode is unchanged", () => {
+      for (const force of [false, true]) {
+        const label = `prelock-added-profiles-${force}`, target = destination(label), root = path.dirname(target);
+        core(label);
+        const identity = pathIdentity(target), stateFile = path.join(root, ".proofpilot-bundle.json");
+        let completedState;
+        duringCorePreparation(() => {
+          core(label, { profiles: true });
+          assert.deepEqual(pathIdentity(target), identity);
+          completedState = fs.readFileSync(stateFile);
+        }, () => assert.throws(() => core(label, { force }), /bundle state changed while waiting/));
+        assert.deepEqual(pathIdentity(target), identity);
+        assert.deepEqual(fs.readFileSync(stateFile), completedState);
+        for (const name of profileNames) assert.ok(JSON.parse(completedState).core_entries[name]);
+        assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+        assert.deepEqual(core(label).reused.sort(), ["proofpilot", ...profileNames].sort());
+      }
+    });
+    test("pre-lock restored recorded profiles retain their unchanged ownership state", () => {
+      const label = "prelock-restored-profile", target = destination(label), root = path.dirname(target);
+      core(label, { profiles: true });
+      const profile = path.join(root, profileNames[0]), held = path.join(temporary, label, "held-profile");
+      const identity = pathIdentity(profile), stateFile = path.join(root, ".proofpilot-bundle.json"), bytes = fs.readFileSync(stateFile);
+      fs.renameSync(profile, held);
+      duringCorePreparation(() => fs.renameSync(held, profile), () => assert.throws(() => core(label), /Recorded ProofPilot profiles changed while waiting/));
+      assert.deepEqual(pathIdentity(profile), identity);
+      assert.deepEqual(fs.readFileSync(stateFile), bytes);
+      assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+      assert.deepEqual(core(label).reused.sort(), ["proofpilot", ...profileNames].sort());
+    });
+    test("pre-lock link-kind record changes are refused before core or profile backups", () => {
+      const label = "prelock-link-kinds", target = destination(label), root = path.dirname(target);
+      core(label, { profiles: true, mode: "symlink" });
+      const stateFile = path.join(root, ".proofpilot-bundle.json"), mainIdentity = pathIdentity(target);
+      const profile = path.join(root, profileNames[0]), profileIdentity = pathIdentity(profile);
+      let saved;
+      duringCorePreparation(() => {
+        const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        state.core_entries.proofpilot.mode = "copy";
+        state.core_entries[profileNames[0]].mode = "copy";
+        fs.writeFileSync(stateFile, `${JSON.stringify(state, null, 2)}\n`);
+        saved = fs.readFileSync(stateFile);
+      }, () => assert.throws(() => core(label, { profiles: true, mode: "copy", force: true }), /bundle state changed while waiting/));
+      assert.deepEqual(fs.readFileSync(stateFile), saved);
+      assert.deepEqual(pathIdentity(target), mainIdentity);
+      assert.deepEqual(pathIdentity(profile), profileIdentity);
+      assert.equal(fs.lstatSync(target).isSymbolicLink(), true);
+      assert.equal(fs.lstatSync(path.join(profile, "SKILL.md")).isSymbolicLink(), true);
+      assert.equal(fs.existsSync(path.join(temporary, label, ".proofpilot-backups")), false);
+      assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+    });
+    test("pre-lock unchanged atomic state saves allow core reuse and forced replacement", () => {
+      for (const force of [false, true]) {
+        const label = `prelock-unchanged-state-${force}`, target = destination(label), root = path.dirname(target);
+        core(label);
+        const stateFile = path.join(root, ".proofpilot-bundle.json"), bytes = fs.readFileSync(stateFile);
+        const result = duringCorePreparation(() => {
+          const saved = path.join(root, ".state-editor-save");
+          fs.writeFileSync(saved, bytes, { mode: 0o600 });
+          fs.renameSync(saved, stateFile);
+        }, () => core(label, { force }));
+        assert.deepEqual(force ? result.installed : result.reused, ["proofpilot"]);
+        assert.equal(result.backups.length, force ? 1 : 0);
+        assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+      }
     });
     test("compatibility Unicode core destinations retain physical paths through rollback and reject duplicate names", () => {
       for (const [index, [basename, folded]] of [["ｐｒｏｏｆｐｉｌｏｔ", "proofpilot"], ["proofßpilot", "proofsspilot"]].entries()) {

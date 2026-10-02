@@ -78,7 +78,8 @@ export function buildColosseumReadRequest(args) {
 
 const messages = {
   invalid_arguments: "Unsupported or out-of-range arguments. Use --help; never pass credentials here.",
-  helper_missing: "The official Copilot Connect helper is unavailable locally. Complete V2 sign-in first.",
+  helper_missing: "The official Copilot Connect helper is unavailable locally, so saved credentials were not inspected. Run the installed setup.js --prepare-colosseum-helper without sign-in, then --status to inspect the connection.",
+  helper_environment_unavailable: "The helper environment failed its path or permission checks. Run the installed setup.js --status for the safe path diagnostic and recovery steps; preserve saved credentials and do not repeat sign-in on this failure.",
   helper_untrusted: "The managed Copilot Connect helper cache failed validation and was not run. Preserve the cache and run setup.js --status for its exact path and recovery steps; repeating sign-in alone cannot repair it.",
   missing: "No Colosseum V2 connection is saved. Use the official browser or device login.",
   expired: "The authorization expired. Reconnect with the official helper.",
@@ -126,7 +127,8 @@ export async function readColosseum(args, options = {}) {
   try {
     const status = await checkColosseum(options);
     if (status.colosseum.status !== "verified" || status.colosseum.live_check_performed !== true) {
-      return failure(request.operation, checkedAt, status.colosseum.status, status.colosseum.http_status ?? null, "authentication");
+      const code = status.colosseum.reason === "helper_environment_unavailable" ? "helper_environment_unavailable" : status.colosseum.status;
+      return failure(request.operation, checkedAt, code, status.colosseum.http_status ?? null, "authentication");
     }
     const response = parseColosseumResponse(await (options.runner ?? runColosseumRequest)(request, options));
     if (response.error) return failure(request.operation, checkedAt, response.error, response.http_status);

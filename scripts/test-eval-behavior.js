@@ -39,8 +39,8 @@ export function runBehaviorCliTests() {
     const manifestFile = path.join(runs, 'manifest.json');
     const manifestBytes = fs.readFileSync(manifestFile);
     const manifest = JSON.parse(manifestBytes);
-    assert.equal(manifest.version, 2);
-    assert.equal(manifest.skill_hash_scheme, 'sha256-json-tree-utf8-v2');
+    assert.equal(manifest.version, 3);
+    assert.equal(manifest.skill_hash_scheme, 'sha256-json-tree-typed-utf8-v3');
     assert.equal(prepared.status, 'prepared_only');
     assert.equal(prepared.cases, suite.cases.length);
     assert.deepEqual(new Set(manifest.cases.map(item => item.id)), new Set(suite.cases.map(item => item.id)));
@@ -99,6 +99,8 @@ export function runBehaviorCliTests() {
     assert.equal(report.judged_cases, 1);
     assert.deepEqual(new Set(report.unjudged_cases), new Set(suite.cases.slice(1).map(item => item.id)));
     assert.equal(report.results[0].response_sha256, sha(response));
+    assert.equal(report.typed_node_identity, true);
+    assert.equal(report.response_encoding, 'strict-utf8');
     for (const verdict of verdicts) {
       assert.equal(report.results[0][verdict], Object.values(judgments.runs[0].criteria).filter(item => item.verdict === verdict).length);
     }
@@ -109,6 +111,55 @@ export function runBehaviorCliTests() {
     fs.writeFileSync(responseFile, `${response}Tampered response.\n`);
     rejectReport(/Response SHA mismatch/);
     fs.writeFileSync(responseFile, response);
+    cases++;
+
+    const unicodeResponse = `${response}Valid Unicode glyphs: \ufffd \ud83d\ude80\n`;
+    fs.writeFileSync(responseFile, unicodeResponse);
+    judgments.runs[0].response_sha256 = sha(Buffer.from(unicodeResponse));
+    writeJudgments();
+    assert.equal(JSON.parse(execute(['report', '--runs', runs, '--judgments', judgmentsFile]).stdout).results[0].response_sha256, sha(fs.readFileSync(responseFile)));
+    cases++;
+    fs.writeFileSync(responseFile, Buffer.concat([Buffer.from(`${response}Valid Unicode glyphs: `), Buffer.from([0xff]), Buffer.from(' \ud83d\ude80\n')]));
+    rejectReport(/Response .*valid UTF-8/);
+    assert.notEqual(sha(fs.readFileSync(responseFile)), judgments.runs[0].response_sha256, 'Fixture must change raw bytes while preserving the old lossy-decoded text');
+    fs.writeFileSync(responseFile, response);
+    judgments.runs[0].response_sha256 = sha(response);
+    writeJudgments();
+    cases++;
+
+    // Each input text domain rejects invalid UTF-8 before parsing or judging.
+    judgments.reviewer += ' \ufffd';
+    writeJudgments();
+    const validJudgments = fs.readFileSync(judgmentsFile);
+    fs.writeFileSync(judgmentsFile, Buffer.from(validJudgments.toString('utf8').replace('\ufffd', '\u0000')).map(byte => byte === 0 ? 0xff : byte));
+    rejectReport(/judgments\.json must contain valid UTF-8/);
+    judgments.reviewer = judgments.reviewer.slice(0, -2);
+    writeJudgments();
+    cases++;
+
+    const invalidPrompt = Buffer.concat([fs.readFileSync(path.join(runs, entry.prompt_file)), Buffer.from([0xff])]);
+    const promptManifest = { ...manifest, cases: manifest.cases.map(item => item.id === selected.id ? { ...item, prompt_sha256: sha(invalidPrompt) } : item) };
+    const invalidPromptManifestBytes = Buffer.from(JSON.stringify(promptManifest));
+    const originalPromptBytes = fs.readFileSync(path.join(runs, entry.prompt_file));
+    fs.writeFileSync(path.join(runs, entry.prompt_file), invalidPrompt);
+    fs.writeFileSync(manifestFile, invalidPromptManifestBytes);
+    judgments.manifest_sha256 = sha(invalidPromptManifestBytes);
+    writeJudgments();
+    rejectReport(/Prompt .*valid UTF-8/);
+    fs.writeFileSync(path.join(runs, entry.prompt_file), originalPromptBytes);
+    fs.writeFileSync(manifestFile, manifestBytes);
+    judgments.manifest_sha256 = sha(manifestBytes);
+    writeJudgments();
+    cases++;
+
+    const invalidManifestBytes = Buffer.from(JSON.stringify({ ...manifest, fixture_note: '\ufffd' }).replace('\ufffd', '\u0000')).map(byte => byte === 0 ? 0xff : byte);
+    fs.writeFileSync(manifestFile, invalidManifestBytes);
+    judgments.manifest_sha256 = sha(invalidManifestBytes);
+    writeJudgments();
+    rejectReport(/manifest\.json must contain valid UTF-8/);
+    fs.writeFileSync(manifestFile, manifestBytes);
+    judgments.manifest_sha256 = sha(manifestBytes);
+    writeJudgments();
     cases++;
 
     const criterion = judgments.runs[0].criteria[selected.criteria[0].id];
@@ -131,6 +182,62 @@ export function runBehaviorCliTests() {
     const relocated = JSON.parse(execute(['report', '--runs', runs, '--judgments', judgmentsFile, '--skill', archivedSkill]).stdout);
     assert.equal(relocated.skill_sha256, manifest.skill_sha256);
     cases++;
+
+    const replacedDirectory = path.join(temporaryRoot, 'directory-replaced-with-file');
+    fs.cpSync(skill, replacedDirectory, { recursive: true });
+    fs.rmSync(path.join(replacedDirectory, 'references'), { recursive: true });
+    fs.writeFileSync(path.join(replacedDirectory, 'references'), JSON.stringify([['fixture.md', sha(fs.readFileSync(referenceFile))]]));
+    assert.match(execute(['report', '--runs', runs, '--judgments', judgmentsFile, '--skill', replacedDirectory], 1).stderr, /Skill snapshot differs/);
+    const replacedDirectoryRuns = path.join(temporaryRoot, 'replaced-directory-runs');
+    execute(['prepare', '--out', replacedDirectoryRuns, '--skill', replacedDirectory]);
+    assert.notEqual(JSON.parse(fs.readFileSync(path.join(replacedDirectoryRuns, 'manifest.json'))).skill_sha256, manifest.skill_sha256);
+    cases++;
+
+    const fileToDirectorySkill = path.join(temporaryRoot, 'file-to-directory-skill');
+    fs.mkdirSync(fileToDirectorySkill);
+    fs.writeFileSync(path.join(fileToDirectorySkill, 'SKILL.md'), '# Synthetic node-type fixture\n');
+    fs.writeFileSync(path.join(fileToDirectorySkill, 'payload'), '[]');
+    const beforeTypeRuns = path.join(temporaryRoot, 'before-type-runs');
+    execute(['prepare', '--out', beforeTypeRuns, '--skill', fileToDirectorySkill]);
+    fs.unlinkSync(path.join(fileToDirectorySkill, 'payload'));
+    fs.mkdirSync(path.join(fileToDirectorySkill, 'payload'));
+    const afterTypeRuns = path.join(temporaryRoot, 'after-type-runs');
+    execute(['prepare', '--out', afterTypeRuns, '--skill', fileToDirectorySkill]);
+    assert.notEqual(JSON.parse(fs.readFileSync(path.join(beforeTypeRuns, 'manifest.json'))).skill_sha256, JSON.parse(fs.readFileSync(path.join(afterTypeRuns, 'manifest.json'))).skill_sha256);
+    cases++;
+
+    const linkedSkill = path.join(temporaryRoot, 'symlink-skill');
+    fs.symlinkSync(skill, linkedSkill, 'dir');
+    assert.match(execute(['prepare', '--out', path.join(temporaryRoot, 'linked-runs'), '--skill', linkedSkill], 1).stderr, /real directory, not a symlink/);
+    const childLink = path.join(skill, 'linked-reference');
+    fs.symlinkSync(referenceFile, childLink);
+    rejectReport(/unsupported symlink/);
+    fs.unlinkSync(childLink);
+    cases++;
+
+    if (process.platform !== 'win32') {
+      const fifo = path.join(skill, 'unsupported-fifo');
+      const created = spawnSync('mkfifo', [fifo], { encoding: 'utf8' });
+      assert.ifError(created.error);
+      assert.equal(created.status, 0, created.stderr);
+      rejectReport(/unsupported filesystem node/);
+      assert.match(execute(['prepare', '--out', path.join(temporaryRoot, 'fifo-runs'), '--skill', skill], 1).stderr, /unsupported filesystem node/);
+      fs.unlinkSync(fifo);
+      cases++;
+
+      const invalidName = Buffer.concat([Buffer.from(`${skill}${path.sep}`), Buffer.from([0xff])]);
+      let invalidNameCreated = false;
+      try { fs.writeFileSync(invalidName, 'Invalid filename fixture.'); invalidNameCreated = true; }
+      catch (error) {
+        // Some filesystems require Unicode names and refuse the fixture itself.
+        assert.ok(['EILSEQ', 'EINVAL'].includes(error.code), `Unexpected filename creation failure: ${error.message}`);
+      }
+      if (invalidNameCreated) {
+        assert.match(execute(['prepare', '--out', path.join(temporaryRoot, 'invalid-name-runs'), '--skill', skill], 1).stderr, /filename .*valid UTF-8/);
+        fs.unlinkSync(invalidName);
+      }
+      cases++;
+    }
     fs.appendFileSync(path.join(archivedSkill, 'SKILL.md'), 'Unrelated replacement.\n');
     assert.match(execute(['report', '--runs', runs, '--judgments', judgmentsFile, '--skill', archivedSkill], 1).stderr, /Skill snapshot differs/);
     cases++;
@@ -139,6 +246,28 @@ export function runBehaviorCliTests() {
     const customRuns = path.join(temporaryRoot, 'custom-runs');
     const customSuite = { cases: [{ id: 'custom-case', prompt: 'Independent custom input.', criteria: [{ id: 'custom-check', description: 'Hidden custom criterion.' }] }] };
     fs.writeFileSync(customFile, JSON.stringify(customSuite));
+    const malformedSuiteFile = path.join(temporaryRoot, 'malformed-ids.json');
+    const malformedRuns = path.join(temporaryRoot, 'malformed-id-runs');
+    for (const id of [undefined, 123, null, false, ['custom-case']]) {
+      fs.writeFileSync(malformedSuiteFile, JSON.stringify({ cases: [{ ...customSuite.cases[0], id }] }));
+      assert.match(execute(['prepare', '--out', malformedRuns, '--skill', skill, '--cases', malformedSuiteFile], 1).stderr, /Invalid\/duplicate case ID/);
+      assert.equal(fs.existsSync(malformedRuns), false, 'Invalid case IDs must fail before creating prompts or a manifest');
+    }
+    cases++;
+    for (const id of [undefined, 123, null, false, [], ' ']) {
+      fs.writeFileSync(malformedSuiteFile, JSON.stringify({ cases: [{ ...customSuite.cases[0], criteria: [{ id, description: 'Synthetic invalid criterion ID.' }] }] }));
+      assert.match(execute(['prepare', '--out', malformedRuns, '--skill', skill, '--cases', malformedSuiteFile], 1).stderr, /Invalid criterion ID/);
+      assert.equal(fs.existsSync(malformedRuns), false, 'Invalid criterion IDs must fail before creating prompts or a manifest');
+    }
+    cases++;
+    const invalidCasesFile = path.join(temporaryRoot, 'invalid-cases.json');
+    const invalidCasesBytes = Buffer.from(JSON.stringify({ cases: [{ ...customSuite.cases[0], prompt: '\ufffd' }] }).replace('\ufffd', '\u0000')).map(byte => byte === 0 ? 0xff : byte);
+    fs.writeFileSync(invalidCasesFile, invalidCasesBytes);
+    assert.match(execute(['prepare', '--out', path.join(temporaryRoot, 'invalid-case-runs'), '--skill', skill, '--cases', invalidCasesFile], 1).stderr, /invalid-cases\.json must contain valid UTF-8/);
+    cases++;
+    fs.writeFileSync(invalidCasesFile, JSON.stringify({ cases: [{ ...customSuite.cases[0], prompt: '\ud800' }] }));
+    assert.match(execute(['prepare', '--out', path.join(temporaryRoot, 'surrogate-case-runs'), '--skill', skill, '--cases', invalidCasesFile], 1).stderr, /unpaired Unicode surrogate/);
+    cases++;
     execute(['prepare', '--out', customRuns, '--skill', skill, '--cases', customFile]);
     const customManifestBytes = fs.readFileSync(path.join(customRuns, 'manifest.json'));
     const customPrompt = fs.readFileSync(path.join(customRuns, 'custom-case.prompt.md'), 'utf8');
@@ -201,7 +330,8 @@ export function runBehaviorCliTests() {
     const unicodeArgs = ['report', '--runs', unicodeRuns, '--judgments', unicodeJudgmentsFile, '--cases', customFile, '--skill', unicodeArchive];
     const crossLocaleReport = JSON.parse(execute(unicodeArgs, 0, swedish).stdout);
     assert.equal(crossLocaleReport.skill_sha256, unicodeManifest.skill_sha256);
-    assert.equal(crossLocaleReport.manifest_version, 2);
+    assert.equal(crossLocaleReport.manifest_version, 3);
+    assert.equal(crossLocaleReport.skill_hash_scheme, 'sha256-json-tree-typed-utf8-v3');
     cases++;
     const swedishRuns = path.join(temporaryRoot, 'swedish-runs');
     execute(['prepare', '--out', swedishRuns, '--skill', unicodeArchive, '--cases', customFile], 0, swedish);
@@ -219,6 +349,29 @@ export function runBehaviorCliTests() {
     replaceUnicodeManifest(unsupportedScheme);
     assert.match(execute(unicodeArgs, 1).stderr, /Unsupported skill hash scheme/);
     cases++;
+    // Artificial v2 archive retains its original untyped byte-order digest.
+    const v2Digest = directory => sha(JSON.stringify(fs.readdirSync(directory, { withFileTypes: true })
+      .sort((a, b) => Buffer.compare(Buffer.from(a.name), Buffer.from(b.name)))
+      .map(entry => [entry.name, entry.isDirectory() ? v2Digest(path.join(directory, entry.name)) : sha(fs.readFileSync(path.join(directory, entry.name)))])));
+    const v2Manifest = { ...unicodeManifest, version: 2, skill_hash_scheme: 'sha256-json-tree-utf8-v2', skill_sha256: v2Digest(unicodeSkill) };
+    replaceUnicodeManifest(v2Manifest);
+    const v2ManifestBytes = fs.readFileSync(path.join(unicodeRuns, 'manifest.json'));
+    const v2JudgmentBytes = fs.readFileSync(unicodeJudgmentsFile);
+    for (const env of [english, swedish]) {
+      const v2Report = JSON.parse(execute(unicodeArgs, 0, env).stdout);
+      assert.equal(v2Report.manifest_version, 2);
+      assert.equal(v2Report.skill_hash_scheme, 'sha256-json-tree-utf8-v2');
+      assert.equal(v2Report.skill_sha256, v2Manifest.skill_sha256);
+      assert.equal(v2Report.typed_node_identity, false);
+      assert.equal(v2Report.response_encoding, 'strict-utf8');
+      assert.match(v2Report.skill_hash_limitation, /omit filesystem node types/);
+    }
+    assert.deepEqual(fs.readFileSync(path.join(unicodeRuns, 'manifest.json')), v2ManifestBytes);
+    assert.deepEqual(fs.readFileSync(unicodeJudgmentsFile), v2JudgmentBytes);
+    cases++;
+    replaceUnicodeManifest({ ...v2Manifest, skill_hash_scheme: 'sha256-json-tree-typed-utf8-v3' });
+    assert.match(execute(unicodeArgs, 1).stderr, /Unsupported skill hash scheme/);
+    cases++;
     // This is an explicitly artificial v1 fixture produced by the old digest,
     // not a rewritten real trial or a claim that a model was executed.
     const legacyManifest = { ...unicodeManifest, version: 1, skill_sha256: oldEnglish.hash };
@@ -234,6 +387,9 @@ export function runBehaviorCliTests() {
     assert.equal(recovered.skill_sha256, oldEnglish.hash);
     assert.equal(recovered.legacy_locale, oldEnglish.locale);
     assert.equal(recovered.legacy_locale_source, 'explicit_option');
+    assert.equal(recovered.typed_node_identity, false);
+    assert.equal(recovered.response_encoding, 'strict-utf8');
+    assert.match(recovered.skill_hash_limitation, /omit filesystem node types/);
     assert.deepEqual(fs.readFileSync(path.join(unicodeRuns, 'manifest.json')), legacyManifestBytes);
     assert.deepEqual(fs.readFileSync(unicodeJudgmentsFile), legacyJudgmentBytes);
     cases++;
@@ -251,11 +407,35 @@ export function runBehaviorCliTests() {
     execute(['prepare', '--out', welcomeRuns, '--skill', skill, '--cases', welcomeFile]);
     assert.equal(welcomeSuite.cases.length, 7);
     const welcomeManifest = JSON.parse(fs.readFileSync(path.join(welcomeRuns, 'manifest.json')));
+    const supportManifest = JSON.parse(fs.readFileSync(path.join(root, 'skills/proofpilot/references/skill-dependencies.json'), 'utf8'));
+    const expectedSupportIds = new Set(supportManifest.sources.flatMap(source => source.skills.map(skill => skill.id)));
     for (const item of welcomeSuite.cases) {
       const prompt = fs.readFileSync(path.join(welcomeRuns, `${item.id}.prompt.md`), 'utf8');
       assert.ok(prompt.includes(item.prompt));
       assert.match(prompt, /SYNTHETIC TOOL STATE/);
       assert.match(prompt, /do not execute helpers/);
+      const stateText = item.prompt.split('SYNTHETIC TOOL STATE:\n')[1]?.split('\n\nSupplied conversation history:')[0];
+      assert.ok(stateText, `Missing synthetic tool state in ${item.id}`);
+      const state = JSON.parse(stateText);
+      const bundle = state.inventory.support_bundle;
+      assert.ok(['full', 'core_only', 'unknown'].includes(bundle.installation_mode), `${item.id}: installation mode must use the inventory enum`);
+      assert.equal(new Set(bundle.skills.map(skill => skill.id)).size, bundle.skills.length, `${item.id}: duplicate support-skill IDs`);
+      assert.deepEqual(new Set(bundle.skills.map(skill => skill.id)), expectedSupportIds, `${item.id}: synthetic inventory must enumerate the packaged support-skill IDs`);
+      const installed = bundle.skills.filter(skill => skill.status === 'installed').map(skill => skill.id);
+      if (bundle.guidance_complete === true) {
+        assert.equal(bundle.installation_mode, 'full');
+        assert.equal(installed.length, expectedSupportIds.size, `${item.id}: complete guidance cannot omit an installed support skill`);
+      }
+      if (item.id === 'welcome-core-only-local-fix') {
+        assert.equal(bundle.installation_mode, 'core_only');
+        assert.equal(bundle.guidance_complete, false);
+        assert.equal(installed.length, 0);
+      }
+      if (item.id === 'welcome-catalog-without-access') {
+        assert.equal(bundle.installation_mode, 'full');
+        assert.equal(bundle.guidance_complete, false, 'Full installation intent cannot imply completed guidance in the partial catalog fixture');
+        assert.deepEqual(new Set(installed), new Set(['brand-design', 'validate-idea', 'create-pitch-deck']));
+      }
       for (const criterion of welcomeSuite.cases.flatMap(candidate => candidate.criteria)) assert.ok(!prompt.includes(criterion.description));
       assert.ok(!fs.existsSync(path.join(welcomeRuns, `${item.id}.response.md`)));
     }

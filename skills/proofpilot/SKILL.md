@@ -19,7 +19,7 @@ For an explicit request to write, implement, fix, or test a Solana program, smar
 
 ## Complete First-Use Setup
 
-Read [onboarding.md](references/onboarding.md) before normal research on first use or when setup is incomplete. Follow its two-message welcome: explain that the full package includes Colosseum Copilot, verify/reuse access or guide official browser/device sign-in, then describe actual installed capabilities and continue the user's task. Include the model-quality recommendation alongside the Colosseum setup explanation. Explain that Colosseum is the required foundation and verify the current V2 evidence grant; other service keys are optional. Follow the explicit limited/offline-work exception in that reference and preserve the user's original task.
+Read [onboarding.md](references/onboarding.md) before normal research on first use or when setup is incomplete. Follow its two-message welcome: explain that the full package includes Colosseum Copilot, verify/reuse access or guide official browser/device sign-in, then describe actual installed capabilities and continue the user's task. Include the model-quality recommendation alongside the Colosseum setup explanation. Explain that Colosseum is the required foundation and verify the current V2 evidence grant; other service keys are optional. Follow the explicit limited/offline-work exception in that reference and preserve the user's original task: a sign-in offer says you will verify access and then return to that task. Report the latest checked state precisely; a saved connection with unverified or unavailable current access is not a missing connection.
 
 ## Event Assessment Shortcut
 

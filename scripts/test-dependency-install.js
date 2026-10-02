@@ -580,6 +580,86 @@ export function runDependencyInstallTests({ testNamePattern } = {}) {
       assert.equal(fs.existsSync(failed), false);
       assert.deepEqual(fs.readdirSync(cache), []);
     });
+    test("unsafe helper environments stop dependency status and installation before helper execution or source staging", () => {
+      const cache = path.join(temporary, "unsafe-helper-environment-cache");
+      fs.mkdirSync(cache, { mode: 0o700 });
+      const parent = path.join(cache, "_proofpilot_helpers"), privateBytes = "PRIVATE_HELPER_ENVIRONMENT_CONTENT";
+      // A file in place of the managed directory is unsafe even while the helper
+      // itself is absent. Its bytes must never become a diagnostic or be changed.
+      fs.writeFileSync(parent, privateBytes, { mode: 0o600 });
+      const identity = fs.lstatSync(parent, { bigint: true }).ino;
+      const target = path.join(temporary, "unsafe-helper-environment-target", "skills");
+      let helperCalls = 0, downloads = 0, staging = 0;
+      const subprocess = childProcess.spawnSync, createTemporary = fs.mkdtempSync;
+      childProcess.spawnSync = (command, args, ...rest) => {
+        if (command === process.execPath) {
+          helperCalls++;
+          return { status: 1, stdout: "", stderr: privateBytes };
+        }
+        return subprocess(command, args, ...rest);
+      };
+      fs.mkdtempSync = (prefix, ...rest) => {
+        if (/proofpilot-(?:bundle-|staging-)/.test(String(prefix))) staging++;
+        return createTemporary(prefix, ...rest);
+      };
+      syncBuiltinESMExports();
+      const selected = { manifest, helperCache: cache, sourceProvider: () => { downloads++; throw new Error("Unexpected source download"); } };
+      const refused = error => error.code === "EHELPERENV" && /managed connection-helper parent path is unsafe/.test(error.message) &&
+        error.message.includes(JSON.stringify(parent)) && /Saved credentials were not inspected or changed; do not reconnect/.test(error.message) &&
+        !error.message.includes(privateBytes);
+      try {
+        assert.throws(() => getDependencyStatus(target, selected), refused);
+        for (const flags of [{}, { update: true }, { offline: true }]) {
+          assert.throws(() => installDependencies(target, { ...selected, ...flags }), refused);
+        }
+        let output = "", errors = "";
+        assert.equal(runDependencyCli(["--root", target, "--status"], { ...selected,
+          stdout: { write: value => { output += value; } }, stderr: { write: value => { errors += value; } } }), 1);
+        assert.equal(output, "");
+        assert.match(errors, /managed connection-helper parent path is unsafe/);
+        assert.ok(!errors.includes(privateBytes));
+      } finally {
+        childProcess.spawnSync = subprocess;
+        fs.mkdtempSync = createTemporary;
+        syncBuiltinESMExports();
+      }
+      assert.equal(helperCalls, 0, "An unsafe path must stop before a helper process can inspect credentials.");
+      assert.equal(downloads, 0);
+      assert.equal(staging, 0);
+      assert.equal(fs.existsSync(target), false);
+      assert.equal(fs.lstatSync(parent, { bigint: true }).ino, identity);
+      assert.equal(fs.readFileSync(parent, "utf8"), privateBytes);
+      assert.deepEqual(fs.readdirSync(cache), ["_proofpilot_helpers"]);
+    });
+    test("helper-environment failures expose only constructed diagnostics including nonclass and online errors", () => {
+      const privateContext = "Bearer PRIVATE_NONCLASS_HELPER_CONTEXT raw-helper-stderr";
+      const opaqueError = () => Object.assign(new Error(privateContext), { code: "EHELPERENV", stderr: privateContext });
+      const safeFailure = error => error.code === "EHELPERENV" && /environment could not be prepared/.test(error.message) &&
+        /Saved credentials were not inspected or changed/.test(error.message) && !error.message.includes(privateContext);
+      const target = path.join(temporary, "nonclass-helper-environment", "skills");
+      let downloads = 0;
+      const selected = { manifest, helperVersion: () => { throw opaqueError(); },
+        sourceProvider: () => { downloads++; throw new Error("Unexpected source download"); } };
+      assert.throws(() => getDependencyStatus(target, selected), safeFailure);
+      assert.throws(() => installDependencies(target, selected), safeFailure);
+      assert.equal(downloads, 0);
+      assert.equal(fs.existsSync(target), false);
+      let output = "", errors = "";
+      assert.equal(runDependencyCli(["--root", target, "--status"], { ...selected,
+        stdout: { write: value => { output += value; } }, stderr: { write: value => { errors += value; } } }), 1);
+      assert.equal(output, "");
+      assert.match(errors, /environment could not be prepared/);
+      assert.ok(!errors.includes(privateContext));
+      const availability = getDependencyStatus(target, { manifest, helperVersion: () => { throw new Error(privateContext); } });
+      assert.equal(availability.connection_helper.available_locally, false);
+      assert.ok(!JSON.stringify(availability).includes(privateContext), "An ordinary unavailable probe must not expose native errors.");
+      // A path can become unsafe after the offline probe. Online refusal also
+      // preserves installed paths and hides nonclass error messages and stderr.
+      const onlineTarget = path.join(temporary, "online-helper-environment", "skills");
+      assert.throws(() => installDependencies(onlineTarget, { ...options,
+        helperVersion: (_manifest, online) => { if (online) throw opaqueError(); return false; } }), safeFailure);
+      assert.equal(fs.existsSync(onlineTarget), false);
+    });
     test("damaged managed helper cache stops installation with its path and recovery step and stays untouched", () => {
       const cache = path.join(temporary, "damaged-helper-cache");
       const helperRoot = path.join(cache, "_proofpilot_helpers", "copilot-connect-0.2.2");
@@ -1046,6 +1126,122 @@ export function runDependencyInstallTests({ testNamePattern } = {}) {
       assets: preservingSource.assets.filter(asset => ["data/guides", "SKILL_ROUTER.md"].includes(asset.destination)) }];
     const preservingOptions = { ...options, manifest: preservingManifest, helperVersion: () => true };
     const stateWith = (file, fields) => `${JSON.stringify({ ...JSON.parse(fs.readFileSync(file, "utf8")), ...fields }, null, 2)}\n`;
+    const directoryIdentity = location => {
+      const stat = fs.lstatSync(location, { bigint: true });
+      return { dev: String(stat.dev), ino: String(stat.ino), type: "directory" };
+    };
+    const directoryRollbackFixture = (name, kind) => {
+      const target = path.join(temporary, name, "skills"), relative = kind === "support" ? "data/guides" : "proofpilot";
+      const directory = path.join(target, relative), stateFile = path.join(target, ".proofpilot-bundle.json");
+      if (kind === "support") {
+        installDependencies(target, preservingOptions);
+        fs.rmSync(path.join(directory, "deploy-runbook.md"));
+      } else installPackage({ destination: directory, coreOnly: true });
+      write(path.join(directory, "personal-notes.md"), "Customized original directory must survive rollback.\n");
+      const fail = () => { throw new Error("Synthetic directory precommit failure"); };
+      return { target, relative, directory, stateFile, journalFile: path.join(target, ".proofpilot-transaction.json"),
+        stateBytes: fs.readFileSync(stateFile),
+        install: () => kind === "support" ? installDependencies(target, { ...preservingOptions, beforeStateWrite: fail }) :
+          installPackage({ destination: directory, coreOnly: true, force: true }, { afterCoreActivated: fail }) };
+    };
+    test("same-content foreign directories at restore publication never inherit support or core ownership", () => {
+      for (const kind of ["support", "core"]) {
+        const fixture = directoryRollbackFixture(`restore-directory-foreign-${kind}`, kind);
+        const { target, relative, directory, stateFile, journalFile } = fixture;
+        const held = path.join(temporary, `held-proven-${kind}`), rename = fs.renameSync;
+        let substituted = false;
+        fs.renameSync = (from, to) => {
+          const result = rename(from, to);
+          if (!substituted && to === directory && path.basename(from).startsWith(".proofpilot-copy-")) {
+            substituted = true;
+            rename(directory, held);
+            fs.cpSync(held, directory, { recursive: true, preserveTimestamps: true });
+          }
+          return result;
+        };
+        try { assert.throws(fixture.install, /Synthetic directory precommit failure.*active_path_ownership_changed/); }
+        finally { fs.renameSync = rename; }
+        assert.equal(substituted, true);
+        const foreignIdentity = directoryIdentity(directory), provenIdentity = directoryIdentity(held);
+        assert.notDeepEqual(foreignIdentity, provenIdentity);
+        assert.deepEqual(fs.readFileSync(stateFile), fixture.stateBytes, "No foreign inode may be written into ownership state.");
+        const action = JSON.parse(fs.readFileSync(journalFile)).actions.find(item => item.destination === relative);
+        assert.deepEqual(action.restore_temporary_identity, provenIdentity);
+        assert.deepEqual(action.restored_identity, provenIdentity, "Keep the prepared inode instead of adopting the current name.");
+        assert.deepEqual(fs.readFileSync(path.join(directory, "personal-notes.md")), fs.readFileSync(path.join(held, "personal-notes.md")));
+        if (kind === "support") assert.equal(getDependencyStatus(target, preservingOptions).assets.find(item => item.path === relative).owned, false);
+        assert.throws(() => recoverPendingInstallation(target), /active_path_ownership_changed/);
+        assert.deepEqual(directoryIdentity(directory), foreignIdentity);
+        assert.deepEqual(fs.readFileSync(stateFile), fixture.stateBytes);
+        assert.equal(fs.existsSync(journalFile), true);
+        // Returning the journal-proven directory permits the ordinary recovery;
+        // the distinct foreign directory remains preserved alongside it.
+        const foreign = path.join(temporary, `held-foreign-${kind}`);
+        fs.renameSync(directory, foreign);
+        fs.renameSync(held, directory);
+        assert.equal(recoverPendingInstallation(target).recovered, true);
+        const state = JSON.parse(fs.readFileSync(stateFile));
+        assert.deepEqual(kind === "support" ? state.asset_provenance[relative].path_identity : state.core_entries.proofpilot.path_identity, provenIdentity);
+        assert.equal(fs.existsSync(journalFile), false);
+        assert.deepEqual(directoryIdentity(foreign), foreignIdentity);
+      }
+    });
+    test("older journals without a prepared directory anchor preserve state and require reconciliation", () => {
+      for (const kind of ["support", "core"]) {
+        const fixture = directoryRollbackFixture(`restore-directory-legacy-${kind}`, kind);
+        const { relative, directory, stateFile, journalFile, target } = fixture, rename = fs.renameSync;
+        let interrupted = false;
+        fs.renameSync = (from, to) => {
+          const result = rename(from, to);
+          if (!interrupted && to === directory && path.basename(from).startsWith(".proofpilot-copy-")) {
+            interrupted = true;
+            throw new Error("Synthetic interruption after directory restore rename");
+          }
+          return result;
+        };
+        try { assert.throws(fixture.install, /Synthetic interruption after directory restore rename/); }
+        finally { fs.renameSync = rename; }
+        assert.equal(interrupted, true);
+        const journal = JSON.parse(fs.readFileSync(journalFile)), action = journal.actions.find(item => item.destination === relative);
+        const preparedAnchor = action.restore_temporary_identity;
+        delete action.restore_temporary_identity;
+        delete action.restore_temporary_fingerprint;
+        fs.writeFileSync(journalFile, `${JSON.stringify(journal, null, 2)}\n`);
+        const legacyJournal = fs.readFileSync(journalFile), activeIdentity = directoryIdentity(directory);
+        assert.throws(() => recoverPendingInstallation(target), /restored_path_ownership_unproven.*Active content, state bytes and pending journal.*preserved/);
+        assert.deepEqual(fs.readFileSync(stateFile), fixture.stateBytes);
+        assert.deepEqual(fs.readFileSync(journalFile), legacyJournal, "Do not silently upgrade or discard an unproven historical journal.");
+        assert.deepEqual(directoryIdentity(directory), activeIdentity);
+        // The fixture retains the actual preparation evidence. Restoring that
+        // evidence is explicit reconciliation, rather than inventing it from
+        // the active pathname during recovery.
+        action.restore_temporary_identity = preparedAnchor;
+        fs.writeFileSync(journalFile, `${JSON.stringify(journal, null, 2)}\n`);
+        assert.equal(recoverPendingInstallation(target).recovered, true);
+        assert.equal(fs.existsSync(journalFile), false);
+      }
+    });
+    test("older journals can still acknowledge an untouched original directory without a restore anchor", () => {
+      for (const kind of ["support", "core"]) {
+        const fixture = directoryRollbackFixture(`restore-directory-original-legacy-${kind}`, kind);
+        const { target, directory, stateFile, journalFile } = fixture;
+        const originalIdentity = directoryIdentity(directory), staged = path.join(target, ".proofpilot-stage-legacy-original");
+        write(path.join(staged, "replacement.txt"), "This staged directory never becomes active.\n");
+        assert.throws(() => markCoreOnly(target, { afterLockAcquired: ({ transaction }) => {
+          const action = addTransactionAction(transaction, { destination: directory, staging: staged,
+            initialExists: true, initialIdentity: originalIdentity, kind });
+          action.restored_identity = originalIdentity;
+          // Historical v1 journals allowed a restored identity without the
+          // optional restore-temporary fields. The original inode still proves
+          // ownership directly, so no copied-restore evidence is needed here.
+          fs.writeFileSync(journalFile, `${JSON.stringify(transaction, null, 2)}\n`);
+          throw new Error("Synthetic interruption before original directory backup");
+        } }), /Synthetic interruption before original directory backup/);
+        assert.deepEqual(directoryIdentity(directory), originalIdentity);
+        assert.deepEqual(fs.readFileSync(stateFile), fixture.stateBytes);
+        assert.equal(fs.existsSync(journalFile), false);
+      }
+    });
     test("unsupported hard links refuse core state commits before capturing the active state", () => {
       for (const code of ["EPERM", "ENOTSUP"]) {
         const target = path.join(temporary, `unsupported-state-link-${code}`, "skills");
@@ -1209,6 +1405,222 @@ export function runDependencyInstallTests({ testNamePattern } = {}) {
       assert.deepEqual(fs.readFileSync(stateFile), editedState);
       assert.deepEqual(fs.readFileSync(custom), latestCustom);
       assert.equal(fs.existsSync(journalFile), true);
+    });
+    test("a concurrent state editor save stays byte-exact when core restoration needs ownership reconciliation", () => {
+      for (const save of ["inPlace", "atomic"]) {
+        const target = path.join(temporary, `core-restore-concurrent-state-${save}`, "skills"), destination = path.join(target, "proofpilot");
+        const stateFile = path.join(target, ".proofpilot-bundle.json"), journalFile = path.join(target, ".proofpilot-transaction.json");
+        installPackage({ destination, coreOnly: true });
+        fs.appendFileSync(path.join(destination, "SKILL.md"), "\nCustomized core text survives the aborted installation.\n");
+        const original = fs.readFileSync(path.join(destination, "SKILL.md")), stateBefore = JSON.parse(fs.readFileSync(stateFile));
+        const edited = Buffer.from(`${JSON.stringify({ ...stateBefore,
+          personal_metadata: { keep: "Retain exact editor bytes, indentation and CRLF" } }, null, "\t")}\r\n`);
+        assert.throws(() => installPackage({ destination, coreOnly: true, force: true }, { afterCoreActivated: () => {
+          if (save === "inPlace") fs.writeFileSync(stateFile, edited);
+          else { fs.writeFileSync(`${stateFile}.editor-save`, edited); fs.renameSync(`${stateFile}.editor-save`, stateFile); }
+        } }), /concurrent state save prevents refreshing restored core ownership.*exact saved state bytes.*pending journal.*Reconcile/);
+        assert.deepEqual(fs.readFileSync(stateFile), edited);
+        assert.deepEqual(fs.readFileSync(path.join(destination, "SKILL.md")), original);
+        const journal = JSON.parse(fs.readFileSync(journalFile)), action = journal.actions.find(item => item.destination === "proofpilot");
+        assert.match(journal.concurrent_state_hash, /^sha256:[0-9a-f]{64}$/);
+        assert.equal(journal.rollback_state_hash, undefined, "A concurrent editor save must not become a rollback-state refresh.");
+        assert.deepEqual(action.original_identity, stateBefore.core_entries.proofpilot.path_identity);
+        assert.deepEqual(action.restored_identity, directoryIdentity(destination));
+        assert.deepEqual(action.restore_temporary_identity, action.restored_identity);
+        assert.notDeepEqual(action.restored_identity, action.original_identity);
+        let activated = false;
+        assert.throws(() => installPackage({ destination, coreOnly: true, force: true }, { afterCoreActivated: () => { activated = true; } }),
+          /concurrent state save prevents refreshing restored core ownership.*Reconcile/);
+        assert.equal(activated, false);
+        assert.deepEqual(fs.readFileSync(stateFile), edited);
+        assert.deepEqual(fs.readFileSync(path.join(destination, "SKILL.md")), original);
+        assert.equal(fs.existsSync(journalFile), true);
+      }
+    });
+    // A pre-marker single-file asset: inode anchors for the file and its detached
+    // upstream sidecar, no management token and no owner marker.
+    const legacyRouterTarget = name => {
+      const target = path.join(temporary, name, "skills");
+      installDependencies(target, preservingOptions);
+      const stateFile = path.join(target, ".proofpilot-bundle.json"), owners = path.join(target, ".proofpilot-owners");
+      assert.deepEqual(fs.readdirSync(owners), ["SKILL_ROUTER.md.json"]);
+      fs.rmSync(owners, { recursive: true });
+      const state = JSON.parse(fs.readFileSync(stateFile, "utf8")), record = state.asset_provenance["SKILL_ROUTER.md"];
+      delete record.management_token;
+      fs.writeFileSync(stateFile, `${JSON.stringify(state, null, 2)}\n`);
+      assert.equal(record.path_identity.type, "file");
+      assert.equal(record.policy_sidecar_path_identity.type, "file");
+      assert.match(record.policy_sidecar_hash, /^sha256v2:[0-9a-f]{64}$/);
+      return { target, stateFile, router: path.join(target, "SKILL_ROUTER.md"),
+        sidecar: path.join(target, ".proofpilot-upstream", "SKILL_ROUTER.md.txt"), journalFile: path.join(target, ".proofpilot-transaction.json") };
+    };
+    const customizeRouter = (router, save) => {
+      // An unadapted bundled path leaves the policy incomplete, so an ordinary run repairs it.
+      const custom = `${fs.readFileSync(router, "utf8")}\nPersonal router note: [Checklist](~/.claude/skills/data/guides/security-checklist.md)\n`;
+      if (save === "inPlace") fs.writeFileSync(router, custom);
+      else {
+        fs.writeFileSync(`${router}.editor-save`, custom);
+        fs.chmodSync(`${router}.editor-save`, 0o644);
+        fs.renameSync(`${router}.editor-save`, router);
+      }
+      return Buffer.from(custom);
+    };
+    const fileIdentity = file => {
+      const stat = fs.lstatSync(file, { bigint: true });
+      return { dev: String(stat.dev), ino: String(stat.ino), type: "file" };
+    };
+    const routerStatus = target => getDependencyStatus(target, preservingOptions).assets.find(item => item.path === "SKILL_ROUTER.md");
+    const failBeforeCommit = () => { throw new Error("Synthetic failure after legacy file activation"); };
+    test("legacy customized single-file assets stay owned after a preserving or replacing rollback", () => {
+      for (const save of ["inPlace", "atomic"]) for (const repair of ["preserving", "update"]) {
+        const { target, stateFile, router, sidecar, journalFile } = legacyRouterTarget(`legacy-file-rollback-${save}-${repair}`);
+        const custom = customizeRouter(router, save), sidecarBytes = fs.readFileSync(sidecar);
+        const legacy = JSON.parse(fs.readFileSync(stateFile, "utf8")), record = legacy.asset_provenance["SKILL_ROUTER.md"];
+        const routerBefore = fileIdentity(router);
+        assert.equal(routerBefore.ino === record.path_identity.ino, save === "inPlace");
+        assert.deepEqual(fileIdentity(sidecar), record.policy_sidecar_path_identity);
+        assert.equal(routerStatus(target).owned, true, `${save}/${repair}: the customization starts owned.`);
+        assert.throws(() => installDependencies(target, { ...preservingOptions, update: repair === "update", beforeStateWrite: failBeforeCommit }),
+          /Synthetic failure after legacy file activation/);
+        assert.deepEqual(fs.readFileSync(router), custom);
+        assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
+        assert.notEqual(fileIdentity(router).ino, routerBefore.ino, "The restored customization must be a new inode.");
+        assert.notEqual(fileIdentity(sidecar).ino, record.policy_sidecar_path_identity.ino, "The restored sidecar must be a new inode.");
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-owners", "SKILL_ROUTER.md.json")), false);
+        assert.equal(fs.existsSync(journalFile), false);
+        assert.equal(fs.readdirSync(target).some(name => name.startsWith(".proofpilot-rollback-state-")), false);
+        const after = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        // An atomic save had already left the main anchor stale; only the intact sidecar anchors it.
+        const expected = { ...record, policy_sidecar_path_identity: fileIdentity(sidecar),
+          ...(save === "inPlace" ? { path_identity: fileIdentity(router) } : {}) };
+        assert.deepEqual(after.asset_provenance["SKILL_ROUTER.md"], expected);
+        if (repair === "preserving") {
+          assert.deepEqual(after, { ...legacy, asset_provenance: { ...legacy.asset_provenance, "SKILL_ROUTER.md": expected } },
+            "Only the proven restored file anchors may change in state.");
+        }
+        assert.equal(routerStatus(target).owned, true, `${save}/${repair}: rollback must not orphan the customization.`);
+        assert.equal(installDependencies(target, preservingOptions).complete, true);
+        assert.match(fs.readFileSync(router, "utf8"), /Personal router note/);
+        assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
+        const migrated = JSON.parse(fs.readFileSync(stateFile, "utf8")).asset_provenance["SKILL_ROUTER.md"];
+        assert.match(migrated.management_token, /^[0-9a-f]{64}$/);
+        assert.equal(JSON.parse(fs.readFileSync(path.join(target, ".proofpilot-owners", "SKILL_ROUTER.md.json"), "utf8")).token, migrated.management_token);
+      }
+    });
+    test("legacy file-asset ownership is never adopted from same-shaped copies of its anchors", () => {
+      {
+        // Control: a copied sidecar no longer anchors an atomically saved customization.
+        const { target, stateFile, router, sidecar, journalFile } = legacyRouterTarget("legacy-file-copied-anchor");
+        const custom = customizeRouter(router, "atomic"), sidecarBytes = fs.readFileSync(sidecar), stateBefore = fs.readFileSync(stateFile);
+        fs.writeFileSync(`${sidecar}.copy`, sidecarBytes);
+        fs.chmodSync(`${sidecar}.copy`, fs.lstatSync(sidecar).mode & 0o777);
+        fs.renameSync(`${sidecar}.copy`, sidecar);
+        assert.equal(routerStatus(target).owned, false);
+        assert.throws(() => installDependencies(target, preservingOptions), /not owned/);
+        assert.deepEqual(fs.readFileSync(router), custom);
+        assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
+        assert.deepEqual(fs.readFileSync(stateFile), stateBefore);
+        assert.equal(fs.existsSync(journalFile), false);
+      }
+      {
+        // A same-bytes copy replacing the restored sidecar right after its exclusive
+        // publication is not the inode this journal created; it is never adopted.
+        const { target, stateFile, router, sidecar, journalFile } = legacyRouterTarget("legacy-file-restore-copy-replaced");
+        const custom = customizeRouter(router, "atomic"), sidecarBytes = fs.readFileSync(sidecar), stateBefore = fs.readFileSync(stateFile);
+        const link = fs.linkSync;
+        let replaced = false;
+        fs.linkSync = (from, to) => {
+          const result = link(from, to);
+          if (!replaced && to === sidecar && path.basename(from).startsWith(".proofpilot-copy-")) {
+            replaced = true;
+            const mode = fs.lstatSync(sidecar).mode & 0o777;
+            fs.writeFileSync(`${sidecar}.foreign`, fs.readFileSync(sidecar));
+            fs.chmodSync(`${sidecar}.foreign`, mode);
+            fs.renameSync(`${sidecar}.foreign`, sidecar);
+          }
+          return result;
+        };
+        try { assert.throws(() => installDependencies(target, { ...preservingOptions, beforeStateWrite: failBeforeCommit }), /Synthetic failure after legacy file activation.*active_path_ownership_changed/); }
+        finally { fs.linkSync = link; }
+        assert.equal(replaced, true, "The restore publication boundary must be reached.");
+        assert.deepEqual(fs.readFileSync(stateFile), stateBefore, "No restored anchor was proven; state must stay byte-exact.");
+        assert.deepEqual(fs.readFileSync(router), custom);
+        assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
+        assert.equal(fs.existsSync(journalFile), true);
+        const foreignIdentity = fileIdentity(sidecar), pendingBytes = fs.readFileSync(journalFile);
+        const action = JSON.parse(pendingBytes).actions.find(item => item.destination === path.relative(target, sidecar).split(path.sep).join("/"));
+        assert.deepEqual(action.restored_identity, action.restore_temporary_identity);
+        assert.notDeepEqual(action.restored_identity, foreignIdentity, "The foreign sidecar must never become the journal's restore identity.");
+        assert.equal(routerStatus(target).owned, false);
+        assert.throws(() => installDependencies(target, preservingOptions), /active_path_ownership_changed/);
+        assert.deepEqual(fs.readFileSync(journalFile), pendingBytes, "Refusal must retain the proven restore anchor.");
+        assert.deepEqual(fileIdentity(sidecar), foreignIdentity);
+        assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
+        assert.deepEqual(fs.readFileSync(stateFile), stateBefore);
+        assert.deepEqual(fs.readFileSync(router), custom);
+        const foreign = path.join(temporary, "held-foreign-legacy-sidecar.txt");
+        fs.renameSync(sidecar, foreign);
+        assert.equal(recoverPendingInstallation(target).recovered, true);
+        assert.equal(fs.existsSync(journalFile), false);
+        assert.deepEqual(fs.readFileSync(router), custom);
+        assert.deepEqual(fs.readFileSync(sidecar), sidecarBytes);
+        assert.deepEqual(fileIdentity(foreign), foreignIdentity);
+        assert.equal(routerStatus(target).owned, true);
+        assert.deepEqual(JSON.parse(fs.readFileSync(stateFile)).asset_provenance["SKILL_ROUTER.md"].policy_sidecar_path_identity, fileIdentity(sidecar));
+        assert.equal(installDependencies(target, preservingOptions).complete, true);
+        assert.match(fs.readFileSync(router, "utf8"), /Personal router note/);
+        assert.deepEqual(fileIdentity(foreign), foreignIdentity);
+      }
+    });
+    test("a concurrent state save stays byte-exact when legacy file-asset anchors need reconciliation", () => {
+      for (const save of ["inPlace", "atomic"]) {
+        const { target, stateFile, router, journalFile } = legacyRouterTarget(`legacy-file-concurrent-state-${save}`);
+        const custom = customizeRouter(router, save), stateBefore = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        const editedState = Buffer.from(`${JSON.stringify({ ...stateBefore,
+          personal_metadata: { keep: "Exactly preserve this editor's state bytes and formatting" } }, null, "\t")}\r\n`);
+        assert.throws(() => installDependencies(target, { ...preservingOptions, beforeStateWrite: () => {
+          fs.writeFileSync(`${stateFile}.editor-save`, editedState);
+          fs.renameSync(`${stateFile}.editor-save`, stateFile);
+        } }), /concurrent state save prevents refreshing restored support-file ownership.*exact saved state bytes.*pending journal.*Reconcile/);
+        assert.deepEqual(fs.readFileSync(stateFile), editedState);
+        assert.deepEqual(fs.readFileSync(router), custom);
+        assert.equal(fs.existsSync(journalFile), true);
+        const journal = JSON.parse(fs.readFileSync(journalFile, "utf8"));
+        const action = journal.actions.find(action => action.destination === ".proofpilot-upstream/SKILL_ROUTER.md.txt");
+        assert.deepEqual(action.original_identity, stateBefore.asset_provenance["SKILL_ROUTER.md"].policy_sidecar_path_identity);
+        assert.notDeepEqual(action.restored_identity, action.original_identity);
+        assert.throws(() => installDependencies(target, preservingOptions), /concurrent state save prevents refreshing restored support-file ownership.*Reconcile/);
+        assert.deepEqual(fs.readFileSync(stateFile), editedState);
+        assert.deepEqual(fs.readFileSync(router), custom);
+        assert.equal(fs.existsSync(journalFile), true);
+      }
+    });
+    test("an interrupted legacy file-asset anchor refresh completes on recovery", () => {
+      const { target, stateFile, router, sidecar, journalFile } = legacyRouterTarget("legacy-file-rollback-state-retry");
+      const custom = customizeRouter(router, "atomic"), stateBefore = fs.readFileSync(stateFile);
+      const link = fs.linkSync;
+      let refused = false;
+      fs.linkSync = (from, to) => {
+        if (!refused && path.basename(to) === "prepared.json" && path.basename(path.dirname(to)).startsWith(".proofpilot-rollback-state-")) {
+          refused = true;
+          throw Object.assign(new Error("Synthetic interrupted rollback state publication"), { code: "EPERM" });
+        }
+        return link(from, to);
+      };
+      try { assert.throws(() => installDependencies(target, { ...preservingOptions, beforeStateWrite: failBeforeCommit }),
+        /Synthetic failure after legacy file activation.*Synthetic interrupted rollback state publication/); }
+      finally { fs.linkSync = link; }
+      assert.equal(refused, true);
+      assert.deepEqual(fs.readFileSync(stateFile), stateBefore);
+      assert.deepEqual(fs.readFileSync(router), custom);
+      assert.equal(fs.existsSync(journalFile), true, "The restored sidecar anchor still needs acknowledgment; keep its recoverable journal.");
+      assert.equal(recoverPendingInstallation(target).recovered, true);
+      assert.equal(fs.existsSync(journalFile), false);
+      assert.equal(fs.readdirSync(target).some(name => name.startsWith(".proofpilot-rollback-state-")), false);
+      assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, "utf8")).asset_provenance["SKILL_ROUTER.md"].policy_sidecar_path_identity, fileIdentity(sidecar));
+      assert.equal(routerStatus(target).owned, true);
+      assert.equal(installDependencies(target, preservingOptions).complete, true);
+      assert.match(fs.readFileSync(router, "utf8"), /Personal router note/);
     });
     test("state saves racing the commit capture or its exclusive publication stay active", () => {
       const held = location => path.basename(path.dirname(location)).startsWith(".proofpilot-commit-state-");

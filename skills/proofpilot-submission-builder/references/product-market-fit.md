@@ -6,7 +6,7 @@ This is ProofPilot's adaptation of public methods, not Sequoia's investment scor
 
 ## Choose The Unresolved Question
 
-Sequoia's 2025 framework connects company advantage, customer concern, behavior change, and commercial viability. Reuse the founder-access and problem/commitment evidence already gathered through [discover.md](discover.md) and [validate.md](validate.md). Do not repeat those interviews merely to fill four boxes.
+Sequoia's 2025 framework connects four diagnostic concerns: company advantage, customer concern, behavior change, and commercial viability. Under that framework's name, list only those four; present timing or other ProofPilot checks as separately labeled supplements so the attributed count stays accurate. Apply the same separation to any named framework. Reuse the founder-access and problem/commitment evidence already gathered through [discover.md](discover.md) and [validate.md](validate.md). Do not repeat those interviews merely to fill four boxes.
 
 For each decision-relevant claim, connect:
 
@@ -14,7 +14,7 @@ For each decision-relevant claim, connect:
 
 Describe the claim as supported for the next step, contradicted, or unresolved. These are evidence assessments, not additional recommendation tokens. A bounded pilot can support another test without proving durable PMF. Use the shared decision contract for the actual recommendation.
 
-When timing matters, name the observable change that makes the opportunity feasible or attractive now and explain the causal link. A technology becoming fashionable is insufficient. If no enabling change is known, leave timing unresolved; novelty is not mandatory for a useful business.
+Supplemental timing check (not one of the four concerns above): when timing matters, name the observable change that makes the opportunity feasible or attractive now and explain the causal link. A technology becoming fashionable is insufficient. If no enabling change is known, leave timing unresolved; novelty is not mandatory for a useful business.
 
 ## Pick A Test For The Customer's Situation
 
