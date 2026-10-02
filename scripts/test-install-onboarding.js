@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { printInstallNotice } from "./install-package.js";
 
 const filename = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(filename), "..");
@@ -72,6 +73,33 @@ export function runInstallOnboardingTests() {
       assert.ok(result.stdout.includes(path.join(destination, "scripts", "setup.js")), "Installer must identify the installed portable helper");
       assert.ok(result.stdout.includes("optional"), "Installer must distinguish optional service setup");
     };
+    const captureNotice = result => {
+      const lines = [];
+      const originalLog = console.log;
+      try {
+        console.log = (...values) => lines.push(values.join(" "));
+        printInstallNotice(result);
+        return { stdout: lines.join("\n") };
+      } finally {
+        console.log = originalLog;
+      }
+    };
+    const noticeDestination = path.join(temporaryRoot, "notice only skill");
+    const noticeResult = { destination: noticeDestination, profiles: 5, backups: [] };
+    const fullNotice = captureNotice({ ...noticeResult, dependencies: {
+      skills: ["colosseum-copilot", ...Array.from({ length: 35 }, (_, index) => `support-${index}`)],
+      installed: [], updated: [], reused: [], backups: []
+    } });
+    assertNotice(fullNotice, noticeDestination);
+    assert.match(fullNotice.stdout, /Colosseum Copilot.*included.*already installed/, "A full install must identify its installed research skill");
+    assert.match(fullNotice.stdout, /authorize the skill.*official browser\/device helper/, "Account authorization must use the official helper");
+    assert.match(fullNotice.stdout, /report connected only after current V2 evidence access is verified/, "An account login alone must not be reported as connected");
+    assert.match(fullNotice.stdout, /After current V2 evidence access is verified.*describe.*capabilities.*36 support skills.*resume your original task/, "Full onboarding must describe installed capabilities and resume the task after verified access");
+    const coreNotice = captureNotice({ ...noticeResult, dependencies: null });
+    assertNotice(coreNotice, noticeDestination);
+    assert.doesNotMatch(coreNotice.stdout, /Colosseum Copilot.*included.*already installed/, "Core-only must not claim that the research skill was installed");
+    assert.match(coreNotice.stdout, /honor core-only mode.*describe.*available ProofPilot capabilities.*limited research setup.*resume your original task/, "Core-only onboarding must respect its scope and resume the task");
+    cases += 2;
 
     const destination = path.join(temporaryRoot, "standalone skill");
     const install = run(cli, ["install", "--target", "codex", "--dir", destination, "--core-only"]);

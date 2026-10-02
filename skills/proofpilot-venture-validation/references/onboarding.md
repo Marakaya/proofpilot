@@ -22,6 +22,62 @@ Repository installers print setup instructions. A skill copied by an arbitrary i
 
 Keep the first message compact: include the model-quality notice, Colosseum's role, secure sign-in if missing, and one sentence that other connections are optional and host/API costs are separate. Explain optional services when selected. Preserve the original task during connection.
 
+## Welcome And Connection Flow
+
+Use a two-message welcome in the user's language: explain the included Colosseum skill and authorize access first; after verified access, describe the installed package and continue the original task. Show this introduction once in the conversation, on installation completion by an agent or the first relevant invocation. A returning user with working access skips the sign-in invitation. Do not repeat the welcome for every request or create a new readiness cache.
+
+Check the actual support inventory before saying Colosseum Copilot is included. A full installation includes it already; do not ask the user to install it again. A core-only, incomplete or no-install copy must describe its actual state and follow [installation.md](installation.md) without overriding that preference. Local capability questions and scoped work from provided materials remain available without sign-in; do not withhold the catalog until authorization.
+
+The project-count wording below is a dated coverage claim: on 2026-10-02 the [official Copilot page](https://colosseum.com/copilot) listed 8,286 Colosseum hackathon projects. Use "more than 8,000" in the welcome while that source remains applicable. Do not treat the separate The Grid product count as this corpus, suggest comprehensive global competitor coverage, or infer market demand from project records. Refresh or omit the number if later evidence contradicts it; do not make a network request solely to repeat the welcome on every invocation.
+
+### Before Authorization
+
+For a full installation with missing access, use this Russian example, adapting only the actual installation/access state and language:
+
+> **В пакет ProofPilot входит скилл Colosseum Copilot**, который открывает доступ к базе **более 8 000 проектов с хакатонов Colosseum**.
+>
+> Рекомендуем использовать его для поиска идей и анализа конкурентов. Он поможет найти похожие решения, изучить подходы других команд и понять, чем твой продукт может отличаться. Особенно полезна эта база для Solana и web3.
+>
+> **Чтобы скилл начал работать, нужно зарегистрироваться в Colosseum и авторизовать доступ для Copilot.** Если аккаунт уже есть, достаточно войти в него и подтвердить подключение.
+>
+> Напиши **«Подключи Colosseum»** — я запущу официальный помощник и открою страницу авторизации в браузере. Ты войдёшь или зарегистрируешься, ознакомишься с запрашиваемым доступом и подтвердишь его. После этого я проверю подключение и продолжу твою задачу. Копировать ключи в чат не потребуется.
+>
+> Для сложных исследований и оценок рекомендуются модели уровня SOL или Opus 5 и выше. Другие подключения нужны только для отдельных задач; тарифы агента и внешних API зависят от их провайдеров.
+
+If the user already authorized connection, explain that the browser will open and run the approved helper instead of asking them to repeat the phrase. The helper command below owns authorization; never approve the browser consent on the user's behalf. Leave optional question/answer sharing to the user's choice and do not upload conversations from this connector. Run one login and wait for it to finish; do not start another login or run status while that login is pending. Remote/device sign-in follows the same user approval and final verification requirements. Preserve the user's goal throughout.
+
+Do not announce connection based on installation, stored credentials or browser approval alone. Use the authenticated V2 check below. A transport/service failure does not justify deleting credentials or restarting login. A declined connection leads to the explicitly limited/offline scope, with research setup still incomplete.
+
+### After Verified Access
+
+Before describing included skills, resolve the absolute installed main/profile directory and its parent skill root, then run the account-free inventory:
+
+```bash
+node "<absolute installed skill directory>/scripts/discover-sources.js" --root "<absolute parent skill root>" --capabilities
+```
+
+Use `support_bundle.skills` and their installed statuses for the actual names and count. The main ProofPilot router supports five venture stages; its five separately installable profiles are not part of the 36 support skills. Installed guidance does not establish availability of a compiler, API connection or host plugin. Use the full-package example only when that package is present, and adapt it for core-only or incomplete installations.
+
+> **Colosseum подключён! Теперь расскажу, что ещё умеет ProofPilot.**
+>
+> В полной установке есть **36 вспомогательных скиллов**, которые помогают пройти путь от идеи до разработки и подготовки к запуску:
+>
+> - **Найти и проверить идею:** изучить конкурентов, определить целевую аудиторию и спланировать проверку спроса.
+> - **Спланировать MVP:** выбрать функции первой версии, составить план работ и определить критерии успеха.
+> - **Разработать продукт на Solana:** подготовить проект, написать смарт-контракт, приложение, DeFi-протокол или систему обработки данных.
+> - **Улучшить дизайн:** разработать визуальный стиль, интерфейс и анимации.
+> - **Проверить продукт и код:** найти ошибки, оценить удобство, выявить риски безопасности и недостающие подтверждения готовности.
+> - **Подготовить материалы:** собрать питч, презентацию, заявку на грант или хакатон, сценарий демо и маркетинговое видео.
+> - **Разобраться в технологии:** изучить основы Solana и сохранить выводы, полезные для дальнейшей работы.
+>
+> Обращайся обычным языком — я выберу подходящие скиллы под задачу. Например: **«Проверь мою идею»**, **«Спланируй MVP на две недели»** или **«Помоги написать смарт-контракт»**.
+>
+> Чтобы посмотреть названия и назначение всех скиллов, напиши **«Покажи состав ProofPilot»**.
+
+If the task is already known, immediately continue it after this overview rather than asking the user to restate it or choose a stage. If access was already verified, use a short existing-connection acknowledgment in place of a new-connection claim; include the model recommendation once if it has not yet been shown. For a catalog request, group the actual installed names by user-facing capability, and distinguish skills from source catalogs, methodological references and optional services. Read [solana-new.md](solana-new.md) for discovery paths and implementation routing. Do not imply that a skill named `build-with-claude` authorizes another AI provider or that installation authorizes payments, deployment or final submission.
+
+## Connection Commands
+
 Resolve the absolute installed skill directory from its SKILL.md:
 
 ```bash

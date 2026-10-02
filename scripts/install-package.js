@@ -410,17 +410,23 @@ export function printInstallNotice(result) {
   console.log(`Installed ProofPilot${result.profiles ? ` and ${result.profiles} profiles` : ""}: ${result.destination}`);
   if (result.dependencies) {
     console.log(`Full support bundle ready: ${result.dependencies.skills.length} skills and shared guidance. New: ${result.dependencies.installed.length}; updated: ${result.dependencies.updated.length}; reused: ${result.dependencies.reused.length}.`);
+    console.log("Colosseum Copilot is included and already installed with the full support bundle.");
   } else console.log("Core-only installation selected; support skills were not installed.");
   const backups = [...result.backups, ...(result.dependencies?.backups ?? [])];
   if (backups.length) {
     console.log(`Replaced files were preserved in ${backups.length} backup path${backups.length === 1 ? "" : "s"}:`);
     for (const backup of backups) console.log(`  ${quote(path.resolve(backup))}`);
   }
-  console.log("Next, ask your agent to use ProofPilot to complete initial setup, explain the recommended model level, required Colosseum connection and optional service costs.");
-  console.log("Colosseum is ProofPilot's core source. Account sign-in is required; research setup is complete only after V2 evidence access is verified.");
+  console.log("Next, ask your agent to use ProofPilot to complete initial setup and explain the recommended model level, Colosseum research setup and optional service costs.");
+  if (result.dependencies) {
+    console.log("Colosseum is ProofPilot's core source. Sign up or sign in and authorize the skill through the official browser/device helper; report connected only after current V2 evidence access is verified.");
+    console.log(`After current V2 evidence access is verified, ask the agent to describe the installed ProofPilot capabilities and ${result.dependencies.skills.length} support skills, then resume your original task.`);
+  } else {
+    console.log("Ask the agent to honor core-only mode, describe the available ProofPilot capabilities and limited research setup, then resume your original task.");
+  }
   console.log("For higher-quality recommendations, use models in the SOL or Opus 5 class or higher, where available in your host.");
   console.log("Weaker models may miss important details or draw incorrect conclusions; built-in checks cannot fully compensate for model limitations.");
-  console.log("Reuse an official Copilot Connect connection, or sign in through the browser. Manage access at https://colosseum.com/arena/copilot/connections. No PAT input.");
+  console.log("Reuse an existing official Copilot Connect connection when available, or sign in through the official browser/device helper when research needs it. Manage access at https://colosseum.com/arena/copilot/connections. No PAT input.");
   console.log("Other service connections are optional. Review account terms and paid usage before enabling a service.");
   if (process.platform === "win32") console.log("Run the following commands in PowerShell:");
   console.log(`Offline setup status: node ${quote(setupPath)} --status`);
