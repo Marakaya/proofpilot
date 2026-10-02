@@ -10,7 +10,7 @@ const registryFile = path.join(root, "skills/proofpilot/references/service-acces
 // This registry is prose and source metadata. Validation never interprets setup
 // examples as executable commands and never performs network or account access.
 const sourceHosts = new Map([
-  ["colosseum_copilot", ["colosseum.com", "docs.colosseum.com"]],
+  ["colosseum_copilot", ["colosseum.com", "docs.colosseum.com", "github.com"]],
   ["github", ["github.com", "docs.github.com"]],
   ["defillama", ["defillama.com", "api-docs.defillama.com"]],
   ["ethglobal_skills", ["github.com", "raw.githubusercontent.com"]],
@@ -26,7 +26,7 @@ const costClasses = new Set([
   "free_rate_limited_plus_x402", "public_research_account_access",
   "free_public_plus_compute_credits", "separate_usage_billed_api",
   "separate_prepaid_or_invoiced_api", "model_specific_free_tier_plus_usage_billing",
-  "account_plan_and_usage"
+  "account_plan_and_usage", "account_terms_at_sign_in"
 ]);
 const topKeys = new Set(["checked_at", "scope", "policy", "services"]);
 const serviceKeys = new Set([
@@ -48,6 +48,7 @@ function isPrimarySource(value, serviceId) {
     const url = new URL(value);
     if (url.protocol !== "https:" || url.username || url.password || url.port || url.search) return false;
     if (!sourceHosts.get(serviceId)?.includes(url.hostname)) return false;
+    if (serviceId === "colosseum_copilot" && url.hostname === "github.com") return url.pathname.startsWith("/ColosseumOrg/colosseum-copilot/") || url.pathname === "/ColosseumOrg/colosseum-copilot";
     if (serviceId === "ethglobal_skills") return url.pathname.startsWith("/ethglobal-skills/repo/") || url.pathname === "/ethglobal-skills/repo";
     if (serviceId === "kaggle" && ["github.com", "raw.githubusercontent.com"].includes(url.hostname)) return url.pathname.startsWith("/Kaggle/kaggle-cli/") || url.pathname === "/Kaggle/kaggle-cli";
     return true;
@@ -138,7 +139,7 @@ export function runServiceAccessTests() {
   return { cases, services: registry.services.length };
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === filename) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(filename)) {
   const summary = runServiceAccessTests();
   console.log(`Service access validation passed: ${summary.cases} cases across ${summary.services} services. No credentials or accounts accessed.`);
 }

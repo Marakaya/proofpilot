@@ -38,6 +38,6 @@ ProofPilot does not ingest wallet private keys, seed phrases, or mnemonics. Wall
 | `platform` | Default inference allowance and public indexing infrastructure |
 | `local_open_source` | Environment variables used by a local self-hosted runtime |
 
-The portable setup helper stores a PAT locally in a mode-600 file under `~/.config/proofpilot` (override: `PROOFPILOT_CONFIG_DIR`), or reuses the host environment/legacy Superstack credential. This is not an encrypted vault. `setup-state.json` stores verification metadata and a private token fingerprint, never the raw token. The bundled read helper shares the resolver; upstream skills do not automatically read this file. No optional service credentials are collected by this helper.
+The official Copilot Connect helper owns Colosseum OAuth storage and refresh rotation through its OS credential store or supported protected file fallback. ProofPilot stores no Colosseum credentials or verification cache. Offline `status --local` only describes saved state; setup needs a live V2 status response confirming authentication and evidence read scope. Bearer authorization travels privately from the helper to curl, never through model context, argv or environment variables. Legacy PAT files/settings are preserved and ignored. All profiles use the same helper connection; no optional service credentials are collected.
 
 Hosted implementations should encrypt credentials server-side, support rotation and revocation, isolate organization access, and audit every high-risk action.

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import { isDate, isHttpsUrl, validateFreshnessSemantics } from "./freshness.js";
+import { renderToolDocs } from "./tool-docs.js";
 
 import { isDateTime } from "../skills/proofpilot/scripts/validate-response.js";
 
@@ -124,6 +125,21 @@ export function runFreshnessTests({ checkRegistries = true } = {}) {
   expect("live API scope requires verified status and probe", onlyScope, false);
   expect("bounded public GET with exact timestamp", liveFixture(), true);
   expect("honest date-only probe without invented UTC time", liveFixture("2026-09-05"), true);
+  const migrated = liveFixture();
+  migrated.verification.runtime_api_base = "https://example.test/api/v2";
+  migrated.runtime_probes[0].url = "https://example.test/api/v1/status";
+  expect("historical API version cannot verify the current contract", migrated, false);
+  migrated.runtime_probes[0].url = "https://example.test/api/v20/status";
+  expect("API prefix lookalikes cannot verify the current contract", migrated, false);
+  migrated.runtime_probes[0].url = "https://example.test/api/v2/status";
+  expect("bounded current-version probe can support its declared API scope", migrated, true);
+  const colosseum = readJson("tool-registry.json").tools.find(tool => tool.id === "colosseum_copilot");
+  const promoted = structuredClone(colosseum);
+  Object.assign(promoted.verification, { scope: "live_api", api_runtime_status: "verified" });
+  expect("preserved V1 Colosseum probes never verify V2", promoted, false);
+  const row = renderToolDocs({ sources: [], tools: [colosseum] }).split("\n").find(line => line.startsWith("| Colosseum Copilot |"));
+  assert.ok(row.includes("not_tested") && row.includes("2026-09-05") && row.includes("/api/v1/"));
+  cases++;
   assert.equal(liveFixture().capabilities[0].status, "connector_spec");
 
   for (const [name, patch] of [
@@ -193,7 +209,7 @@ export function runFreshnessTests({ checkRegistries = true } = {}) {
   return { cases, ...counts };
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isMain = process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
 if (isMain) {
   const summary = runFreshnessTests();
   console.log(`Freshness tests passed: ${summary.cases} cases; ${summary.tools} tools, ${summary.sources} sources, ${summary.programs} programs.`);

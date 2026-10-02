@@ -35,3 +35,7 @@ npm run generate:docs
 npm test
 npm pack --dry-run
 ```
+
+## Release verification
+
+Run `npm ci --ignore-scripts` and `npm test` before preparing a release. `npm pack` runs `scripts/check-release.js`: it checks synchronized profiles, repository validation, matching package/lockfile/taxonomy versions, and the exact offline npm file inventory. Nested `.npmignore`/`.gitignore`, environment files and local audit artifacts inside published trees stop preparation. Keep audit evidence outside those trees.

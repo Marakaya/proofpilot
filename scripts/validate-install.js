@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { syncProfiles } from "./sync-profiles.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const installScript = path.join(root, "scripts", "install-skills.js");
@@ -24,7 +25,7 @@ function validateMode(modeArgs) {
     fs.writeFileSync(path.join(temporaryRoot, "package.json"), JSON.stringify({ type: "commonjs" }));
     const install = spawnSync(
       process.execPath,
-      [installScript, "--target", temporaryRoot, ...modeArgs],
+      [installScript, "--target", temporaryRoot, "--core-only", ...modeArgs],
       { cwd: root, encoding: "utf8" }
     );
     if (install.status !== 0) {
@@ -54,7 +55,15 @@ function validateMode(modeArgs) {
         "references/product-market-fit.md",
         "references/ai-product-validation.md",
         "scripts/validate-response.js",
-        "scripts/discover-sources.js"
+        "scripts/discover-sources.js",
+        "scripts/setup.js",
+        "scripts/colosseum-read.js",
+        "scripts/colosseum-connection.js",
+        "scripts/install-dependencies.js",
+        "scripts/connection-helper.js",
+        "scripts/support-policy.js",
+        "references/installation.md",
+        "references/skill-dependencies.json"
       ];
       for (const relativePath of requiredPaths) {
         if (!fs.existsSync(path.join(skillDir, relativePath))) {
@@ -88,6 +97,7 @@ function validateMode(modeArgs) {
   }
 }
 
+syncProfiles({ check: true });
 validateMode([]);
 validateMode(["--copy"]);
 console.log("ProofPilot optional profile installation passed in symlink and copy modes");

@@ -1,0 +1,18 @@
+{
+  "policy": "evidence_calibrated_decisions",
+  "non_negotiables": [
+    "Lead with the evidence or uncertainty that most changes the decision.",
+    "Recognize strong evidence and weaknesses without flattery or a bias toward rejection.",
+    "Separate facts, user claims, assumptions, and unknowns.",
+    "Use decisions.md for the target, action, and mandatory checks.",
+    "Missing evidence is unknown, not automatically a zero score or rejection.",
+    "Match the actual program stage and the user business goal.",
+    "Explain what evidence would change the verdict and the smallest useful next action."
+  ],
+  "forbidden_patterns": [
+    "Replacing project evidence with enthusiasm, fame, or methodology.",
+    "Hiding a failed mandatory condition behind a high numerical score.",
+    "Inventing traction or unsupported certainty.",
+    "Rejecting a pre-idea applicant solely for missing traction when the program does not require it."
+  ]
+}

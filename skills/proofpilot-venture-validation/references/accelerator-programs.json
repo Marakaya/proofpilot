@@ -1,0 +1,429 @@
+{
+  "last_verified": "2026-09-05",
+  "freshness_policy": "Refresh the named cohort and geography before application advice. Separate page availability, current intake, eligibility and published terms. Retain conflicting or undated official statements as unresolved; never roll an old deadline into the current year.",
+  "programs": [
+    {
+      "id": "yc",
+      "label": "Y Combinator",
+      "official_url": "https://www.ycombinator.com/",
+      "apply_url": "https://www.ycombinator.com/apply",
+      "program_url": "https://www.ycombinator.com/about",
+      "advice_url": "https://www.ycombinator.com/howtoapply",
+      "stage_fit": [
+        "idea",
+        "pre_seed",
+        "seed",
+        "early_revenue"
+      ],
+      "default_fit": "Ambitious early-stage startups, including ideas, with strong founders and a credible build path. Evaluate evidence appropriate to stage; do not turn mature-product traction into a universal admission requirement.",
+      "current_public_terms": "Resolve current official investment and local program terms before final advice; this catalog does not provide a current financial offer.",
+      "program_shape": "Three-month program run four times a year. Founders move to San Francisco for the in-person batch, which concludes with Demo Day.",
+      "optimizes_for": [
+        "clarity",
+        "strong founders",
+        "speed",
+        "user pull",
+        "large market",
+        "plain-spoken application answers",
+        "ability to build something people want"
+      ],
+      "red_flags": [
+        "marketing-speak",
+        "unclear product",
+        "claims unsupported by evidence appropriate to the company stage",
+        "slow execution",
+        "outsourced technical core without a credible build path",
+        "founder achievements that do not explain why this team has an edge"
+      ],
+      "last_verified_at": "2026-09-05",
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Idea-stage through early-stage fit is supported; no universal traction threshold. Clear factual answers and specific founder achievements are supported as application guidance. Only the listed public program descriptions were inspected; current intake, local eligibility and offer are limited by freshness_review.limitations. Preparation traits are ProofPilot coaching synthesis.",
+        "api_runtime_status": "not_applicable"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "corrected",
+        "limitations": [
+          "Catalog optimizes_for/red_flags are partly coaching synthesis, not a complete published admission rubric.",
+          "No founder's visa, entity eligibility or account/application fields were tested."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://www.ycombinator.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Homepage states four batches per year and accepts companies without revenue, product or a finished idea."
+        },
+        {
+          "url": "https://www.ycombinator.com/apply",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Winter 2027 application page explicitly states accepting applications, January-March in San Francisco, November 2 at 8pm PT deadline and December 11 decision date."
+        },
+        {
+          "url": "https://www.ycombinator.com/about",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public description of YC batch support and Demo Day."
+        },
+        {
+          "url": "https://www.ycombinator.com/howtoapply",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Official founder/application guidance on specificity, clarity, achievements and insight."
+        },
+        {
+          "url": "https://www.ycombinator.com/deal",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Standard deal states $500k through $125k for 7% plus $375k uncapped MFN SAFE, with no program fee; acceptable parent jurisdictions listed."
+        }
+      ]
+    },
+    {
+      "id": "techstars",
+      "label": "Techstars",
+      "official_url": "https://www.techstars.com/",
+      "apply_url": "https://apply.techstars.com/",
+      "stage_fit": [
+        "pre_seed",
+        "seed",
+        "early_revenue"
+      ],
+      "default_fit": "Early-stage startups that benefit from a mentorship-driven accelerator, a focused program vertical or geography, and the global Techstars network.",
+      "current_public_terms": "Resolve current official investment and local program terms before final advice; this catalog does not provide a current financial offer.",
+      "program_shape": "Techstars describes its accelerator as a 3-month, mentorship-driven program with capital investment and access to the global Techstars network.",
+      "optimizes_for": [
+        "mentor fit",
+        "program vertical fit",
+        "team coachability",
+        "early traction",
+        "network leverage",
+        "post-program fundraising readiness"
+      ],
+      "red_flags": [
+        "no clear program fit",
+        "founder not coachable",
+        "weak market or customer specificity",
+        "using Techstars as validation instead of having validation"
+      ],
+      "last_verified_at": "2026-09-05",
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Three-month mentorship-driven description is current. Program/vertical/geography fit remains essential. Only the listed public program descriptions were inspected; current intake, local eligibility and offer are limited by freshness_review.limitations. Preparation traits are ProofPilot coaching synthesis.",
+        "api_runtime_status": "not_applicable"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "partial",
+        "content_status": "confirmed",
+        "limitations": [
+          "Application portal contents and individual application requirements remain untested.",
+          "Only Anywhere's dated current window was checked; no claim that every Techstars program is accepting applications.",
+          "Coaching traits such as coachability and fundraising readiness are not an exhaustive official scoring rubric."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://www.techstars.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current homepage confirms three-month mentorship-driven accelerator and regional/vertical programs."
+        },
+        {
+          "url": "https://www.techstars.com/accelerators",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public accelerator discovery page."
+        },
+        {
+          "url": "https://www.techstars.com/newsroom/investment-terms",
+          "published_at": "2025-04-17",
+          "checked_at": "2026-09-05",
+          "claim_scope": "Published deal structure, no monetary participation fee, and Asia-Pacific exception."
+        },
+        {
+          "url": "https://www.techstars.com/accelerators/anywhere",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Explicit dated application window for Anywhere 2027 and remote/offsite/time-zone participation details."
+        }
+      ]
+    },
+    {
+      "id": "500_global",
+      "label": "500 Global Flagship Accelerator",
+      "official_url": "https://500.co/",
+      "apply_url": "https://500.co/founders/flagship",
+      "stage_fit": [
+        "functional_prototype",
+        "early_revenue",
+        "seed"
+      ],
+      "default_fit": "Globally ambitious startups with a functional product, early growth signals, and a need for growth, fundraising, and Silicon Valley network support.",
+      "current_public_terms": "Resolve current official investment and local program terms before final advice; this catalog does not provide a current financial offer.",
+      "program_shape": "The public marketing page describes a four-month in-person Silicon Valley program, but it retains legacy Batch 36/December 2024 copy; the linked application portal advertises Batch 37 in San Francisco without dated cohort details. Verify the selected intake before advising.",
+      "optimizes_for": [
+        "early revenue or growth",
+        "functional prototype",
+        "global market potential",
+        "growth discipline",
+        "cross-functional team",
+        "VC-backable trajectory"
+      ],
+      "red_flags": [
+        "no prototype",
+        "no early revenue or credible usage",
+        "local-only market without expansion path",
+        "growth claims without data"
+      ],
+      "last_verified_at": "2026-09-05",
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Founder growth/fundraising/global-network support remains described publicly. Four-month program is still stated on the marketing page, with freshness limitations. Only the listed public program descriptions were inspected; current intake, local eligibility and offer are limited by freshness_review.limitations. Preparation traits are ProofPilot coaching synthesis.",
+        "api_runtime_status": "not_applicable"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "partial",
+        "content_status": "partial",
+        "limitations": [
+          "No current dated eligibility list was found on the inspected official surfaces. Functional prototype/revenue red flags should remain coaching heuristics, not asserted admission rules.",
+          "Sign-in gate prevents verification of active form fields/cohort details.",
+          "Do not copy the October 11 deadline into a 2026 recommendation."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://500.co/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current corporate site links founder programs."
+        },
+        {
+          "url": "https://500.co/founders",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Program directory lists the Flagship alongside regional tracks."
+        },
+        {
+          "url": "https://500.co/founders/flagship",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Page describes four-month Silicon Valley format and $150k for 6%, subject to terms/diligence, but visibly retains December 2024/Batch 36 and an October 11 deadline plus placeholder copy."
+        },
+        {
+          "url": "https://flagship.aplica.500.co/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Official linked portal says Batch 37 accepting applications and San Francisco; no year/start date/deadline is supplied."
+        }
+      ]
+    },
+    {
+      "id": "antler",
+      "label": "Antler Residency",
+      "official_url": "https://www.antler.co/",
+      "apply_url": "https://www.antler.co/pitch",
+      "stage_fit": [
+        "founder_profile",
+        "idea",
+        "cofounder_search",
+        "pre_seed"
+      ],
+      "default_fit": "Exceptional founders, often before a fully formed company, who need a residency, cofounder/community access, and long-term investor support.",
+      "current_public_terms": "Resolve current official investment and local program terms before final advice; this catalog does not provide a current financial offer.",
+      "program_shape": "Local founder investment pathways include fixed residencies and rolling year-round intake. Some locations work with founders without fixed residency programs; geography determines format, duration, application process and investment terms.",
+      "optimizes_for": [
+        "outlier founder profile",
+        "trajectory",
+        "ambition",
+        "founder-market fit",
+        "cofounder or team potential",
+        "speed in residency"
+      ],
+      "red_flags": [
+        "average founder profile with no standout proof",
+        "unclear commitment",
+        "weak ambition",
+        "idea-only application without founder edge"
+      ],
+      "last_verified_at": "2026-09-05",
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Pre-idea/early-founder and team-building fit remains supported locally. Global catalog correctly requires local terms, but residency-only shape needs qualification. Only the listed public program descriptions were inspected; current intake, local eligibility and offer are limited by freshness_review.limitations. Preparation traits are ProofPilot coaching synthesis.",
+        "api_runtime_status": "not_applicable"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "corrected",
+        "limitations": [
+          "The public global form does not establish eligibility/admission for every region.",
+          "Global cohort list explicitly labels start dates, not application deadlines.",
+          "UK date conflict requires local confirmation; do not pick one silently.",
+          "Do not generalize UK/Singapore equity, costs or durations worldwide.",
+          "Profile's selection traits remain coaching synthesis, not an exact internal investment rubric."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://www.antler.co/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Global investor homepage directs to local programs and pitch intake."
+        },
+        {
+          "url": "https://www.antler.co/apply",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Observed redirect to https://www.antler.co/pitch."
+        },
+        {
+          "url": "https://www.antler.co/pitch",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public funnel separates idea-to-pre-seed from Series A-C and asks for region/city."
+        },
+        {
+          "url": "https://www.antler.co/cohort-start-dates",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Lists start dates (explicitly not deadlines) and distinguishes rolling locations without fixed residency programs."
+        },
+        {
+          "url": "https://www.antler.co/location/uk",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Eight-week London residency; local page says September 23, 2026, conflicting with global September 22 list. Local funding includes a program fee."
+        },
+        {
+          "url": "https://www.antler.co/location/singapore",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Explicitly open application review for October 5, 2026 six-week in-person residency; local investment terms and founder travel/living costs described."
+        }
+      ]
+    },
+    {
+      "id": "entrepreneur_first",
+      "label": "Entrepreneurs First",
+      "official_url": "https://www.joinef.com/",
+      "apply_url": "https://apply.joinef.com/",
+      "stage_fit": [
+        "founder_profile",
+        "cofounder_search",
+        "idea",
+        "pre_seed"
+      ],
+      "default_fit": "Exceptional individuals who may have an idea, may be testing a cofounder, or may have neither, but show rare founder potential and ambition.",
+      "current_public_terms": "Resolve current official investment and local program terms before final advice; this catalog does not provide a current financial offer.",
+      "program_shape": "Founder-first program focused on matching exceptional cofounders, shaping ideas, and moving from emerging idea to first revenue.",
+      "optimizes_for": [
+        "individual edge",
+        "technical or domain excellence",
+        "cofounder fit",
+        "ambition",
+        "ability to test quickly",
+        "U.S. or global market ambition"
+      ],
+      "red_flags": [
+        "no evidence of outperformance",
+        "poor cofounder fit",
+        "low risk tolerance",
+        "weak commercial instinct"
+      ],
+      "last_verified_at": "2026-09-05",
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Pre-idea and cofounder formation description remains correct. Admission assesses individuals; a cofounder is not required. Only the listed public program descriptions were inspected; current intake, local eligibility and offer are limited by freshness_review.limitations. Preparation traits are ProofPilot coaching synthesis.",
+        "api_runtime_status": "not_applicable"
+      },
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "corrected",
+        "limitations": [
+          "Not every listed option is a live application: London shows Register Interest; experienced-founder XF2 has its own 7+ years/prior-founder-or-inception requirement.",
+          "Local individual investment documents, visa eligibility and final form fields not verified.",
+          "General FAQ describes 12-week FORM while Bangalore's current hub says 14 weeks; use track-specific dates/format.",
+          "Catalog red_flags remain heuristic preparation guidance, not a published deterministic admission rubric."
+        ]
+      },
+      "reference_checks": [
+        {
+          "url": "https://www.joinef.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Current brand is Entrepreneurs First; backs individuals with or without ideas/cofounders."
+        },
+        {
+          "url": "https://apply.joinef.com/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Public hub lists Europe, U.S. and India options and full-time/in-person requirement."
+        },
+        {
+          "url": "https://www.joinef.com/faqs/",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "FAQ distinguishes talent grant from conditional equity investment and directs to local funding terms."
+        }
+      ]
+    },
+    {
+      "id": "sequoia_arc",
+      "label": "Sequoia Arc",
+      "official_url": "https://sequoiacap.com/arc",
+      "apply_url": "https://sequoiacap.com/arc",
+      "stage_fit": [
+        "pre_seed",
+        "seed"
+      ],
+      "default_fit": "Pre-seed and seed founders with high ambition, strong customer insight, credible team-building ability, and venture-scale narrative.",
+      "current_public_terms": "Resolve current official investment and local program terms before final advice; this catalog does not provide a current financial offer.",
+      "program_shape": "Arc is Sequoia's twice-yearly open call for pre-seed and seed founders. The four-day Arc Intensive is a separate company-building program for Sequoia's early-stage partners; it is not the definition of the open call.",
+      "optimizes_for": [
+        "category ambition",
+        "company story",
+        "customer insight",
+        "competitive positioning",
+        "team quality",
+        "growth strategy"
+      ],
+      "red_flags": [
+        "founder goals do not fit the requested venture-scale funding path",
+        "unclear company narrative",
+        "customer or founder claims unsupported by stage-appropriate evidence"
+      ],
+      "last_verified_at": "2026-09-05",
+      "verification": {
+        "scope": "official_documentation",
+        "claims": "Pre-seed/seed open-call versus partner Intensive distinction is correct. Public program topics include customer understanding, positioning, team building and growth. Only the listed public program descriptions were inspected; current intake, local eligibility and offer are limited by freshness_review.limitations. Preparation traits are ProofPilot coaching synthesis.",
+        "api_runtime_status": "not_applicable"
+      },
+      "reference_checks": [
+        {
+          "url": "https://sequoiacap.com/arc",
+          "published_at": null,
+          "checked_at": "2026-09-05",
+          "claim_scope": "Both catalog official_url and apply_url point here. Page confirms twice-yearly early-stage open call and four-day Intensive; extracted content has no dated application window or Apply link."
+        }
+      ],
+      "methodology_reference": "product-market-fit.md",
+      "freshness_review": {
+        "checked_at": "2026-09-05",
+        "availability": "reachable",
+        "content_status": "partial",
+        "limitations": [
+          "Page existence is not proof of an open call today.",
+          "optimizes_for/red_flags are coaching interpretation; no complete internal admission scoring rubric was published on the inspected page."
+        ]
+      }
+    }
+  ],
+  "verification_scope": "Public descriptions and selected dated intake examples checked on 2026-09-05. This is not confirmation that all programs currently accept applications or that any founder qualifies. Per-program reference_checks and limitations control; resolve current local rules and terms before applying."
+}

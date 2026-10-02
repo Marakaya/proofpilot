@@ -37,6 +37,11 @@ export function runResponseTests() {
     count++;
     return response;
   }
+  for (const key of ["constructor", "toString", "__proto__"]) {
+    test(`prototype-named extra property ${key} rejected consistently`, coach, response => {
+      Object.defineProperty(response, key, { value: "Synthetic unexpected key", enumerable: true });
+    }, /additional properties|unexpected property/);
+  }
   function recompute(response) {
     const card = response.scorecards[0];
     const rubric = rubrics.rubrics.find((item) => item.id === card.rubric_id);
@@ -88,6 +93,31 @@ export function runResponseTests() {
   test("draft completion is artifact completion", coach, (r) => { r.recommendation.target = "artifact"; r.recommendation.decision = "complete"; });
   test("build blocker does not prevent separate test", full, (r) => {
     r.blocking_checks.push({ id: "implementation_access", target: "build", requirement: "Authorized data access needed for production build.", status: "unknown", evidence_ids: [] });
+  });
+  test("build proceed requires a matching prerequisite", coach, (r) => {
+    r.recommendation.target = "build";
+    r.recommendation.decision = "proceed";
+    r.blocking_checks = [];
+  }, /build\/proceed requires at least one build blocking check/);
+  test("test checks do not establish build prerequisites", full, (r) => {
+    r.recommendation.target = "build";
+    r.recommendation.decision = "proceed";
+    assert.ok(r.blocking_checks.every(check => check.target !== "build"));
+  }, /build\/proceed requires at least one build blocking check/);
+  test("build proceed accepts an observed passed prerequisite", full, (r) => {
+    r.recommendation.target = "build";
+    r.recommendation.decision = "proceed";
+    r.blocking_checks.push({ id: "implementation_access", target: "build", requirement: "Inspected authorized data access for this build.", status: "passed", evidence_ids: ["observed_packet"] });
+  });
+  test("build prerequisite still needs supporting observed evidence", coach, (r) => {
+    r.recommendation.target = "build";
+    r.recommendation.decision = "proceed";
+    r.blocking_checks = [{ id: "implementation_access", target: "build", requirement: "Asserted authorized access.", status: "passed", evidence_ids: ["founder_context"] }];
+  }, /current supporting observed evidence/);
+  test("build pause does not need invented prerequisites", coach, (r) => {
+    r.recommendation.target = "build";
+    r.recommendation.decision = "pause";
+    r.blocking_checks = [];
   });
   test("failed gate permits pause rather than proceed", full, (r) => {
     r.recommendation.decision = "pause";
@@ -274,7 +304,7 @@ export function runResponseTests() {
   return { cases: count };
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
   const result = runResponseTests();
   console.log(`ProofPilot response contract tests passed: ${result.cases} cases.`);
 }

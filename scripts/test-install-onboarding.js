@@ -32,6 +32,7 @@ export function runInstallOnboardingTests() {
     // Scope child processes to synthetic local state and reject accidental network use.
     fs.writeFileSync(preload, [
       `require("node:os").homedir = () => ${JSON.stringify(isolatedHome)};`,
+      `const realUserInfo = require("node:os").userInfo; require("node:os").userInfo = () => ({ ...realUserInfo(), homedir: ${JSON.stringify(isolatedHome)} });`,
       'const denied = () => { throw new Error("Unexpected network access in offline installation test"); };',
       'globalThis.fetch = denied;',
       'require("node:http").request = require("node:http").get = denied;',
@@ -41,6 +42,8 @@ export function runInstallOnboardingTests() {
     fs.writeFileSync(path.join(binDir, "curl"), `#!/bin/sh\n: > '${curlMarker.replaceAll("'", "'\\''")}'\nexit 95\n`, { mode: 0o700 });
     const env = {
       PATH: binDir,
+      HOME: isolatedHome,
+      USERPROFILE: isolatedHome,
       NODE_OPTIONS: `--require ${JSON.stringify(preload)}`,
       PROOFPILOT_CONFIG_DIR: configDir
     };
@@ -58,33 +61,33 @@ export function runInstallOnboardingTests() {
     const assertPending = result => {
       const status = JSON.parse(result.stdout);
       assert.equal(status.colosseum.required, true, "Colosseum must be a setup requirement");
-      assert.equal(status.colosseum.configured, false, "An empty installation must not claim a configured key");
+      assert.equal(status.colosseum.configured, false, "An empty installation must not claim a configured connection");
       assert.equal(status.setup_required, true, "An empty installation must still require setup");
       assert.notEqual(status.colosseum.status, "verified", "Installation alone must not verify account access");
       return status;
     };
     const assertNotice = (result, destination) => {
-      assert.ok(result.stdout.includes("$proofpilot: complete initial setup"), "Installer must provide an actionable first agent prompt");
-      assert.ok(result.stdout.includes("https://colosseum.com/arena/copilot"), "Installer must link to the required key setup");
+      assert.ok(result.stdout.includes("ask your agent to use ProofPilot to complete initial setup"), "Installer must provide an actionable first agent prompt");
+      assert.ok(result.stdout.includes("https://colosseum.com/arena/copilot/connections"), "Installer must link to connection management");
       assert.ok(result.stdout.includes(path.join(destination, "scripts", "setup.js")), "Installer must identify the installed portable helper");
       assert.ok(result.stdout.includes("optional"), "Installer must distinguish optional service setup");
     };
 
     const destination = path.join(temporaryRoot, "standalone skill");
-    const install = run(cli, ["install", "--target", "codex", "--dir", destination]);
+    const install = run(cli, ["install", "--target", "codex", "--dir", destination, "--core-only"]);
     assertNotice(install, destination);
     assertPending(run(path.join(destination, "scripts", "setup.js"), ["--status", "--json"]));
-    run(cli, ["install", "--target", "codex", "--dir", destination], 1);
+    run(cli, ["install", "--target", "codex", "--dir", destination, "--core-only"]);
     cases += 1;
 
     for (const copy of [false, true]) {
       const target = path.join(temporaryRoot, copy ? "copied profiles" : "linked profiles");
-      const installed = run(installer, ["--target", target, ...(copy ? ["--copy"] : [])]);
+      const installed = run(installer, ["--target", target, "--core-only", ...(copy ? ["--copy"] : [])]);
       assertNotice(installed, path.join(target, "proofpilot"));
       for (const skillName of skillNames) {
         assertPending(run(path.join(target, skillName, "scripts", "setup.js"), ["--status", "--json"]));
       }
-      run(installer, ["--target", target, ...(copy ? ["--copy"] : [])], 1);
+      run(installer, ["--target", target, "--core-only", ...(copy ? ["--copy"] : [])]);
       cases += 1;
     }
 
@@ -104,7 +107,7 @@ export function runInstallOnboardingTests() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === filename) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(filename)) {
   const summary = runInstallOnboardingTests();
   console.log(`Installation onboarding passed: ${summary.cases} cases, ${summary.installedEntrypoints} installed entrypoints, no account network calls.`);
 }

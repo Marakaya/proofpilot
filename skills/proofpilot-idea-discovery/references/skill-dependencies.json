@@ -1,0 +1,636 @@
+{
+  "version": 1,
+  "bundle_id": "proofpilot-support-2026-10-01",
+  "checked_at": "2026-10-01",
+  "scope": "Supporting skills and shared guidance used by ProofPilot. Service connections, protocol-specific catalog candidates, external AI agents and development toolchains are separate.",
+  "sources": [
+    {
+      "id": "solana-new",
+      "repo": "sendaifun/solana-new",
+      "ref": "e81c261645035c0e902eaaa518ff58722d188bb7",
+      "license": "MIT",
+      "license_path": "LICENSE",
+      "skills": [
+        {
+          "id": "animation-reverse-engineering",
+          "path": "skills/build/animation-reverse-engineering",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/acquisition.md",
+            "references/analysis.md",
+            "references/discovery.md",
+            "references/dissection.md",
+            "references/examples/text-sweep.md",
+            "references/examples/timelapse-slider.md",
+            "references/porting-framer-motion.md",
+            "references/porting-interactions.md",
+            "references/verification.md",
+            "scripts/dissect.sh"
+          ]
+        },
+        {
+          "id": "brand-design",
+          "path": "skills/build/brand-design",
+          "required_files": [
+            "SKILL.md",
+            "references/brand-md-template.md",
+            "references/contrast-rules.md",
+            "references/gradient-recipes.md",
+            "references/html-preview.md",
+            "references/palette-generation.md",
+            "references/palette-recipes.md",
+            "references/shadcn-integration.md",
+            "references/typography-pairings.md",
+            "references/typography-preview.md"
+          ]
+        },
+        {
+          "id": "build-data-pipeline",
+          "path": "skills/build/build-data-pipeline",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/data-storage.md",
+            "references/indexing-patterns.md"
+          ]
+        },
+        {
+          "id": "build-defi-protocol",
+          "path": "skills/build/build-defi-protocol",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/defi-program-patterns.md",
+            "references/defi-security.md",
+            "references/defi-testing.md"
+          ]
+        },
+        {
+          "id": "build-mobile",
+          "path": "skills/build/build-mobile",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/mobile-architecture.md",
+            "references/mobile-wallet-patterns.md"
+          ]
+        },
+        {
+          "id": "build-with-claude",
+          "path": "skills/build/build-with-claude",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/dev-environment-setup.md",
+            "references/error-recovery-guide.md",
+            "references/skill-mcp-usage-guide.md",
+            "references/solana-dev-patterns.md",
+            "references/testing-checklist.md"
+          ]
+        },
+        {
+          "id": "cso",
+          "path": "skills/build/cso",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml"
+          ]
+        },
+        {
+          "id": "debug-program",
+          "path": "skills/build/debug-program",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/common-pitfalls.md",
+            "references/debug-workflow.md"
+          ]
+        },
+        {
+          "id": "design-taste",
+          "path": "skills/build/design-taste",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/anti-ai-slop.md",
+            "references/design-judgment.md",
+            "references/theme-references.md"
+          ]
+        },
+        {
+          "id": "frontend-design-guidelines",
+          "path": "skills/build/frontend-design-guidelines",
+          "required_files": [
+            "SKILL.md",
+            "references/animation.md",
+            "references/craft-and-polish.md",
+            "references/forms.md",
+            "references/interactions.md",
+            "references/layout-and-design.md",
+            "references/solana-ui-patterns.md",
+            "references/stack-defaults.md",
+            "references/states.md"
+          ]
+        },
+        {
+          "id": "launch-token",
+          "path": "skills/build/launch-token",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/token-launch-patterns.md",
+            "references/tokenomics-checklist.md"
+          ]
+        },
+        {
+          "id": "navigate-skills",
+          "path": "skills/build/navigate-skills",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/catalog-search-guide.md"
+          ]
+        },
+        {
+          "id": "number-formatting",
+          "path": "skills/build/number-formatting",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/formatting-spec.md",
+            "references/implementation-guide.md",
+            "references/review-checklist.md"
+          ]
+        },
+        {
+          "id": "page-load-animations",
+          "path": "skills/build/page-load-animations",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/filter-transitions.md",
+            "references/hover-micro.md",
+            "references/list-stagger.md",
+            "references/live-data.md",
+            "references/page-choreography.md",
+            "references/popups-modals.md",
+            "references/spring-presets.md"
+          ]
+        },
+        {
+          "id": "product-review",
+          "path": "skills/build/product-review",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/crypto-ux-patterns.md",
+            "references/onboarding-checklist.md",
+            "references/product-quality-rubric.md"
+          ]
+        },
+        {
+          "id": "review-and-iterate",
+          "path": "skills/build/review-and-iterate",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/code-review-rubric.md",
+            "references/compute-optimization.md",
+            "references/security-basics.md"
+          ]
+        },
+        {
+          "id": "roast-my-product",
+          "path": "skills/build/roast-my-product",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/common-crypto-product-sins.md",
+            "references/roast-framework.md",
+            "references/ux-red-flags.md"
+          ]
+        },
+        {
+          "id": "scaffold-project",
+          "path": "skills/build/scaffold-project",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/architecture-patterns.md",
+            "references/catalog-recommendations.md",
+            "references/stack-decision-tree.md"
+          ]
+        },
+        {
+          "id": "verify-humanity-poh",
+          "path": "skills/build/verify-humanity-poh",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/integration-patterns.md",
+            "references/poh-api-reference.md"
+          ]
+        },
+        {
+          "id": "virtual-solana-incubator",
+          "path": "skills/build/virtual-solana-incubator",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/incubator-curriculum.md",
+            "references/pda-cpi-patterns.md",
+            "references/rust-for-solana.md",
+            "references/svm-architecture.md"
+          ]
+        },
+        {
+          "id": "competitive-landscape",
+          "path": "skills/idea/competitive-landscape",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/ecosystem-catalog-guide.md",
+            "references/landscape-mapping.md",
+            "references/moat-analysis.md"
+          ]
+        },
+        {
+          "id": "defillama-research",
+          "path": "skills/idea/defillama-research",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/defi-opportunity-framework.md",
+            "references/defillama-api-guide.md",
+            "references/tvl-as-trust-metric.md"
+          ]
+        },
+        {
+          "id": "find-next-crypto-idea",
+          "path": "skills/idea/find-next-crypto-idea",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "assets/report-template.html",
+            "assets/research-worksheet-template.html",
+            "references/crypto-necessity-test.md",
+            "references/interview-framework.md",
+            "references/output-spec.md",
+            "references/report-themes.md",
+            "references/research-output-schema.md",
+            "references/research-playbook.md",
+            "references/scoring-rubric.md",
+            "references/source-map.md"
+          ]
+        },
+        {
+          "id": "learn",
+          "path": "skills/idea/learn",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml"
+          ]
+        },
+        {
+          "id": "solana-beginner",
+          "path": "skills/idea/solana-beginner",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/ecosystem-map.md",
+            "references/solana-vs-evm.md",
+            "references/why-solana-for-builders.md"
+          ]
+        },
+        {
+          "id": "validate-idea",
+          "path": "skills/idea/validate-idea",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/customer-signal-rubric.md",
+            "references/pivot-or-persist.md",
+            "references/validation-framework.md"
+          ]
+        },
+        {
+          "id": "apply-grant",
+          "path": "skills/launch/apply-grant",
+          "required_files": [
+            "SKILL.md",
+            "export-session.sh",
+            "openai.yaml"
+          ],
+          "adapted_required_files": [
+            "export-project-sessions.mjs"
+          ]
+        },
+        {
+          "id": "create-pitch-deck",
+          "path": "skills/launch/create-pitch-deck",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/crypto-pitch-examples.md",
+            "references/crypto-pitch-mistakes.md",
+            "references/deck-design-system.md",
+            "references/investor-audience-guide.md",
+            "references/pitch-reference-sources.md",
+            "references/pitch-structure.md",
+            "references/slide-templates.md",
+            "references/storytelling-frameworks.md"
+          ]
+        },
+        {
+          "id": "deploy-to-mainnet",
+          "path": "skills/launch/deploy-to-mainnet",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/deployment-checklist.md",
+            "references/program-upgrade-guide.md",
+            "references/rpc-provider-guide.md"
+          ]
+        },
+        {
+          "id": "marketing-video",
+          "path": "skills/launch/marketing-video",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/audio-library.md",
+            "references/cinematic-techniques.md",
+            "references/professional-quality-guide.md",
+            "references/remotion-advanced.md",
+            "references/remotion-quickstart.md",
+            "references/scene-templates.md",
+            "references/video-storytelling.md"
+          ]
+        },
+        {
+          "id": "submit-to-hackathon",
+          "path": "skills/launch/submit-to-hackathon",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/demo-video-script.md",
+            "references/hackathon-submission-guide.md",
+            "references/judging-criteria.md"
+          ]
+        },
+        {
+          "id": "video-craft",
+          "path": "skills/launch/video-craft",
+          "required_files": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/frame-composition.md",
+            "references/product-demo-patterns.md"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "path": "skills/data/solana-knowledge",
+          "destination": "data/solana-knowledge",
+          "required_files": [
+            "01-what-and-why-solana.md",
+            "02-what-makes-solana-unique.md",
+            "03-contract-level.md",
+            "04-protocols-and-sdks.md",
+            "05-app-layer-consumer.md",
+            "06-opensource-research.md",
+            "cookbook-index.md"
+          ]
+        },
+        {
+          "path": "skills/data/guides",
+          "destination": "data/guides",
+          "required_files": [
+            "a16z-big-ideas-2025.md",
+            "a16z-state-of-crypto-2025.md",
+            "alliance-ideas.md",
+            "deploy-runbook.md",
+            "rpc-wallet-guide.md",
+            "rwa-defi-2026-ideas.md",
+            "security-checklist.md",
+            "yash-defi-2024-ideas.md",
+            "yc-crypto-companies-p2.md",
+            "yc-crypto-companies.md",
+            "yc-requests-for-startups.md"
+          ]
+        },
+        {
+          "path": "skills/data/ideas",
+          "destination": "data/ideas",
+          "required_files": [
+            "a16z-big-ideas-2025.json",
+            "a16z-state-of-crypto-2025.json",
+            "alliance-ideas.json",
+            "rwa-defi-2026-ideas.json",
+            "superteam-ideas.json",
+            "web3-ideas-combined.json",
+            "web3-ideas-summary.json",
+            "yash-defi-2024-ideas.json",
+            "yc-crypto-companies.json",
+            "yc-requests-for-startups.json"
+          ]
+        },
+        {
+          "path": "skills/data/colosseum",
+          "destination": "data/colosseum",
+          "required_files": [
+            "copilot-api.json",
+            "hackathon-winners.md"
+          ]
+        },
+        {
+          "path": "skills/data/defi",
+          "destination": "data/defi",
+          "required_files": [
+            "defillama-api.json"
+          ]
+        },
+        {
+          "path": "skills/data/specs",
+          "destination": "data/specs",
+          "required_files": [
+            "phase-handoff.md"
+          ]
+        },
+        {
+          "path": "cli/data/clonable-repos.json",
+          "destination": "data/catalogs/clonable-repos.json"
+        },
+        {
+          "path": "cli/data/solana-skills.json",
+          "destination": "data/catalogs/solana-skills.json"
+        },
+        {
+          "path": "cli/data/solana-mcps.json",
+          "destination": "data/catalogs/solana-mcps.json"
+        },
+        {
+          "path": "skills/SKILL_ROUTER.md",
+          "destination": "SKILL_ROUTER.md"
+        },
+        {
+          "path": "skills/launch/tone-guide.md",
+          "destination": "tone-guide.md"
+        },
+        {
+          "path": "LICENSE",
+          "destination": "data/licenses/solana-new-LICENSE.txt"
+        }
+      ],
+      "install_note": "The legacy Colosseum PAT wrapper is excluded. No upstream setup, telemetry, agent-software installer or lifecycle script is executed.",
+      "replaced_skills": [
+        {
+          "id": "colosseum-copilot",
+          "path": "skills/idea/colosseum-copilot"
+        }
+      ]
+    },
+    {
+      "id": "solana-dev",
+      "repo": "solana-foundation/solana-dev-skill",
+      "ref": "bb24c39dbdfc3afd27eb0540b9fdd2e4482c4e25",
+      "license": "MIT",
+      "license_path": "LICENSE",
+      "skills": [
+        {
+          "id": "solana-dev",
+          "path": "skills/solana-dev",
+          "required_files": [
+            "SKILL.md",
+            "references/anchor/migrating-v0.32-to-v1.md",
+            "references/common-errors.md",
+            "references/compatibility-matrix.md",
+            "references/concepts.md",
+            "references/confidential-transfers.md",
+            "references/frontend.md",
+            "references/idl-codegen.md",
+            "references/kit-web3-interop.md",
+            "references/kit/accounts.md",
+            "references/kit/advanced.md",
+            "references/kit/codama.md",
+            "references/kit/codecs.md",
+            "references/kit/gotchas.md",
+            "references/kit/overview.md",
+            "references/kit/plugins.md",
+            "references/kit/programs/compute-budget.md",
+            "references/kit/programs/system.md",
+            "references/kit/programs/token-2022.md",
+            "references/kit/programs/token.md",
+            "references/kit/react.md",
+            "references/payments.md",
+            "references/programs/anchor.md",
+            "references/programs/design-patterns.md",
+            "references/programs/pinocchio.md",
+            "references/resources.md",
+            "references/rpc-quick-lookups.md",
+            "references/security.md",
+            "references/surfpool/cheatcodes.md",
+            "references/surfpool/kit-plugin.md",
+            "references/surfpool/overview.md",
+            "references/testing.md",
+            "references/transactions-v1.md"
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "id": "colosseum-copilot",
+      "repo": "ColosseumOrg/colosseum-copilot",
+      "ref": "079bd44b0d4d221d6a893764d8ec6f5f4845707e",
+      "license": "Proprietary",
+      "skills": [
+        {
+          "id": "colosseum-copilot",
+          "path": "skills/colosseum-copilot",
+          "ownership_predecessors": [
+            "sendaifun/solana-new"
+          ],
+          "minimum_version": "2.0.0",
+          "required_files": [
+            "SKILL.md",
+            "references/api-analysis.md",
+            "references/api-archives.md",
+            "references/api-faqs.md",
+            "references/api-projects.md",
+            "references/api-reference.md",
+            "references/api-resources.md",
+            "references/api-technologies.md",
+            "references/connection.md",
+            "references/frames.md",
+            "references/grid-recipes.md",
+            "references/research-methods.md",
+            "references/the-grid-skill.md",
+            "references/tools.md"
+          ]
+        }
+      ],
+      "assets": [],
+      "install_note": "Downloaded directly from the upstream repository at installation time; not redistributed inside the MIT ProofPilot package."
+    },
+    {
+      "id": "ethglobal-skills",
+      "repo": "ethglobal-skills/repo",
+      "ref": "88cc3afde25691a7a48ae9391ff6689f1ed00ddd",
+      "license": null,
+      "skills": [
+        {
+          "id": "ethglobal-skills",
+          "path": "skills/ethglobal-skills",
+          "required_files": [
+            ".claude-plugin/plugin.json",
+            "HACKATHON_FAQ.md",
+            "SKILL.md",
+            "SPONSOR_RESOURCES.md"
+          ]
+        }
+      ],
+      "assets": [],
+      "install_note": "Upstream terms apply. Installation does not run paid requests or install wallet/payment tools."
+    },
+    {
+      "id": "openai-docs",
+      "repo": "openai/skills",
+      "ref": "49f948faa9258a0c61caceaf225e179651397431",
+      "license": "Apache-2.0",
+      "skills": [
+        {
+          "id": "openai-docs",
+          "path": "skills/.curated/openai-docs",
+          "required_files": [
+            "LICENSE.txt",
+            "SKILL.md",
+            "agents/openai.yaml",
+            "assets/openai-small.svg",
+            "assets/openai.png",
+            "references/latest-model.md",
+            "references/prompting-guide.md",
+            "references/upgrade-guide.md",
+            "scripts/fetch-codex-manual.mjs",
+            "scripts/resolve-latest-model-info.js"
+          ]
+        }
+      ],
+      "assets": [],
+      "license_path": "skills/.curated/openai-docs/LICENSE.txt"
+    }
+  ],
+  "connection_helper": {
+    "package": "@colosseum-org/copilot-connect@0.2.2",
+    "version": "0.2.2"
+  },
+  "not_installed": [
+    "AI agent software, compilers, Anchor/Solana CLI and project npm/pip packages",
+    "Cloud accounts, credentials, browser/device login, MCP configuration and wallet connections",
+    "Host-owned Google Drive/Slides, Presentations and other plugins",
+    "Protocol-specific candidate skills from the ecosystem catalog",
+    "gstack and Trail of Bits repositories used as methodology/reference sources"
+  ]
+}

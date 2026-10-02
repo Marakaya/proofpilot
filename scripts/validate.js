@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { loadDependencyManifest } from "../skills/proofpilot/scripts/install-dependencies.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -68,7 +69,15 @@ const requiredFiles = [
   "skills/proofpilot/references/service-access.json",
   "skills/proofpilot/scripts/setup.js",
   "skills/proofpilot/scripts/colosseum-read.js",
+  "skills/proofpilot/scripts/colosseum-connection.js",
+  "scripts/test-colosseum-v2.js",
   "skills/proofpilot/scripts/discover-sources.js",
+  "scripts/test-solana-discovery.js",
+  "scripts/test-dependency-install.js",
+  "scripts/install-package.js",
+  "skills/proofpilot/references/skill-dependencies.json",
+  "skills/proofpilot/references/installation.md",
+  "skills/proofpilot/scripts/install-dependencies.js",
   "skills/proofpilot/scripts/validate-response.js"
 ];
 
@@ -151,6 +160,7 @@ export function validateResponseFile(filePath) {
 }
 
 export function validateRepository() {
+  loadDependencyManifest();
   for (const file of requiredFiles) {
     if (!fs.existsSync(path.join(root, file))) {
       fail(`Missing required file: ${file}`);
@@ -364,7 +374,7 @@ export function validateRepository() {
   };
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isMain = process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
 if (isMain) {
   const summary = validateRepository();
   console.log(

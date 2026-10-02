@@ -63,7 +63,9 @@ export function renderToolDocs({ sources, tools }) {
   lines.push("", "## Freshness Review", "", "A review date includes partial or blocked checks. The last verified date covers only verification.claims and reference_checks. An isolated successful API request does not mean a packaged adapter or every capability works.", "", "| Tool | Reviewed | Page access | Content | Last verified | API probe status |", "|---|---|---|---|---|---|");
   for (const tool of tools) {
     const review = tool.freshness_review;
-    const probeStatus = tool.runtime_probes?.map((probe) => `HTTP ${probe.http_status} (scoped GET)`).join("; ") ?? tool.verification?.api_runtime_status ?? "not_tested";
+    const runtimeStatus = tool.verification?.api_runtime_status ?? "not_tested";
+    const probes = tool.runtime_probes?.map(probe => `${probe.checked_at}: HTTP ${probe.http_status}, ${probe.method} ${probe.url}`).join("; ");
+    const probeStatus = `${runtimeStatus}${probes ? `; recorded probes: ${probes}` : ""}`;
     lines.push(`| ${escapeCell(tool.label)} | ${review?.checked_at ?? "unreviewed"} | ${review?.availability ?? "unknown"} | ${review?.content_status ?? "unknown"} | ${tool.last_verified_at ?? "none"} | ${escapeCell(probeStatus)} |`);
   }
   lines.push("", "Read the entry's reference_checks, runtime_probes and freshness_review.limitations before using a claim. Runtime-selected project artifacts and target programs require a fresh check during the actual task.");

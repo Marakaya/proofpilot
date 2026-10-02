@@ -7,7 +7,13 @@ description: Use when choosing a venture direction from founder access, skills, 
 
 This optional profile selects the `discover` stage of the shared ProofPilot workflow.
 
-First read [onboarding.md](references/onboarding.md). Colosseum access is required for completed ProofPilot setup in this profile too. Check existing access, reuse a verified key, and guide secure local setup if needed; keep the original task pending. Other keys are optional. Apply the explicit limited/offline-work exception from that reference.
+## Support Bundle
+
+The default installation includes 36 supporting skills and shared guidance. For a standalone copy or incomplete install, follow [installation.md](references/installation.md): check the portable helper on first use for actual work and install missing support unless core-only or no-install was selected. Inventory-only requests remain read-only. Then continue the user's original task.
+
+For Solana capability questions or explicit coding/testing requests, first follow the shortcuts in [solana-new.md](references/solana-new.md). Local inventory and implementation from an existing specification need no account setup. Continue with the host agent if developer skills are absent; use the venture workflow below only when the user requests venture work.
+
+For research, first read [onboarding.md](references/onboarding.md). Colosseum access is required for completed ProofPilot setup in this profile too. Check existing official Copilot Connect access, verify the current V2 evidence grant, and guide browser/device sign-in if needed; keep the original task pending. Other keys are optional. Apply the explicit limited/offline-work exception from that reference.
 
 1. For substantial assessments, follow [quality.md](references/quality.md) from frozen evidence through checks and bounded repair, even for prose output and on every model. Read [routing.md](references/routing.md), [decisions.md](references/decisions.md), [evidence.md](references/evidence.md), and [safety.md](references/safety.md). Classify mode, stages, domains, venture type, program context, and sensitivity independently.
 2. Follow [discover.md](references/discover.md). Add another stage only when the user's request needs it. Ask at most three questions when they materially change the decision; otherwise state assumptions and continue.

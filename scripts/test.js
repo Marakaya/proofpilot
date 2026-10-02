@@ -8,13 +8,19 @@ import { validateRepository } from "./validate.js";
 import { runResponseTests } from "./test-response.js";
 import { runBehaviorCliTests } from "./test-eval-behavior.js";
 import { runDiscoveryCredentialTests } from "./test-discovery-credentials.js";
+import { runDependencyInstallTests } from "./test-dependency-install.js";
+import { runSolanaDiscoveryTests } from "./test-solana-discovery.js";
 import { runFreshnessTests } from "./test-freshness.js";
 import { runSetupTests } from "./test-setup.js";
 import { runInstallOnboardingTests } from "./test-install-onboarding.js";
 import { runColosseumReadTests } from "./test-colosseum-read.js";
+import { runColosseumV2MigrationTests } from "./test-colosseum-v2.js";
 import { runServiceAccessTests } from "./test-service-access.js";
 import { runQualityTests } from "./test-quality.js";
 import { runEventScoreTests } from "./test-event-score.js";
+import { runSupportPolicyTests } from "./test-support-policy.js";
+import { runInstallSafetyTests } from "./test-install-safety.js";
+import { runHelperExportRegressionTests } from "./test-helper-export-regressions.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, "scripts", "cli.js");
@@ -38,13 +44,19 @@ const summary = validateRepository();
 const responseTests = runResponseTests();
 const behaviorCliTests = runBehaviorCliTests();
 const discoveryCredentialTests = runDiscoveryCredentialTests();
+const solanaDiscoveryTests = runSolanaDiscoveryTests();
+const dependencyInstallTests = runDependencyInstallTests();
 const freshnessTests = runFreshnessTests();
-const setupTests = runSetupTests();
+const setupTests = await runSetupTests();
 const installOnboardingTests = runInstallOnboardingTests();
-const colosseumReadTests = runColosseumReadTests();
+const colosseumReadTests = await runColosseumReadTests();
+const colosseumV2Tests = await runColosseumV2MigrationTests();
 const serviceAccessTests = runServiceAccessTests();
 const qualityTests = runQualityTests();
 const eventScoreTests = runEventScoreTests();
+const supportPolicyTests = runSupportPolicyTests();
+const installSafetyTests = runInstallSafetyTests();
+const helperExportRegressionTests = runHelperExportRegressionTests();
 runCli(["event", "list"]);
 runCli(["event", "check"], 1);
 runCli(["validate-response", "examples/responses/evaluator-partial-evidence.json"]);
@@ -60,7 +72,7 @@ const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-test-"))
 const destination = path.join(temporaryRoot, "proofpilot");
 
 try {
-  runCli(["install", "--target", "codex", "--dir", destination]);
+  runCli(["install", "--target", "codex", "--dir", destination, "--core-only"]);
   for (const relativePath of [
     "SKILL.md",
     "agents/openai.yaml",
@@ -72,11 +84,13 @@ try {
     }
   }
 
+  runCli(["install", "--target", "codex", "--dir", destination, "--core-only"]);
+  fs.appendFileSync(path.join(destination, "SKILL.md"), "\nUser customization.\n");
   const overwriteResult = runCli(
-    ["install", "--target", "codex", "--dir", destination],
+    ["install", "--target", "codex", "--dir", destination, "--core-only"],
     1
   );
-  if (!overwriteResult.stderr.includes("Destination already exists")) {
+  if (!overwriteResult.stderr.includes("different files")) {
     throw new Error("CLI install did not explain how to handle an existing destination");
   }
 } finally {
@@ -93,5 +107,5 @@ if (profileResult.status !== 0) {
 
 console.log(
   `ProofPilot tests passed: ${summary.tools} tools, ${summary.capabilities} capabilities, ` +
-    `${summary.rubrics} rubrics, ${summary.evalCases} routing contracts, ${responseTests.cases} response tests, ${behaviorCliTests.cases} eval CLI tests, ${discoveryCredentialTests.scenarios} credential scenarios, ${freshnessTests.cases} freshness tests, ${setupTests.cases} setup tests, ${installOnboardingTests.cases} onboarding install scenarios, ${colosseumReadTests.cases} Colosseum read tests, ${serviceAccessTests.cases} service-access tests, ${qualityTests.cases} quality workflow tests, ${eventScoreTests.cases} event score tests.`
+    `${dependencyInstallTests.cases} dependency installation tests, ${summary.rubrics} rubrics, ${summary.evalCases} routing contracts, ${responseTests.cases} response tests, ${behaviorCliTests.cases} eval CLI tests, ${discoveryCredentialTests.scenarios} credential scenarios, ${solanaDiscoveryTests.cases} Solana discovery scenarios, ${freshnessTests.cases} freshness tests, ${setupTests.cases} setup tests, ${installOnboardingTests.cases} onboarding install scenarios, ${colosseumReadTests.cases} Colosseum read tests, ${colosseumV2Tests.cases} V2 migration tests, ${serviceAccessTests.cases} service-access tests, ${qualityTests.cases} quality workflow tests, ${eventScoreTests.cases} event score tests, ${supportPolicyTests.cases} support policy tests, ${installSafetyTests.cases} installation safety tests, ${helperExportRegressionTests.cases} helper/export regression tests.`
 );

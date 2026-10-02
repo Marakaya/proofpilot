@@ -30,7 +30,7 @@ ProofPilot distinguishes public references from connector specifications and imp
 | [Sequoia Capital public PMF and founder methods](https://sequoiacap.com/article/pmf-framework-2) | public | `available_public` | Choose and interpret experiments. Never use investor authority, portfolio examples or macro forecasts as evidence of this project's demand, retention, economics or eligibility. |
 | [Founder Institute](https://fi.co/) | public | `available_public` | Founder readiness, idea validation, market framing, and structured progression. |
 | [Devpost](https://devpost.com/) | public | `available_public` | Project patterns, judging criteria, prize tracks, required fields, and public demos. |
-| [Colosseum Copilot](https://docs.colosseum.com/copilot/getting-started) | connected | `implemented` | Solana project similarity, winner patterns, archive evidence, gap analysis, and accelerator context. |
+| [Colosseum Copilot](https://github.com/ColosseumOrg/colosseum-copilot/blob/079bd44b0d4d221d6a893764d8ec6f5f4845707e/README.md) | connected | `implemented` | Solana project similarity, winner patterns, archive evidence, gap analysis, and accelerator context. |
 | [ETHGlobal](https://ethglobal.com/) | public | `available_public` | Ethereum hackathon projects, event requirements, sponsors, prizes, and submission patterns. |
 | [Kaggle](https://www.kaggle.com/) | public_or_connected | `available_public` | Dataset availability, benchmark conventions, notebooks, and competition requirements. |
 | [Hugging Face](https://huggingface.co/) | public_or_connected | `available_public` | Model and dataset availability, licenses, benchmarks, demos, and comparable AI products. |
@@ -44,7 +44,7 @@ A review date includes partial or blocked checks. The last verified date covers 
 
 | Tool | Reviewed | Page access | Content | Last verified | API probe status |
 |---|---|---|---|---|---|
-| GitHub | 2026-09-05 | reachable | confirmed | 2026-09-05 | HTTP 200 (scoped GET) |
+| GitHub | 2026-09-05 | reachable | confirmed | 2026-09-05 | verified; recorded probes: 2026-09-05T13:41:31.397448+00:00: HTTP 200, GET https://api.github.com/repos/Marakaya/proofpilot |
 | YC Library and Startup School | 2026-09-05 | partial | partial | 2026-09-05 | not_applicable |
 | garrytan/gstack | 2026-09-05 | reachable | corrected | 2026-09-05 | not_tested |
 | Founder Institute | 2026-09-05 | reachable | confirmed | 2026-09-05 | not_applicable |
@@ -78,9 +78,9 @@ A review date includes partial or blocked checks. The last verified date covers 
 | Azure and Microsoft Foundry | 2026-09-05 | reachable | confirmed | 2026-09-05 | not_tested |
 | Google Cloud and Firebase | 2026-09-05 | reachable | corrected | 2026-09-05 | not_tested |
 | solana.new | 2026-09-05 | reachable | corrected | 2026-09-05 | not_tested |
-| DefiLlama | 2026-09-05 | reachable | corrected | 2026-09-05 | HTTP 200 (scoped GET) |
-| Colosseum Copilot | 2026-09-05 | reachable | corrected | 2026-09-05 | HTTP 403 (scoped GET); HTTP 403 (scoped GET); HTTP 200 (scoped GET); HTTP 200 (scoped GET); HTTP 200 (scoped GET) |
-| ETHGlobal Skills | 2026-09-05 | reachable | confirmed | 2026-09-05 | HTTP 200 (scoped GET) |
+| DefiLlama | 2026-09-05 | reachable | corrected | 2026-09-05 | verified; recorded probes: 2026-09-05: HTTP 200, GET https://api.llama.fi/v2/chains |
+| Colosseum Copilot | 2026-10-01 | reachable | corrected | 2026-10-01 | not_tested; recorded probes: 2026-09-05T13:57:08.305165+00:00: HTTP 403, GET https://copilot.colosseum.com/api/v1/status; 2026-09-05: HTTP 403, GET https://copilot.colosseum.com/api/v1/filters; 2026-09-05T15:31:28.996288+00:00: HTTP 200, GET https://copilot.colosseum.com/api/v1/status; 2026-09-05: HTTP 200, GET https://copilot.colosseum.com/api/v1/filters; 2026-09-05T16:09:57.823Z: HTTP 200, GET https://copilot.colosseum.com/api/v1/status |
+| ETHGlobal Skills | 2026-09-05 | reachable | confirmed | 2026-09-05 | verified; recorded probes: 2026-09-05: HTTP 200, GET https://ethglobalskills.vercel.app/api/sponsors?keyword=uniswap |
 | Scaffold-ETH 2 | 2026-09-05 | reachable | corrected | 2026-09-05 | not_tested |
 | Base developer tools and legacy OnchainKit migration | 2026-09-05 | partial | corrected | 2026-09-05 | not_tested |
 | Coinbase AgentKit | 2026-09-05 | reachable | corrected | 2026-09-05 | not_tested |
@@ -199,7 +199,7 @@ Read the entry's reference_checks, runtime_probes and freshness_review.limitatio
 | Tool | Used For | Capabilities | Decision |
 |---|---|---|---|
 | [DefiLlama](https://defillama.com/) | DeFi market health, chain and category comparison, protocol traction, and integration risk context. | `public_market_data`: available_public; no_secret; read_only<br>`research_skill`: catalogued; no_secret; read_only | Use documented free endpoints on api.llama.fi for public research; distinguish paid Pro-only endpoints. Treat TVL as one signal rather than proof of demand or safety. |
-| [Colosseum Copilot](https://docs.colosseum.com/copilot/getting-started) | Solana project similarity, winner patterns, archive research, gap analysis, and ecosystem context. | `project_research`: implemented; api_token; read_only | Colosseum is required for completed ProofPilot setup. Reuse existing read access through setup.js and the packaged fixed-route colosseum-read.js helper. Fresh status and bounded project search passed on 2026-09-05; other read routes have fixture/contract tests only. Conversational scope by default; Deep Dive is explicit and broader upstream features remain outside this helper. Other service connections are optional. |
+| [Colosseum Copilot](https://github.com/ColosseumOrg/colosseum-copilot/blob/079bd44b0d4d221d6a893764d8ec6f5f4845707e/README.md) | Solana project similarity, winner patterns, archive research, gap analysis, and ecosystem context. | `project_research`: implemented; oauth; read_only | Colosseum is required for completed research setup. Use official Copilot Connect browser/device sign-in, setup.js and the fixed-route V2 read helper. Saved local state does not prove evidence access. Local contract/transport tests passed; authenticated V2 operations remain untested. Historical V1 probes do not verify V2. Conversational scope is the default; broader upstream features and optional service connections are separate. |
 | [ETHGlobal Skills](https://ethglobal.com/) | Ethereum hackathon project research, event requirements, sponsor tracks, and winner context. | `public_research`: available_public; no_secret; read_only<br>`external_skill`: connector_spec; no_secret; read_only<br>`paid_research`: deferred; wallet_session; wallet_or_paid_action | Use current official event pages for rules. An installed skill may use only the free read path within its documented limit. On HTTP 402/payment required, stop or use public pages; never install AgentCash, fund a wallet or pay automatically. API responses are research leads; verify binding rules on the named official event page. The corpus repository governance was not independently established. Live version header 1.1.0 differs from upstream/local SKILL 1.0.0; inspect the current contract instead of assuming reinstall fixes it. |
 | [BNB Chain AI and MCP tools](https://docs.bnbchain.org/) | BNB Chain research, architecture, and future agent or MCP workflows. | `official_guidance`: available_public; no_secret; read_only<br>`mcp_read`: catalogued; no_secret; read_only<br>`mcp_write`: deferred; wallet_session; wallet_or_paid_action | Use official docs now. Require source verification before enabling a third-party MCP and keep write actions deferred. |
 

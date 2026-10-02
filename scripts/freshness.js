@@ -58,9 +58,10 @@ export function validateFreshnessSemantics(entry, { kind = "tool" } = {}) {
       Number.isInteger(probe.http_status) && probe.http_status >= 200 && probe.http_status < 300 &&
       isHttpsUrl(probe.url) &&
       (isDate(probe.checked_at) || isDateTime(probe.checked_at)) &&
-      nonblank(probe.observation) && nonblank(probe.scope_limit)
+      nonblank(probe.observation) && nonblank(probe.scope_limit) &&
+      (!verification.runtime_api_base || matchesApiBase(probe.url, verification.runtime_api_base))
     ));
-    if (!hasSuccessfulProbe) fail("live_api/verified requires a dated GET 2xx runtime_probes record with observation and scope_limit");
+    if (!hasSuccessfulProbe) fail("live_api/verified requires a dated GET 2xx runtime_probes record with observation and scope_limit for the current runtime_api_base");
   }
 
   for (const [index, probe] of (entry.runtime_probes ?? []).entries()) {
@@ -68,4 +69,13 @@ export function validateFreshnessSemantics(entry, { kind = "tool" } = {}) {
     if (!nonblank(probe.observation)) fail(`runtime_probes[${index}].observation must describe the observed result`);
   }
   return errors;
+}
+
+function matchesApiBase(url, base) {
+  try {
+    const probe = new URL(url);
+    const runtime = new URL(base);
+    const prefix = runtime.pathname.replace(/\/$/, "");
+    return probe.origin === runtime.origin && (probe.pathname === prefix || probe.pathname.startsWith(`${prefix}/`));
+  } catch { return false; }
 }

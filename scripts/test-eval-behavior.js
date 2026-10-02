@@ -159,7 +159,7 @@ export function runBehaviorCliTests() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === filename) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(filename)) {
   const summary = runBehaviorCliTests();
   console.log(`Behavior CLI regression tests passed: ${summary.cases}. No model executed or evaluated.`);
 }

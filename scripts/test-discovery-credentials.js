@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const filename = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(filename), "..");
 const discoveryUrl = pathToFileURL(path.join(root, "skills/proofpilot/scripts/discover-sources.js")).href;
+const isolationUrl = pathToFileURL(path.join(root, "scripts/test-isolation.js")).href;
 
 export function runDiscoveryCredentialTests() {
   const token = "synthetic-kaggle-token-must-not-appear";
@@ -38,10 +39,27 @@ export function runDiscoveryCredentialTests() {
     { name: "Linux custom XDG", platform: "linux", env: dir => ({ XDG_CONFIG_HOME: path.join(dir, "xdg") }), files: { "xdg/kaggle/kaggle.json": JSON.stringify({ username, key }) }, configured: true },
     { name: "Linux prefers existing .kaggle", platform: "linux", files: { ".kaggle/kaggle.json": "{}", ".config/kaggle/kaggle.json": JSON.stringify({ username, key }) }, configured: false },
     { name: "credential paths must be regular files", directories: [".kaggle/access_token", ".kaggle/kaggle.json"], configured: false },
-    { name: "oversized credential file", files: { ".kaggle/access_token": token + "x".repeat(64 * 1024) }, configured: false }
+    { name: "oversized credential file", files: { ".kaggle/access_token": token + "x".repeat(64 * 1024) }, configured: false },
+    { name: "optional credential whitespace", env: {
+      GITHUB_TOKEN: " \n\t", GH_TOKEN: " ", HF_TOKEN: "\t", HUGGINGFACE_TOKEN: " ", OPENAI_API_KEY: " \n",
+      ANTHROPIC_API_KEY: "\t", GEMINI_API_KEY: " ", GOOGLE_API_KEY: "\n"
+    }, configured: false, credentials: { github_token_configured: false, hugging_face_token_configured: false,
+      openai_key_configured: false, anthropic_key_configured: false, gemini_key_configured: false } },
+    { name: "optional credential values", env: {
+      GITHUB_TOKEN: token, HF_TOKEN: token, OPENAI_API_KEY: token, ANTHROPIC_API_KEY: token, GEMINI_API_KEY: token
+    }, configured: false, credentials: { github_token_configured: true, hugging_face_token_configured: true,
+      openai_key_configured: true, anthropic_key_configured: true, gemini_key_configured: true } },
+    { name: "optional valid aliases after empty primary", env: {
+      GITHUB_TOKEN: " ", GH_TOKEN: token, HF_TOKEN: "\t", HUGGINGFACE_TOKEN: token,
+      GEMINI_API_KEY: "\n", GOOGLE_API_KEY: token
+    }, configured: false, credentials: { github_token_configured: true, hugging_face_token_configured: true,
+      openai_key_configured: false, anthropic_key_configured: false, gemini_key_configured: true } },
+    { name: "optional blank aliases", env: { GH_TOKEN: "\t", HUGGINGFACE_TOKEN: " ", GOOGLE_API_KEY: "\n" },
+      configured: false, credentials: { github_token_configured: false, hugging_face_token_configured: false,
+        openai_key_configured: false, anthropic_key_configured: false, gemini_key_configured: false } }
   ];
 
-  // Isolate discovery from real home directories and credentials without changing HOME.
+  // Minimal child environments still isolate both account and environment home lookups.
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-discovery-test-"));
   try {
     for (const [index, scenario] of scenarios.entries()) {
@@ -56,9 +74,11 @@ export function runDiscoveryCredentialTests() {
         fs.writeFileSync(fixture, contents, { mode: 0o600 });
       }
       const script = `import os from "node:os"; os.homedir = () => ${JSON.stringify(isolatedHome)}; Object.defineProperty(process, "platform", { value: ${JSON.stringify(scenario.platform || "darwin")} }); await import(${JSON.stringify(discoveryUrl)});`;
-      const result = spawnSync(process.execPath, ["--input-type=module", "--eval", script], {
+      const scenarioEnv = typeof scenario.env === "function" ? scenario.env(isolatedHome) : scenario.env || {};
+      const result = spawnSync(process.execPath, ["--import", isolationUrl, "--input-type=module", "--eval", script], {
         cwd: root,
-        env: typeof scenario.env === "function" ? scenario.env(isolatedHome) : scenario.env || {},
+        env: { ...scenarioEnv, HOME: isolatedHome, USERPROFILE: isolatedHome, PROOFPILOT_TEST_HOME: isolatedHome,
+          NODE_OPTIONS: `--import=${isolationUrl}` },
         encoding: "utf8",
         timeout: 15000
       });
@@ -70,6 +90,11 @@ export function runDiscoveryCredentialTests() {
       }
       const output = JSON.parse(result.stdout);
       assert.equal(output.credentials.kaggle_configured, scenario.configured, scenario.name);
+      for (const [name, expected] of Object.entries(scenario.credentials || {})) {
+        assert.equal(output.credentials[name], expected, `${scenario.name}: ${name}`);
+      }
+      assert.equal(output.credentials.colosseum_copilot_connection_stored, false,
+        "Discovery tests must not observe a connection from the real account home");
       assert.ok(Object.values(output.credentials).every(value => typeof value === "boolean"),
         "Discovery credential hints must contain booleans only");
     }
@@ -80,7 +105,7 @@ export function runDiscoveryCredentialTests() {
   return { cases: 1, scenarios: scenarios.length };
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === filename) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(filename)) {
   const summary = runDiscoveryCredentialTests();
   console.log(`Discovery credential regression test passed: ${summary.scenarios} scenarios. No account API called.`);
 }

@@ -1,4 +1,4 @@
 interface:
   display_name: "ProofPilot"
-  short_description: "Evidence-based venture and event assessment"
-  default_prompt: "Use $proofpilot to check my Colosseum setup, explain any needed access and costs, then turn my current idea or constraints into an evidence-backed next decision."
+  short_description: "Venture assessment and Solana development routing"
+  default_prompt: "Use $proofpilot for my requested venture assessment or Solana implementation. Follow its task route, check Colosseum setup when research needs it, and complete the requested work."

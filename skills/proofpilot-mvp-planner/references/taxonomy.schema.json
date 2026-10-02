@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofpilot.dev/schemas/taxonomy.schema.json",
+  "title": "ProofPilot taxonomy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "modes", "stages", "domains", "venture_types", "program_contexts", "sensitivity_classes"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "modes": { "$ref": "#/$defs/namedItems" },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "order", "workflow_ref"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "label": { "$ref": "#/$defs/text" },
+          "order": { "type": "integer", "minimum": 1 },
+          "workflow_ref": { "type": "string", "pattern": "^[a-z0-9-]+\\.md$" }
+        }
+      }
+    },
+    "domains": { "$ref": "#/$defs/namedItems" },
+    "venture_types": { "$ref": "#/$defs/namedItems" },
+    "program_contexts": { "$ref": "#/$defs/namedItems" },
+    "sensitivity_classes": { "$ref": "#/$defs/namedItems" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "text": { "type": "string", "minLength": 1 },
+    "namedItems": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "label": { "$ref": "#/$defs/text" },
+          "description": { "$ref": "#/$defs/text" }
+        }
+      }
+    }
+  }
+}

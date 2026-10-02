@@ -15,14 +15,15 @@ export function runQualityTests() {
   let sequence = 0;
   let cases = 0;
   const sourcePath = path.join(temporaryRoot, "facts.md");
-  const originalSource = "Capacity: 10 customers. Active: 9.\nThis is a user report, not an independent audit.\n";
+  const originalSource = "Capacity: 10 customers. Active: 9.\nInspected synthetic operating log; no real independent audit is claimed.\n";
   fs.writeFileSync(sourcePath, originalSource);
   const packet = {
     task: "Assess whether one more weekly customer fits the reported capacity.",
     mode: "coach",
+    decision_context: "general",
     sources: [{ id: "u1", path: "facts.md", kind: "user", locator: "User operating log" }],
     facts: [
-      { id: "f1", statement: "Capacity is ten customers; nine are active.", status: "reported", source_id: "u1", quote: "Capacity: 10 customers. Active: 9." },
+      { id: "f1", statement: "Capacity is ten customers; nine are active.", status: "observed", source_id: "u1", quote: "Capacity: 10 customers. Active: 9." },
       { id: "f2", statement: "Acquisition cost is unknown.", status: "unknown" }
     ],
     gates: [{ id: "capacity", target: "build", requirement: "One additional customer fits the reported capacity.", status: "passed", fact_ids: ["f1"] }],
@@ -55,6 +56,8 @@ export function runQualityTests() {
   }
   function reviewFor(current) {
     return {
+      packet_sha256: current.packet_sha256,
+      policy_version: current.policy_version,
       draft_sha256: current.draft_sha256,
       assessment_sha256: current.assessment_sha256,
       reviewer: { mode: "separate_context", model: "test-reviewer" },
@@ -88,6 +91,40 @@ export function runQualityTests() {
       assert.throws(() => init((input) => { delete input.mode; }), /packet.mode/);
       for (const value of ["judge", "", false, null]) assert.throws(() => init((input) => { input.mode = value; }), /packet.mode/);
     });
+    test("new packets require an explicit valid decision context before creating a run", () => {
+      for (const value of [undefined, "apply", "", false, null, {}, []]) {
+        const input = clone(packet);
+        if (value === undefined) delete input.decision_context;
+        else input.decision_context = value;
+        const run = path.join(temporaryRoot, `missing-context-${++sequence}`);
+        assert.throws(() => runQuality(["init", run, write(input)]), /packet.decision_context/);
+        assert.equal(fs.existsSync(run), false, "An invalid packet must not leave an initialized or partial run");
+      }
+    });
+    for (const flag of [undefined, false]) {
+      test(`application report requires independent review without apply gates, flag ${flag}`, () => {
+        const run = init((input) => {
+          input.task = "Подготовить заключение по заявке.";
+          input.decision_context = "application";
+          input.gates = [];
+          if (flag !== undefined) input.requires_independent_review = flag;
+        });
+        assert.equal(run.policy_version, 4);
+        assert.equal(run.decision_context, "application");
+        assert.equal(run.requires_independent_review, true);
+        const current = submit(run, BASE_DRAFT, (input) => { input.decision = { target: "artifact", decision: "complete" }; });
+        assert.deepEqual(current.diagnostics, []);
+        const result = review(current, (input) => { input.reviewer.mode = "self_review"; });
+        assert.equal(result.disposition, "needs_review");
+        diagnostic(result, "independent_review_required");
+        assert.equal(runQuality(["status", result.run_dir]).requires_independent_review, true);
+      });
+    }
+    test("application report can complete after a recorded separate-context review", () => {
+      const current = submit(init((input) => { input.decision_context = "application"; input.gates = []; }), BASE_DRAFT,
+        (input) => { input.decision = { target: "artifact", decision: "complete" }; });
+      assert.equal(review(current).disposition, "accepted");
+    });
     test("evaluator mode requires independent review without an optional flag", () => {
       for (const flag of [undefined, false]) {
         const run = init((input) => { input.mode = "evaluator"; if (flag !== undefined) input.requires_independent_review = flag; });
@@ -104,10 +141,11 @@ export function runQualityTests() {
       const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf8"));
       snapshot.policy.version = 1;
       delete snapshot.packet.mode;
+      delete snapshot.packet.decision_context;
       const bytes = `${JSON.stringify(snapshot, null, 2)}\n`;
       fs.writeFileSync(snapshotPath, bytes);
       const statePath = path.join(old.run_dir, "state.json");
-      const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")).state;
       state.packet_sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
       const stateBytes = `${JSON.stringify(state, null, 2)}\n`;
       fs.writeFileSync(statePath, stateBytes);
@@ -125,7 +163,7 @@ export function runQualityTests() {
       const old = review(submit(init(), BASE_DRAFT, (input) => { input.decision = { target: "artifact", decision: "complete" }; }), (input) => { input.reviewer.mode = "self_review"; });
       const snapshotPath = path.join(old.run_dir, "packet.json");
       const statePath = path.join(old.run_dir, "state.json");
-      const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")).state;
       delete state.drafts[0].requires_independent_review;
       const saveState = () => {
         const bytes = `${JSON.stringify(state, null, 2)}\n`;
@@ -138,6 +176,7 @@ export function runQualityTests() {
       const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf8"));
       snapshot.policy.version = 1;
       delete snapshot.packet.mode;
+      delete snapshot.packet.decision_context;
       snapshot.packet.gates[0].target = "apply";
       const bytes = `${JSON.stringify(snapshot, null, 2)}\n`;
       fs.writeFileSync(snapshotPath, bytes);
@@ -151,6 +190,104 @@ export function runQualityTests() {
       assert.throws(() => submit(old), /Legacy policy run is read-only/);
       assert.throws(() => review(old), /Legacy policy run is read-only/);
       assert.equal(fs.readFileSync(statePath, "utf8"), before);
+    });
+    test("policy-v2 archives preserve completed history without recertification", () => {
+      const old = review(submit(init()), input => { input.reviewer.mode = "self_review"; });
+      const snapshotPath = path.join(old.run_dir, "packet.json");
+      const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf8"));
+      snapshot.policy.version = 2;
+      delete snapshot.packet.decision_context;
+      const bytes = `${JSON.stringify(snapshot, null, 2)}\n`;
+      fs.writeFileSync(snapshotPath, bytes);
+      const statePath = path.join(old.run_dir, "state.json");
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8")).state;
+      state.packet_sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
+      const stateBytes = `${JSON.stringify(state, null, 2)}\n`;
+      fs.writeFileSync(statePath, stateBytes);
+      fs.writeFileSync(path.join(old.run_dir, "state.sha256"), `${crypto.createHash("sha256").update(stateBytes).digest("hex")}\n`);
+      const status = runQuality(["status", old.run_dir]);
+      assert.equal(status.policy_version, 2);
+      assert.equal(status.recorded_disposition, "accepted");
+      assert.equal(status.disposition, "needs_review");
+      assert.equal(status.legacy_read_only, true);
+      assert.throws(() => submit(old), /Legacy policy run is read-only/);
+      assert.equal(fs.readFileSync(statePath, "utf8"), stateBytes);
+    });
+    function archiveV3(current) {
+      const encode = value => `${JSON.stringify(value, null, 2)}\n`;
+      const digest = value => crypto.createHash("sha256").update(value).digest("hex");
+      const snapshot = JSON.parse(fs.readFileSync(current.packet_file, "utf8"));
+      snapshot.policy.version = 3;
+      delete snapshot.packet.decision_context;
+      const packetBytes = encode(snapshot);
+      fs.writeFileSync(current.packet_file, packetBytes);
+      const stateFile = path.join(current.run_dir, "state.json");
+      const state = JSON.parse(fs.readFileSync(stateFile, "utf8")).state;
+      state.packet_sha256 = digest(packetBytes);
+      for (const entry of state.drafts) {
+        for (const filename of [entry.review_template_file, entry.review_file].filter(Boolean)) {
+          const file = path.join(current.run_dir, filename);
+          const review = JSON.parse(fs.readFileSync(file, "utf8"));
+          review.packet_sha256 = state.packet_sha256;
+          review.policy_version = 3;
+          const reviewBytes = encode(review);
+          fs.writeFileSync(file, reviewBytes);
+          if (filename === entry.review_file) entry.review_sha256 = digest(reviewBytes);
+        }
+      }
+      fs.writeFileSync(stateFile, encode({ format: 2, state, sha256: digest(encode(state)) }));
+      return fs.readdirSync(current.run_dir).map(filename => {
+        const file = path.join(current.run_dir, filename);
+        return [file, fs.readFileSync(file)];
+      });
+    }
+    for (const target of ["artifact", "test"]) {
+      test(`policy-v3 ${target} history remains readable under its exact recorded rules`, () => {
+        const current = review(submit(init((input) => {
+          input.task = "Review the supplied application report.";
+          input.gates = [];
+        }), BASE_DRAFT, (input) => { input.decision = { target, decision: target === "artifact" ? "complete" : "proceed" }; }),
+        (input) => { input.reviewer.mode = "self_review"; });
+        const before = archiveV3(current);
+        const status = runQuality(["status", current.run_dir]);
+        assert.equal(status.policy_version, 3);
+        assert.equal(status.decision_context, null);
+        assert.equal(status.recorded_disposition, "accepted");
+        assert.equal(status.disposition, "needs_review");
+        assert.equal(status.legacy_read_only, true);
+        diagnostic(status, "legacy_policy");
+        assert.throws(() => submit(current), /Legacy policy run is read-only/);
+        assert.throws(() => review(current), /Legacy policy run is read-only/);
+        for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(file), bytes, `Archive was changed: ${file}`);
+      });
+    }
+    test("policy-v3 retains persistent application review across assessment-only repairs", () => {
+      const first = submit(init(), BASE_DRAFT, input => { input.decision = { target: "apply", decision: "proceed" }; });
+      const second = submit(first, BASE_DRAFT, input => { input.decision = { target: "artifact", decision: "complete" }; });
+      const current = review(second, input => { input.reviewer.mode = "self_review"; });
+      const before = archiveV3(current);
+      const status = runQuality(["status", current.run_dir]);
+      assert.equal(status.recorded_disposition, "needs_review");
+      assert.equal(status.draft_count, 2);
+      diagnostic(status, "independent_review_required");
+      assert.throws(() => submit(current), /Legacy policy run is read-only/);
+      for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(file), bytes);
+    });
+    test("policy-v3 still rejects a review unbound from its frozen packet", () => {
+      const current = review(submit(init()));
+      archiveV3(current);
+      const stateFile = path.join(current.run_dir, "state.json");
+      const record = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+      const entry = record.state.drafts[0];
+      const reviewFile = path.join(current.run_dir, entry.review_file);
+      const archivedReview = JSON.parse(fs.readFileSync(reviewFile, "utf8"));
+      archivedReview.packet_sha256 = "0".repeat(64);
+      const bytes = `${JSON.stringify(archivedReview, null, 2)}\n`;
+      fs.writeFileSync(reviewFile, bytes);
+      entry.review_sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
+      record.sha256 = crypto.createHash("sha256").update(`${JSON.stringify(record.state, null, 2)}\n`).digest("hex");
+      fs.writeFileSync(stateFile, `${JSON.stringify(record, null, 2)}\n`);
+      assert.throws(() => runQuality(["status", current.run_dir]), /current frozen packet/);
     });
     test("source-grounded positive decision and actual calculations", () => {
       const run = init();
@@ -233,6 +370,318 @@ export function runQualityTests() {
     test("passed or failed gates cannot rest on missing or unknown facts", () => {
       assert.throws(() => init((input) => { input.gates[0].fact_ids = []; }), /requires known evidence/);
       assert.throws(() => init((input) => { input.gates[0].status = "failed"; input.gates[0].fact_ids = ["f2"]; }), /requires known evidence/);
+    });
+    test("reported-only prerequisites cannot be promoted to passed", () => {
+      assert.throws(() => init((input) => { input.facts[0].status = "reported"; }), /requires current inspected evidence/);
+    });
+    test("a bounded first test can proceed from candid claims without an invented gate", () => {
+      const run = init((input) => { input.facts[0].status = "reported"; input.gates = []; });
+      const current = submit(run, BASE_DRAFT, (input) => { input.decision.target = "test"; });
+      assert.deepEqual(current.diagnostics, []);
+      assert.equal(review(current, (input) => { input.reviewer.mode = "self_review"; }).disposition, "accepted");
+    });
+    test("application review requirements persist after switching the assessment to artifact", () => {
+      const first = submit(init(), BASE_DRAFT, (input) => { input.decision = { target: "apply", decision: "proceed" }; });
+      assert.equal(first.requires_independent_review, true);
+      const second = submit(first, BASE_DRAFT, (input) => { input.decision = { target: "artifact", decision: "complete" }; });
+      assert.equal(second.requires_independent_review, true);
+      const result = review(second, (input) => { input.reviewer.mode = "self_review"; });
+      assert.equal(result.disposition, "needs_review");
+      assert.equal(runQuality(["status", result.run_dir]).requires_independent_review, true);
+    });
+    test("self-review cannot resolve an application issue by relabeling the unchanged draft", () => {
+      const first = submit(init(), BASE_DRAFT, (input) => { input.decision = { target: "apply", decision: "pause" }; });
+      const repaired = failedReview(first);
+      const second = submit(repaired, BASE_DRAFT, (input) => { input.decision = { target: "artifact", decision: "complete" }; });
+      const result = review(second, (input) => {
+        input.reviewer.mode = "self_review";
+        input.resolutions = [{ id: "wrong_scope", status: "fixed", basis: "Changed only the assessment target." }];
+      });
+      assert.equal(result.disposition, "needs_review");
+    });
+    test("reviews are bound to the frozen packet as well as identical draft and assessment", () => {
+      const first = submit(init(), BASE_DRAFT, (input) => { input.decision = { target: "artifact", decision: "complete" }; });
+      const second = submit(init((input) => { input.mode = "evaluator"; input.task = "Evaluate this report in a different frozen context."; }), BASE_DRAFT, (input) => { input.decision = { target: "artifact", decision: "complete" }; });
+      assert.equal(first.draft_sha256, second.draft_sha256);
+      assert.equal(first.assessment_sha256, second.assessment_sha256);
+      assert.notEqual(first.packet_sha256, second.packet_sha256);
+      assert.throws(() => runQuality(["review", second.run_dir, write(reviewFor(first))]), /current frozen packet/);
+      assert.equal(runQuality(["status", second.run_dir]).disposition, "awaiting_review");
+    });
+    test("invalid draft encoding is rejected before it consumes a version", () => {
+      const run = init();
+      const bytes = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(BASE_DRAFT, "utf16le")]);
+      assert.throws(() => submit(run, bytes), /valid UTF-8/);
+      assert.equal(runQuality(["status", run.run_dir]).draft_count, 0);
+      assert.equal(fs.existsSync(path.join(run.run_dir, "draft-1.md")), false);
+      assert.equal(submit(run).draft_count, 1);
+    });
+    for (const preexisting of [false, true]) {
+      test(`failed initial state commit cleans its files and retries in ${preexisting ? "an existing empty" : "a new"} directory`, () => {
+        const run = path.join(temporaryRoot, `initial-fault-${++sequence}`);
+        if (preexisting) fs.mkdirSync(run, { mode: 0o750 });
+        const inode = preexisting ? fs.statSync(run).ino : null;
+        const input = write(packet);
+        const inputBytes = fs.readFileSync(input);
+        const sourceBytes = fs.readFileSync(sourcePath);
+        const originalRename = fs.renameSync;
+        const commitError = Object.assign(new Error("Synthetic EIO during initial state commit"), { code: "EIO" });
+        let interrupted = false;
+        fs.renameSync = (from, to) => {
+          if (path.resolve(to) !== path.join(run, "state.json")) return originalRename(from, to);
+          interrupted = true;
+          assert.equal(fs.existsSync(path.join(run, "packet.json")), true);
+          throw commitError;
+        };
+        try { assert.throws(() => runQuality(["init", run, input]), error => error === commitError); }
+        finally { fs.renameSync = originalRename; }
+        assert.equal(interrupted, true, "The failure must occur after creating the packet and writing initial state");
+        assert.equal(fs.statSync(run).isDirectory(), true, "Initialization rollback preserves its directory");
+        if (preexisting) assert.equal(fs.statSync(run).ino, inode, "A pre-existing directory must survive rollback");
+        assert.deepEqual(fs.readdirSync(run), [], "Untouched packet and state temporary must both be removed");
+        assert.deepEqual(fs.readFileSync(input), inputBytes);
+        assert.deepEqual(fs.readFileSync(sourcePath), sourceBytes);
+        const retried = runQuality(["init", run, input]);
+        assert.equal(retried.draft_count, 0);
+        assert.equal(retried.disposition, "draft_required");
+        assert.equal(runQuality(["status", run]).disposition, "draft_required");
+      });
+    }
+    for (const saveMode of ["atomic replacement", "same-inode edit", "atomic replacement with unchanged bytes", "uninspectable ownership"]) {
+      test(`failed initialization preserves packet.json with ${saveMode}`, () => {
+        const run = path.join(temporaryRoot, `initial-foreign-${++sequence}`);
+        const input = write(packet);
+        const protectedBytes = [sourcePath, input].map(file => [file, fs.readFileSync(file)]);
+        const target = path.join(run, "packet.json");
+        const originalRename = fs.renameSync;
+        const originalLstat = fs.lstatSync;
+        const commitError = Object.assign(new Error("Synthetic EIO during initial state publication"), { code: "EIO" });
+        let saved;
+        let denyInspection = false;
+        let inspectionFailures = 0;
+        let thrown;
+        fs.lstatSync = (file, ...args) => {
+          if (denyInspection && path.resolve(file) === target) {
+            inspectionFailures++;
+            throw Object.assign(new Error("Synthetic packet inspection denied"), { code: "EACCES" });
+          }
+          return originalLstat(file, ...args);
+        };
+        fs.renameSync = (from, to) => {
+          if (path.resolve(to) !== path.join(run, "state.json")) return originalRename(from, to);
+          const inode = fs.statSync(target).ino;
+          saved = saveMode === "atomic replacement with unchanged bytes" || saveMode === "uninspectable ownership"
+            ? fs.readFileSync(target) : Buffer.from(`Other author saved packet: ${saveMode}.\n`);
+          if (saveMode.startsWith("atomic replacement")) {
+            const temporary = path.join(run, "author-packet.tmp");
+            fs.writeFileSync(temporary, saved, { flag: "wx" });
+            originalRename(temporary, target);
+            assert.notEqual(fs.statSync(target).ino, inode);
+          } else if (saveMode === "same-inode edit") {
+            fs.writeFileSync(target, saved);
+            assert.equal(fs.statSync(target).ino, inode);
+          } else denyInspection = true;
+          throw commitError;
+        };
+        try { runQuality(["init", run, input]); }
+        catch (error) { thrown = error; }
+        finally { fs.renameSync = originalRename; fs.lstatSync = originalLstat; }
+        assert(saved, "The test must reach initial state publication");
+        assert.equal(thrown?.code, "EIO");
+        assert.match(thrown.message, /Synthetic EIO during initial state publication/);
+        assert(thrown.message.includes(target), "The retained packet path must be disclosed");
+        assert.deepEqual(fs.readdirSync(run), ["packet.json"], "State temporary must be cleaned while the uncertain packet remains");
+        assert.deepEqual(fs.readFileSync(target), saved);
+        if (saveMode === "uninspectable ownership") assert(inspectionFailures > 0);
+        assert.throws(() => runQuality(["init", run, input]), /never overwrite/);
+        assert.deepEqual(fs.readFileSync(target), saved);
+        for (const [file, bytes] of protectedBytes) assert.deepEqual(fs.readFileSync(file), bytes);
+        const preserved = path.join(temporaryRoot, `preserved-initial-packet-${++sequence}`);
+        fs.renameSync(target, preserved);
+        assert.equal(runQuality(["init", run, input]).disposition, "draft_required");
+        assert.deepEqual(fs.readFileSync(preserved), saved);
+      });
+    }
+    test("failed initialization leaves an unrelated concurrent artifact intact", () => {
+      const run = path.join(temporaryRoot, `initial-unrelated-${++sequence}`);
+      const input = write(packet);
+      const foreignFile = path.join(run, "author-note.md");
+      const foreignBytes = "Other author owns this note.\n";
+      const originalRename = fs.renameSync;
+      fs.renameSync = (from, to) => {
+        if (path.resolve(to) !== path.join(run, "state.json")) return originalRename(from, to);
+        fs.writeFileSync(foreignFile, foreignBytes, { flag: "wx" });
+        throw new Error("Synthetic initial commit failure after a concurrent write");
+      };
+      try { assert.throws(() => runQuality(["init", run, input]), /Synthetic initial commit failure/); }
+      finally { fs.renameSync = originalRename; }
+      assert.deepEqual(fs.readdirSync(run), ["author-note.md"]);
+      assert.equal(fs.readFileSync(foreignFile, "utf8"), foreignBytes);
+      assert.throws(() => runQuality(["init", run, input]), /never overwrite/);
+      assert.equal(fs.readFileSync(foreignFile, "utf8"), foreignBytes);
+    });
+    test("failed atomic state commit preserves the last valid run and permits retry", () => {
+      const run = init();
+      const stateBytes = fs.readFileSync(path.join(run.run_dir, "state.json"));
+      const packetBytes = fs.readFileSync(run.packet_file);
+      const originalRename = fs.renameSync;
+      fs.renameSync = () => { throw new Error("Synthetic state commit interruption"); };
+      try { assert.throws(() => submit(run), /Synthetic state commit interruption/); }
+      finally { fs.renameSync = originalRename; }
+      assert.equal(runQuality(["status", run.run_dir]).draft_count, 0);
+      for (const filename of ["draft-1.md", "draft-1.assessment.json", "draft-1.review-template.json"]) {
+        assert.equal(fs.existsSync(path.join(run.run_dir, filename)), false);
+      }
+      assert.deepEqual(fs.readFileSync(path.join(run.run_dir, "state.json")), stateBytes);
+      assert.deepEqual(fs.readFileSync(run.packet_file), packetBytes);
+      assert.equal(fs.existsSync(path.join(run.run_dir, "state.sha256")), false);
+      assert.equal(submit(run).draft_count, 1);
+    });
+    for (const operation of ["submit", "review"]) {
+      const artifacts = operation === "submit"
+        ? ["draft-1.md", "draft-1.assessment.json", "draft-1.review-template.json"]
+        : ["draft-1.review.json"];
+      const saveModes = ["atomic replacement", "same-inode edit", ...(operation === "review" ? ["atomic replacement with unchanged bytes"] : [])];
+      for (const filename of artifacts) for (const saveMode of saveModes) {
+        test(`failed ${operation} commit preserves ${saveMode} of ${filename}`, () => {
+          const current = operation === "review" ? submit(init()) : init();
+          const inputs = operation === "submit" ? [write(BASE_DRAFT, "md"), write(assessment)] : [write(reviewFor(current))];
+          const argv = [operation, current.run_dir, ...inputs];
+          const target = path.join(current.run_dir, filename);
+          const stateFile = path.join(current.run_dir, "state.json");
+          const protectedFiles = [sourcePath,
+            ...fs.readdirSync(temporaryRoot).filter((entry) => entry.startsWith("input-")).map((entry) => path.join(temporaryRoot, entry)),
+            ...fs.readdirSync(current.run_dir).map((entry) => path.join(current.run_dir, entry))];
+          const before = protectedFiles.map((file) => [file, fs.readFileSync(file)]);
+          let foreignBytes = Buffer.from(`Concurrent author saved ${filename}: ${saveMode}.\n`);
+          const commitError = Object.assign(new Error("Synthetic ENOSPC during quality state commit"), { code: "ENOSPC" });
+          const originalRename = fs.renameSync;
+          let interrupted = false;
+          let thrown;
+          fs.renameSync = (from, to) => {
+            if (path.resolve(to) !== stateFile) return originalRename(from, to);
+            assert.equal(interrupted, false, "Only the state publication is interrupted");
+            interrupted = true;
+            const created = fs.statSync(target);
+            if (saveMode.startsWith("atomic replacement")) {
+              if (saveMode === "atomic replacement with unchanged bytes") foreignBytes = fs.readFileSync(target);
+              const saved = path.join(current.run_dir, `.author-save-${++sequence}`);
+              fs.writeFileSync(saved, foreignBytes, { flag: "wx", mode: 0o600 });
+              originalRename(saved, target);
+              assert.notEqual(fs.statSync(target).ino, created.ino, "Atomic save must replace the artifact inode");
+            } else {
+              fs.writeFileSync(target, foreignBytes);
+              assert.equal(fs.statSync(target).ino, created.ino, "In-place save must keep the artifact inode");
+            }
+            assert.deepEqual(fs.readFileSync(target), foreignBytes);
+            throw commitError;
+          };
+          try { runQuality(argv); }
+          catch (error) { thrown = error; }
+          finally { fs.renameSync = originalRename; }
+          assert.equal(interrupted, true, "The test must reach state publication");
+          assert(thrown, "A failed state commit must be reported");
+          assert.equal(thrown.code, "ENOSPC");
+          assert.match(thrown.message, /Synthetic ENOSPC during quality state commit/);
+          assert.equal(fs.existsSync(target), true, "The other author's save must survive rollback");
+          assert.deepEqual(fs.readFileSync(target), foreignBytes);
+          assert(thrown.message.includes(filename), "The CLI error must disclose the retained artifact");
+          for (const artifact of artifacts.filter((entry) => entry !== filename)) {
+            assert.equal(fs.existsSync(path.join(current.run_dir, artifact)), false, "Untouched operation-owned output must be cleaned up");
+          }
+          for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(file), bytes, `Frozen state/input changed: ${file}`);
+          const status = runQuality(["status", current.run_dir]);
+          assert.equal(status.draft_count, operation === "submit" ? 0 : 1);
+          assert.equal(status.disposition, operation === "submit" ? "draft_required" : "awaiting_review");
+          assert.throws(() => runQuality(argv), /EEXIST|already exists/, "Retry must refuse to overwrite a retained save");
+          assert.deepEqual(fs.readFileSync(target), foreignBytes);
+          for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(file), bytes, `Retry changed frozen state/input: ${file}`);
+          const preserved = path.join(temporaryRoot, `preserved-author-save-${++sequence}`);
+          fs.renameSync(target, preserved);
+          const retried = runQuality(argv);
+          assert.equal(retried.draft_count, 1, "An uncommitted attempt must not consume a draft version");
+          assert.equal(retried.disposition, operation === "submit" ? "awaiting_review" : "accepted");
+          assert.deepEqual(fs.readFileSync(preserved), foreignBytes, "Operator-preserved bytes must remain intact after retry");
+        });
+      }
+    }
+    for (const operation of ["submit", "review"]) {
+      test(`failed ${operation} commit preserves an artifact whose ownership cannot be inspected`, () => {
+        const current = operation === "review" ? submit(init()) : init();
+        const inputs = operation === "submit" ? [write(BASE_DRAFT, "md"), write(assessment)] : [write(reviewFor(current))];
+        const argv = [operation, current.run_dir, ...inputs];
+        const filename = operation === "submit" ? "draft-1.md" : "draft-1.review.json";
+        const target = path.join(current.run_dir, filename);
+        const stateFile = path.join(current.run_dir, "state.json");
+        const before = [sourcePath, ...inputs, ...fs.readdirSync(current.run_dir).map((entry) => path.join(current.run_dir, entry))]
+          .map((file) => [file, fs.readFileSync(file)]);
+        const originalRename = fs.renameSync;
+        const originalLstat = fs.lstatSync;
+        const commitError = Object.assign(new Error("Synthetic ENOSPC before ownership inspection"), { code: "ENOSPC" });
+        let saved;
+        let denyingInspection = false;
+        let inspectionFailures = 0;
+        let thrown;
+        fs.lstatSync = (file, ...args) => {
+          if (denyingInspection && path.resolve(file) === target) {
+            inspectionFailures++;
+            throw Object.assign(new Error("Synthetic artifact inspection denied"), { code: "EACCES" });
+          }
+          return originalLstat(file, ...args);
+        };
+        fs.renameSync = (from, to) => {
+          if (path.resolve(to) !== stateFile) return originalRename(from, to);
+          saved = fs.readFileSync(target);
+          denyingInspection = true;
+          throw commitError;
+        };
+        try { runQuality(argv); }
+        catch (error) { thrown = error; }
+        finally { fs.renameSync = originalRename; fs.lstatSync = originalLstat; }
+        assert(saved, "The test must reach state publication after artifact creation");
+        assert.equal(thrown?.code, "ENOSPC", "Cleanup inspection must not replace the original state error");
+        assert.match(thrown.message, /Synthetic ENOSPC before ownership inspection/);
+        assert.equal(fs.existsSync(target), true, "Uncertain ownership must preserve the artifact");
+        assert.deepEqual(fs.readFileSync(target), saved);
+        assert(inspectionFailures > 0, "The ownership inspection must actually fail");
+        assert(thrown.message.includes(filename), "The retained artifact must be disclosed");
+        for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(file), bytes);
+        assert.equal(runQuality(["status", current.run_dir]).disposition, operation === "submit" ? "draft_required" : "awaiting_review");
+        assert.throws(() => runQuality(argv), /EEXIST|already exists/);
+        assert.deepEqual(fs.readFileSync(target), saved);
+        for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(file), bytes);
+        const preserved = path.join(temporaryRoot, `uninspected-author-save-${++sequence}`);
+        fs.renameSync(target, preserved);
+        const retried = runQuality(argv);
+        assert.equal(retried.draft_count, 1);
+        assert.equal(retried.disposition, operation === "submit" ? "awaiting_review" : "accepted");
+        assert.deepEqual(fs.readFileSync(preserved), saved);
+      });
+    }
+    test("failed review commit removes only its untouched output and permits retry", () => {
+      const current = submit(init());
+      const input = write(reviewFor(current));
+      const stateFile = path.join(current.run_dir, "state.json");
+      const before = fs.readdirSync(current.run_dir).map((entry) => {
+        const file = path.join(current.run_dir, entry);
+        return [file, fs.readFileSync(file)];
+      });
+      const originalRename = fs.renameSync;
+      const commitError = Object.assign(new Error("Synthetic ENOSPC during quality review commit"), { code: "ENOSPC" });
+      fs.renameSync = (from, to) => {
+        if (path.resolve(to) === stateFile) throw commitError;
+        return originalRename(from, to);
+      };
+      try { assert.throws(() => runQuality(["review", current.run_dir, input]), (error) => error.code === "ENOSPC" && error.message === commitError.message); }
+      finally { fs.renameSync = originalRename; }
+      assert.equal(fs.existsSync(path.join(current.run_dir, "draft-1.review.json")), false);
+      for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(file), bytes);
+      const status = runQuality(["status", current.run_dir]);
+      assert.equal(status.draft_count, 1);
+      assert.equal(status.disposition, "awaiting_review");
+      const accepted = runQuality(["review", current.run_dir, input]);
+      assert.equal(accepted.draft_count, 1);
+      assert.equal(accepted.disposition, "accepted");
     });
     test("apply requires both named evidenced gates", () => {
       diagnostic(submit(init(), BASE_DRAFT, (input) => { input.decision.target = "apply"; }), "application_gate");
@@ -444,6 +893,32 @@ export function runQualityTests() {
         assert.equal(snapshot.packet.sources[0].content, originalSource);
         assert.equal(runQuality(["status", run.run_dir]).packet_sha256, run.packet_sha256);
       } finally { fs.writeFileSync(sourcePath, originalSource); }
+    });
+    for (const filename of ["draft-1.md", "draft-1.assessment.json", "draft-1.review-template.json"]) {
+      test(`interrupted submit preserves ${filename} and explains recovery`, () => {
+        const run = init();
+        const orphan = path.join(run.run_dir, filename);
+        const bytes = "Uncommitted preserved artifact from an interrupted writer.\n";
+        fs.writeFileSync(orphan, bytes);
+        assert.throws(() => submit(run), error => error.code === "EEXIST" && /interrupted operation/.test(error.message) && /last committed run status/.test(error.message) && /never overwrite/.test(error.message));
+        assert.equal(fs.readFileSync(orphan, "utf8"), bytes);
+        assert.deepEqual(fs.readdirSync(run.run_dir).sort(), ["packet.json", "state.json", filename].sort());
+        const status = runQuality(["status", run.run_dir]);
+        assert.equal(status.disposition, "draft_required");
+        assert.equal(status.draft_count, 0);
+        fs.renameSync(orphan, path.join(temporaryRoot, `preserved-${++sequence}.txt`));
+        assert.equal(submit(run).disposition, "awaiting_review");
+      });
+    }
+    test("interrupted review preserves the orphan and explains same-run retry", () => {
+      const current = submit(init());
+      const orphan = path.join(current.run_dir, "draft-1.review.json");
+      fs.writeFileSync(orphan, "Uncommitted review.\n");
+      assert.throws(() => review(current), error => error.code === "EEXIST" && /move the uncommitted artifact aside/.test(error.message));
+      assert.equal(fs.readFileSync(orphan, "utf8"), "Uncommitted review.\n");
+      assert.equal(runQuality(["status", current.run_dir]).disposition, "awaiting_review");
+      fs.renameSync(orphan, path.join(temporaryRoot, `preserved-${++sequence}.txt`));
+      assert.equal(review(current).disposition, "accepted");
     });
     test("private storage and no overwrite of existing runs", () => {
       const run = submit(init());

@@ -1,0 +1,160 @@
+{
+  "deck_types": [
+    {
+      "id": "hackathon_demo_deck",
+      "label": "Hackathon / Demo Day Deck",
+      "audience": "hackathon judges, sponsor judges, demo day reviewers",
+      "default_length": "6-8 slides",
+      "primary_goal": "Show a working product quickly and prove prize/sponsor fit.",
+      "slide_sequence": [
+        "title and one-liner",
+        "problem",
+        "solution",
+        "live demo or product walkthrough",
+        "technical implementation",
+        "why this sponsor/ecosystem",
+        "impact or traction",
+        "next steps and ask"
+      ],
+      "must_prove": [
+        "the demo works",
+        "the build is meaningfully complete",
+        "the sponsor or track fit is explicit",
+        "the team understands the technical constraint"
+      ],
+      "red_flags": [
+        "too much market sizing",
+        "no working demo",
+        "unclear sponsor integration",
+        "technical jargon before user value"
+      ]
+    },
+    {
+      "id": "investor_seed_deck",
+      "label": "Investor / VC Deck",
+      "audience": "VCs, institutional seed investors, demo day investors",
+      "default_length": "10-12 slides",
+      "primary_goal": "Make a venture-scale funding case with proof, market, business model, team, and ask.",
+      "slide_sequence": [
+        "title and one-liner",
+        "problem",
+        "why now",
+        "solution",
+        "product/demo",
+        "traction",
+        "market",
+        "business model",
+        "competition",
+        "team",
+        "ask and use of funds",
+        "closing vision"
+      ],
+      "must_prove": [
+        "large market",
+        "specific wedge",
+        "credible traction or insight",
+        "team edge",
+        "fundraising ask tied to milestones"
+      ],
+      "red_flags": [
+        "TAM slide without wedge",
+        "no distribution path",
+        "weak founder-market fit",
+        "unclear business model",
+        "ask without milestone math"
+      ]
+    },
+    {
+      "id": "angel_intro_deck",
+      "label": "Angel Deck",
+      "audience": "angels, operators, small checks, founder-friendly early investors",
+      "default_length": "5-8 slides",
+      "primary_goal": "Explain the founder, product, early proof, and immediate funding need without overbuilding the VC narrative.",
+      "slide_sequence": [
+        "title and plain-language one-liner",
+        "founder story and why this problem",
+        "problem and customer",
+        "product/demo",
+        "early proof",
+        "market and upside",
+        "ask, terms, and use of funds",
+        "what happens next"
+      ],
+      "must_prove": [
+        "founder is credible",
+        "the problem is real",
+        "there is some proof or sharp learning",
+        "the check directly unlocks a near-term milestone"
+      ],
+      "red_flags": [
+        "VC-style jargon",
+        "too much strategy and not enough founder/product proof",
+        "unclear check size or terms",
+        "no near-term milestone"
+      ]
+    },
+    {
+      "id": "accelerator_deck",
+      "label": "Accelerator Deck",
+      "audience": "YC, Techstars, 500 Global, Antler, EF, Sequoia Arc, accelerator screeners",
+      "default_length": "7-10 slides",
+      "primary_goal": "Show founder capability, learning or execution, stage-appropriate evidence, and the actual program fit.",
+      "slide_sequence": [
+        "title and plain founder or company description",
+        "problem or field insight where known",
+        "solution hypothesis where one exists",
+        "demo, work sample, or relevant achievement",
+        "available evidence and unresolved assumptions",
+        "why this founder or team",
+        "market and wedge if required at this stage",
+        "program fit",
+        "next learning or execution milestone"
+      ],
+      "must_prove": [
+        "plain description or pre-idea founder direction",
+        "relevant founder capability",
+        "demonstrated execution or learning",
+        "evidence appropriate to the actual program and stage",
+        "clear program fit"
+      ],
+      "red_flags": [
+        "claims unsupported by available evidence",
+        "no demonstrated execution or learning",
+        "founder story does not explain relevant capability",
+        "program target is just a brand wish"
+      ]
+    },
+    {
+      "id": "grant_partner_deck",
+      "label": "Grant / Partner Deck",
+      "audience": "grant committees, ecosystem teams, strategic partners",
+      "default_length": "8-10 slides",
+      "primary_goal": "Show ecosystem value, implementation credibility, milestones, budget, and mutual benefit.",
+      "slide_sequence": [
+        "title and project summary",
+        "ecosystem problem",
+        "solution",
+        "implementation plan",
+        "demo or prototype",
+        "impact metrics",
+        "team",
+        "milestones and budget",
+        "ask",
+        "maintenance plan"
+      ],
+      "must_prove": [
+        "ecosystem fit",
+        "credible deliverables",
+        "measurable impact",
+        "real maintenance owner"
+      ],
+      "red_flags": [
+        "vague public-good claim",
+        "budget not tied to milestones",
+        "no post-grant maintenance",
+        "partner value is one-sided"
+      ]
+    }
+  ],
+  "interpretation": "ProofPilot defaults, not official program criteria. Prefer current requested format and adapt proof to stage; founder-first programs may not require a product, customers, or a deck."
+}

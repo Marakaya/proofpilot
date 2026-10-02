@@ -41,7 +41,7 @@ The response should include evidence and unknowns, three to five distinct direct
 
 ## Install And Inspect
 
-Requirements: Node.js 20 or later and npm. Live Colosseum access also requires curl.
+Requirements: Node.js 20 or later, npm and Git. First full installation needs network access; live Colosseum access also requires curl in a trusted system location (see [onboarding](skills/proofpilot/references/onboarding.md)).
 
 Clone the repository and install dependencies:
 
@@ -59,27 +59,44 @@ node scripts/cli.js install --target claude
 node scripts/cli.js install --target agents
 ```
 
-Use `--dir <path>` for an exact custom destination and `--force` only when replacing an existing installation intentionally.
+Use `--dir <absolute-path>` for an exact custom main-skill destination; supporting skills are installed beside it. Relative paths, shell-style `~`, runtime skill roots and runtime configuration directories are rejected. Add `--profiles` for the five stage profiles. `--force` can replace a changed ProofPilot core/profile only when compatible ProofPilot bundle state records that exact destination and inode identity and the entry's `SKILL.md` declares the expected name. It refuses an unowned foreign directory even with `--force`. To recover a ProofPilot installation created before inode ownership was recorded, explicitly use `--force --adopt-legacy-core`; the old entries are preserved in backups.
 
 The CLI installs and validates the skill package. The selected agent runtime executes [skills/proofpilot/SKILL.md](skills/proofpilot/SKILL.md). Restart or reopen the runtime after installation so it discovers the new skill.
 
+Installation now includes the **full support bundle by default: 36 supporting skills**, shared Solana data/guides/catalogs, and the cached official Colosseum connection helper. It includes 32 solana.new skills plus official `solana-dev`, Colosseum Copilot V2, `ethglobal-skills` and `openai-docs`. Sources are pinned in [skill-dependencies.json](skills/proofpilot/references/skill-dependencies.json) and downloaded directly at installation time. Declared upstream license files are retained; the manifest also records proprietary or unknown license status when an upstream source publishes no license file. Owned entries remain upgradable when a later release changes its bundle id or pinned commit; changed managed content is preserved in a reported backup.
+
+Compatible support entries already owned by this ProofPilot installation are preserved. Ownership pairs bundle state with a per-entry managed marker, so stale provenance cannot adopt a replacement personal skill. Missing required internal files in owned entries are repaired; known versions below a required minimum are upgraded with backups. Installed guidance removes telemetry commands, uses Copilot V2, and scopes transcript exports and paid requests to the user's authorization. Local adaptations preserve exact upstream originals and custom text. Use `--update-dependencies` to explicitly replace the managed support set, `--core-only` to deliberately omit it, or `--offline` to require an already complete bundle; offline/update modes conflict. A full install holds one exclusive lock for the target skill root while dependencies, core, optional profiles and bundle state are activated as one transaction. Replacements are staged before backups; failures roll back activated entries and restore backups when their path identity is still owned by the transaction. A durable journal recovers an interrupted activation on the next run and distinguishes an uncommitted activation from a state file that was already durably committed.
+
+The repository `dependencies` command requires the exact skill root explicitly; it never guesses a runtime from the current directory. `--status` is a read-only local inventory. Run the command without `--status` to repair an owned incomplete bundle; unowned or incompatible collisions must be moved aside first.
+
+```bash
+node scripts/cli.js dependencies --root /absolute/path/to/skills --status
+node scripts/cli.js dependencies --root /absolute/path/to/skills
+```
+
+See [installation.md](skills/proofpilot/references/installation.md) for repeat installation, status meanings, backups and standalone skill-manager bootstrap. Account connections, host plugins and project toolchains use their own setup.
+
 ## First-Use Setup
 
-Both repository installers print the next setup step. A plain skill installation cannot initiate an agent conversation on its own: invoke `$proofpilot` after installation, and the agent will check existing access and explain setup in your language. All six entrypoints share the same setup.
+Both repository installers print the next setup step. A plain skill installation cannot initiate an agent conversation on its own: invoke `$proofpilot` for research after installation, and the agent will check existing access and explain setup in your language. All six entrypoints share the same setup. A standalone skill-manager copy checks its support bundle on first use for actual work and adds missing dependencies unless core-only was chosen; a file copy alone cannot run installation hooks. Local capability lookup and scoped implementation/debugging/testing from an existing specification do not require Colosseum setup; normal research setup remains incomplete until verified.
 
 For higher-quality recommendations and assessments, ProofPilot recommends models in the **SOL or Opus 5 class or higher**, where available in your host. Weaker models may miss important details or draw incorrect conclusions; built-in checks cannot fully compensate for model limitations. This is a usage recommendation, not a benchmark guarantee or a setup requirement. Model access and costs depend on your host's plan.
 
-Colosseum Copilot access is required for completed setup and is [free for Arena members](https://docs.colosseum.com/copilot/faq). Open [Arena → Copilot](https://colosseum.com/arena/copilot) to generate a PAT if you do not have one. The agent reuses existing credentials. Enter a new PAT directly into your own interactive terminal, never into chat or command arguments:
+Colosseum Copilot V2 access is required for completed research setup. Sign in with the official Copilot Connect helper through your browser; no PAT entry is needed. Existing official helper connections are reused:
 
 ```bash
 # Replace the directory with your actual installed skill path.
-node "<installed skill directory>/scripts/setup.js" --configure-colosseum
+node "<installed skill directory>/scripts/setup.js" --connect-colosseum
 node "<installed skill directory>/scripts/setup.js" --check-colosseum
 ```
 
-`proofpilot setup --status` also works when the repository CLI is installed on PATH. Status is offline; `--check-colosseum` performs one read-only status request using curl. The local credential file is private (mode 600), not encrypted; a host-managed environment secret is also supported. Read [onboarding](skills/proofpilot/references/onboarding.md) for storage, renewal, error handling, and the explicit limited/offline-work exception.
+For remote environments or blocked callbacks, add `--device` to the connect command. Connection uses pinned `@colosseum-org/copilot-connect@0.2.2` (Node.js 20+ and npm); live requests also need curl. ProofPilot prepares the exact package without lifecycle scripts, rejects writable or symlinked managed-store paths, validates its local copy, and runs its JavaScript entrypoint directly with the current Node executable. The official helper owns protected credential storage and renewal.
 
-The [service access guide](skills/proofpilot/references/service-access.json) covers ten services: how to connect, what is free, and where charges begin. Other keys are requested only for a concrete capability. Additional OpenAI/Claude API keys are unnecessary just to use ProofPilot in an already authenticated agent. Host/model usage is billed separately from free Colosseum access.
+`proofpilot setup --status` also works with the repository CLI. It is offline and describes saved state only. `--check-colosseum` privately obtains helper authorization and checks authenticated evidence scope at the fixed API V2 status endpoint. ProofPilot creates no credential file or verification cache and ignores preserved V1 secrets. Read [onboarding](skills/proofpilot/references/onboarding.md) for connection, renewal and the limited/offline-work exception.
+
+If no trusted curl is available, live checks return `transport_missing` with `next_action: prepare_curl` before token retrieval or renewal. Prepare system curl and retry the check; this does not establish an authorization failure. ProofPilot does not install curl automatically.
+
+The [service access guide](skills/proofpilot/references/service-access.json) covers ten services and their cost boundaries. Review Colosseum account terms at sign-in: the public FAQ still describes free V1 PAT access and does not establish V2 pricing. Other connections are requested only for a concrete capability. Extra OpenAI/Claude API keys are unnecessary in an already authenticated agent; host/model usage has separate terms.
 
 ## Quick Start
 
@@ -107,20 +124,22 @@ The repository also ships five opt-in stage profiles. They are not installed by 
 | `proofpilot-readiness-review` | Review evidence and readiness with a rubric |
 | `proofpilot-submission-builder` | Prepare a pitch, grant, accelerator, or hackathon application |
 
-For a fresh Codex installation, use the profile installer instead of the main-only `install --target codex` command above. It installs the main router and all five profiles together:
+For a fresh Codex installation, use the profile installer instead of the main-only `install --target codex` command above. It installs the main router, all five profiles and the same 36 supporting skills together:
 
 ```bash
 npm run install:profiles -- --copy
 npm run validate:profiles
 ```
 
-The profile installer targets `$CODEX_HOME/skills` or `~/.codex/skills` by default. Pass `--target <skill-root>` for another runtime. Add `--force` only when intentionally replacing an existing ProofPilot installation. The profiles share the canonical references from `skills/proofpilot/references`; they do not maintain a second registry.
+`validate:profiles` is a repository smoke test. It installs the main skill and profiles into fresh temporary targets in copy and symlink modes with `--core-only`, then checks those fixtures and the packaged profile mirrors. It does not inspect your installed target or its 36 supporting skills.
+
+The profile installer targets `$CODEX_HOME/skills` or `~/.codex/skills` by default. Pass `--target <skill-root>` for another runtime. In `--copy` mode, the main skill and every profile root must be physical directories; a symlinked profile root is an installation-mode mismatch and is not reused. Add `--force` only when converting or replacing entries in a verified ProofPilot-managed root. The profiles share the canonical references from `skills/proofpilot/references`; they do not maintain a second registry.
 
 ## Focused Extensions
 
 The self-contained skill includes focused playbooks in the v0.3 evidence model:
 
-- Solana tasks can use `solana-new.md` to discover installed journey skills, local knowledge, scaffold guidance, Colosseum context, and DefiLlama research paths.
+- Solana tasks use `solana-new.md` for explicit implementation routing, installed developer/journey skills, local knowledge, scaffold guidance, Colosseum context, and DefiLlama research paths.
 - Accelerator work uses current program profiles for YC, Techstars, 500 Global, Antler, Entrepreneurs First, and Sequoia Arc, while requiring official-page refresh before final advice.
 - Pitch and presentation work selects a hackathon, investor, angel, accelerator, grant, or partner deck before drafting.
 - `honest-evaluation.md` calibrates positive and negative verdicts to evidence and the actual program stage.
@@ -135,6 +154,27 @@ Inspect which supported local skills, shared source packs, and credential classe
 ```bash
 npm run discover:sources
 ```
+
+## Solana Development
+
+ProofPilot includes [Solana routing guidance](skills/proofpilot/references/solana-new.md) and installs `solana-dev`, `scaffold-project`, `review-and-iterate`, `debug-program`, `deploy-to-mainnet` and the other support skills by default. Anchor/Solana CLI, compilers and project packages are installed only for a concrete project.
+
+Check the focused capability catalog and local installation paths without credential inspection or account calls:
+
+```bash
+node scripts/cli.js capabilities
+# From an installed skill, use its absolute directory:
+node "<installed skill directory>/scripts/discover-sources.js" --root "<absolute parent skill root>" --capabilities
+```
+
+The inventory searches project-local, installed sibling and global skill roots. It reports `installed` or `not_found` for each supported skill. A found `SKILL.md` does not verify compilers, dependencies or runtime access.
+
+```text
+$proofpilot Напиши Solana смарт-контракт для нашего решения по существующей спецификации и добавь тесты.
+$proofpilot Какие навыки для разработки Solana входят в пакет и какие установлены у меня?
+```
+
+An explicit implementation request follows the development route immediately. If `solana-dev` is available, the agent reads it; otherwise the agent continues with its local tools and current official documentation. A missing optional skill does not reduce the task to planning or require account setup. Builds and tests establish what works; signing, paid services and deployment still require scoped authorization.
 
 ## Coach And Evaluator Modes
 
@@ -174,7 +214,7 @@ The generated [tool catalog](docs/included-tools.md) distinguishes:
 
 - public references available now
 - connector specifications that do not yet ship a live adapter
-- a bounded Colosseum read helper sharing the secure setup credential resolver
+- a bounded API V2 Colosseum read helper using the official Copilot Connect connection
 - catalogued candidates requiring verification
 - deferred actions requiring stronger permission, cost, or security controls
 
@@ -209,9 +249,9 @@ Use `node scripts/cli.js validate-response response.json` for full Ajv and seman
 
 Use `proofpilot quality --help` (or the installed `scripts/quality.js --help`) for the local quality workflow. It snapshots evidence, retains drafts and reviewer findings, checks source-quote bindings, arithmetic, word limits and recorded action prerequisites, and stops on unresolved review or the repair limit. Follow [quality.md](skills/proofpilot/references/quality.md) for the compact packet and review process. It does not call model APIs, certify source truth, or secretly switch models. Separate review uses the host's available, authorized resources; self-review is recorded as such.
 
-New quality packets declare `mode: coach` or `mode: evaluator`. Application judgments and evaluator mode automatically require separate-context review; material source conflicts additionally set `requires_independent_review: true`. If only self-review is available for those runs, the helper returns `needs_review`; it does not turn unanimous self-checks into acceptance. Ordinary bounded validation can still use explicitly labeled self-review.
+New quality runs use policy v4 and declare `mode: coach` or `mode: evaluator` plus `decision_context: general` or `decision_context: application`. Application context requires separate-context review for drafts and readiness judgments, including `artifact` + `complete` without application gates. Evaluator mode and flagged source conflicts also require separate-context review; that requirement stays in the run across assessment changes. If only self-review is available, those runs return `needs_review`. Reviews bind to the frozen packet, policy, draft and assessment. A first bounded test can proceed without invented prerequisites; passed/failed gates require inspected evidence. Policy-v1/v2/v3 histories remain read-only, with their recorded disposition preserved. Ordinary bounded validation can still use explicitly labeled self-review.
 
-The registries include a scoped freshness audit dated 2026-09-05: 50 tools, 18 sources and 6 accelerator profiles. Review dates include partial checks. Follow-up documented curl calls authenticated and searched Colosseum successfully with the existing PAT; earlier Python 403 responses did not prove the skill path unavailable. Replit has a documented optional MCP route; account access remains untested. The package now includes a bounded Colosseum read helper; its operation-specific checks and limitations are recorded separately. Read [freshness.md](skills/proofpilot/references/freshness.md) and the per-entry evidence before reusing volatile claims.
+The registries include a scoped freshness audit dated 2026-09-05: 50 tools, 18 sources and 6 accelerator profiles. Colosseum was separately migrated against official skill 2.0.0 and Copilot Connect 0.2.2 on 2026-10-01. Its V2 connector has local contract and private transport tests; authenticated V2 account checks remain required. Historical V1 probes retain their dates and do not prove V2 access. Replit has an optional MCP route; account access remains untested. Read [freshness.md](skills/proofpilot/references/freshness.md) and the per-entry evidence before reusing volatile claims.
 
 Version 0.3 changes the response contract: scoped target/action decisions replace legacy verdicts; evaluator snapshots and evidence-backed mandatory checks are required. Regenerate old responses from their evidence rather than inventing missing fields.
 

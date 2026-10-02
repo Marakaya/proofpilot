@@ -1,15 +1,25 @@
 ---
 name: proofpilot
-description: Evidence-based guidance for choosing a venture idea, testing demand or product-market fit, scoping an MVP, reviewing readiness, judging hackathon or workshop projects, and preparing a pitch or application. Use for founders, learners, organizers, and project evaluators who need a defensible next decision.
+description: Evidence-based venture discovery, demand validation, MVP planning, readiness review, event judging, and pitch or application preparation. Also use for Solana skill discovery and routing an explicit smart-contract or app implementation request to available development guidance.
 ---
 
 # ProofPilot
 
 Move the user from uncertainty to the next defensible decision. Prefer evidence and small tests over confident speculation.
 
+## Support Bundle
+
+The default installation includes 36 supporting skills and shared guidance. For a standalone copy or incomplete install, follow [installation.md](references/installation.md): check the portable helper on first use for actual work and install missing support unless core-only or no-install was selected. Inventory-only requests remain read-only. Then continue the user's original task.
+
+## Solana Capability And Implementation Shortcuts
+
+For questions about included or installed Solana development skills, read [solana-new.md](references/solana-new.md), resolve this installed skill's absolute directory and its parent skill root, then run `node "<absolute ProofPilot skill directory>/scripts/discover-sources.js" --root "<absolute parent skill root>" --capabilities`. Explain that ProofPilot bundles routing guidance; the default installation adds developer skills and shared guidance. This local inventory needs no account setup or credential checks.
+
+For an explicit request to write, implement, fix, or test a Solana program, smart contract, or app, follow the implementation route in [solana-new.md](references/solana-new.md) before the venture pipeline. Use `solana-dev` when found; otherwise continue with the current host agent and official technical documentation. A missing optional skill is not a reason to stop or return only an MVP plan. Work from the user's existing specification; ask only for material missing requirements. This scoped implementation does not require Colosseum onboarding unless the user also needs project/market research.
+
 ## Complete First-Use Setup
 
-Read [onboarding.md](references/onboarding.md) before normal research on first use or when setup is incomplete. Include its model-quality recommendation alongside the Colosseum setup explanation. Explain that Colosseum is the required foundation, check existing access with the portable setup helper, and guide secure local PAT setup if missing. Reuse verified access; other service keys are optional. Follow the explicit limited/offline-work exception in that reference and preserve the user's original task.
+Read [onboarding.md](references/onboarding.md) before normal research on first use or when setup is incomplete. Include its model-quality recommendation alongside the Colosseum setup explanation. Explain that Colosseum is the required foundation, check existing access with the portable setup helper, and guide official Copilot Connect browser/device sign-in if missing. Verify the current V2 evidence grant; other service keys are optional. Follow the explicit limited/offline-work exception in that reference and preserve the user's original task.
 
 ## Event Assessment Shortcut
 
@@ -50,7 +60,7 @@ Ask at most three high-impact questions when their answers would materially chan
    - [ai-product-validation.md](references/ai-product-validation.md) when AI quality, autonomy, latency, or economics materially affects the decision
    - [accelerators.md](references/accelerators.md) and [accelerator-programs.json](references/accelerator-programs.json) for accelerator selection, applications, or interviews
    - [presentations.md](references/presentations.md) and [presentation-decks.json](references/presentation-decks.json) for pitch, demo, investor, angel, grant, or partner decks
-   - [solana-new.md](references/solana-new.md) for Solana-specific discovery, validation, build planning, or submission work
+   - [solana-new.md](references/solana-new.md) for Solana-specific discovery, validation, implementation, build planning, or submission work
    - [source-orchestration.md](references/source-orchestration.md) when source selection spans several ecosystems or installed local skill packs
 9. Return the checked, concise human-readable answer. Complete [quality.md](references/quality.md) for substantial decisions even when JSON was not requested; disclose unresolved material checks. A narrow edit needs only relevant accuracy/format checks. Event scorecards use the separate format/checker in [event-assessment.md](references/event-assessment.md). Other structured output conforms to [response.schema.json](references/response.schema.json) and its portable checker in [decisions.md](references/decisions.md).
 

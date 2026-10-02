@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "archived_profiles": [],
+  "profiles": [
+    {
+      "id": "solana_hackathon",
+      "version": "1.0.0",
+      "label": "ProofPilot product Solana hackathon",
+      "origin": "proofpilot",
+      "source_locator": "proofpilot:references/event-profiles.json#solana_hackathon@1.0.0",
+      "provenance": "ProofPilot's own proposed rubric. Not official Colosseum judging rules. Organizer must publish the adopted version before judging.",
+      "scale": { "min": 0, "max": 4, "step": 1 },
+      "dimensions": [
+        { "id": "problem_value_evidence", "label": "Problem, value and evidence", "weight": 25, "anchors": { "0": "Reviewed materials establish no specific user, problem or benefit.", "2": "Specific user and plausible benefit are explained; demand or comparative benefit remains weakly evidenced. Score clarity of the answer separately from the truth of its claims.", "4": "Specific problem and meaningful benefit are supported by relevant, critically interpreted evidence; limits and contrary findings are addressed. Interview counts or revenue alone do not earn this level." } },
+        { "id": "technical_execution", "label": "Technical execution", "weight": 25, "anchors": { "0": "An inspected or reproduced core scenario fails or is explicitly unimplemented. Unavailable access is unscored, not zero.", "2": "Core scenario partly works, with identifiable gaps; architecture and boundaries are understandable.", "4": "Core scenario works with appropriate checks, justified architecture and disclosed limitations; the team's event contribution is explained. Complexity and commit count earn no automatic bonus." } },
+        { "id": "solana_use", "label": "Meaningful use of Solana", "weight": 15, "anchors": { "0": "Reviewed implementation has no meaningful Solana role or the claimed integration is explicitly absent.", "2": "A relevant Solana role is explained and partly demonstrated, with material integration gaps.", "4": "Working integration creates specific user or developer value; protocol composition is valid and a custom program is not required unless the event explicitly requires one." } },
+        { "id": "differentiation", "label": "Differentiation and innovation", "weight": 10, "anchors": { "0": "Reviewed comparison shows no meaningful difference beyond cosmetic changes.", "2": "A concrete difference is explained, but its benefit or comparison with alternatives is limited.", "4": "A meaningful difference and its practical advantage are evidenced against relevant alternatives. A world-first claim is unnecessary." } },
+        { "id": "ux_dx", "label": "UX / Developer Experience", "weight": 10, "anchors": { "0": "The observed intended user cannot understand or complete the basic interaction.", "2": "The main interaction is understandable with guidance or notable friction.", "4": "The intended user can understand and complete the task with clear states and feedback; API, CLI and SDK experience count where relevant." } },
+        { "id": "viability", "label": "Viability and next steps", "weight": 10, "anchors": { "0": "Reviewed answers provide no concrete next test, adoption path or support plan.", "2": "A plausible first-user path and next test are described, but resources or sustainability are weakly explained.", "4": "A feasible next test, first-user path and sustainable support plan are clearly justified. Public goods can use adoption and maintenance funding rather than commercial revenue." } },
+        { "id": "communication", "label": "Demo and communication", "weight": 5, "anchors": { "0": "The available presentation or answers fail to explain the task and claimed result.", "2": "The main idea is understandable but evidence, limitations or answers are unclear.", "4": "The task, evidence and limits are clearly explained and questions addressed. Video polish earns no bonus; working behavior is scored under technical execution." } }
+      ],
+      "admission_checks": [
+        { "id": "artifact_access", "label": "Required submission and code are accessible to judges" },
+        { "id": "verification_instructions", "label": "README or equivalent explains how to inspect or reproduce the result" },
+        { "id": "contribution_disclosure", "label": "Pre-existing work, reused components and event contribution are disclosed" },
+        { "id": "event_eligibility", "label": "Published event eligibility and submission requirements are checked" }
+      ]
+    },
+    {
+      "id": "learning_workshop",
+      "version": "1.0.0",
+      "label": "ProofPilot learning workshop",
+      "origin": "proofpilot",
+      "source_locator": "proofpilot:references/event-profiles.json#learning_workshop@1.0.0",
+      "provenance": "ProofPilot's own proposed learning rubric. No demand, revenue or novelty requirement unless explicitly included in the published assignment.",
+      "scale": { "min": 0, "max": 4, "step": 1 },
+      "dimensions": [
+        { "id": "working_task", "label": "Assignment completion and working result", "weight": 40, "anchors": { "0": "Observed result does not implement the assignment's core requirement. Missing access is unscored, not zero.", "2": "A meaningful part of the assigned scenario works, with material missing requirements.", "4": "The assigned core scenario works reproducibly and meets the published requirements; supplied scaffolds are allowed." } },
+        { "id": "technology_application", "label": "Application of the taught technology", "weight": 20, "anchors": { "0": "Inspected work omits or fundamentally misuses the technology the assignment teaches.", "2": "The taught technology is partly applied with identifiable mistakes or gaps.", "4": "The taught technology is correctly applied within assignment scope. Extra complexity is unnecessary." } },
+        { "id": "understanding", "label": "Understanding the solution", "weight": 20, "anchors": { "0": "Observed answers demonstrate fundamental misunderstanding of the participant's own solution.", "2": "The participant explains the main flow but has difficulty with choices, limits or a small change.", "4": "The participant explains the flow, choices and limits and completes or accurately reasons through a small relevant change. Authorship cannot be proved by commit count." } },
+        { "id": "usability", "label": "Usability of the main scenario", "weight": 10, "anchors": { "0": "The observed intended interaction is incomprehensible or unusable.", "2": "The result can be used with instructions or avoidable friction.", "4": "The assignment's intended interaction is clear and usable, including CLI/API usage when appropriate." } },
+        { "id": "task_value", "label": "Understanding the task and its value", "weight": 10, "anchors": { "0": "Reviewed answers do not identify the task or its intended user.", "2": "The task and intended user are explained with a generic benefit.", "4": "The participant concretely explains who benefits and how, within the educational assignment. No customer interviews or business plan are required." } }
+      ],
+      "admission_checks": [
+        { "id": "artifact_access", "label": "Required work is accessible to reviewers" },
+        { "id": "verification_instructions", "label": "The result has sufficient inspection or reproduction instructions" },
+        { "id": "contribution_disclosure", "label": "Supplied scaffolds, reused work and participant contribution are identified" },
+        { "id": "event_eligibility", "label": "Published workshop assignment and participation requirements are checked" }
+      ]
+    }
+  ]
+}

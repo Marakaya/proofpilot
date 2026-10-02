@@ -166,6 +166,19 @@ export function runEventScoreTests() {
       value.dimensions[0].rationale = " ";
       assert.throws(() => check(value), /completed string/);
     });
+    test("unscored inspected dimensions retain a traceable evidence basis", () => {
+      for (const basis of ["observed", "artifact_supported"]) {
+        const value = supported(card());
+        value.artifacts[0].basis = basis;
+        Object.assign(value.dimensions[0], { score: null, basis, confidence: "high", evidence_refs: [] });
+        assert.throws(() => check(value), /requires an artifact matching/);
+        value.dimensions[0].evidence_refs = ["inspection"];
+        const result = check(value);
+        assert.equal(result.total, null);
+        assert.equal(result.dimensions[0].rationale, value.dimensions[0].rationale);
+        assert.deepEqual(result.dimensions[0].evidence_refs, ["inspection"]);
+      }
+    });
     test("reported claims never become numeric established outcomes", () => {
       for (const basis of ["team_reported", "unavailable"]) {
         const value = complete();
@@ -328,7 +341,7 @@ export function runEventScoreTests() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
   const result = runEventScoreTests();
   process.stdout.write(`event-score tests: ${result.cases} passed\n`);
 }

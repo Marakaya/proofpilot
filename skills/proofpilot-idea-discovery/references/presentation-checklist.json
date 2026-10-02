@@ -1,0 +1,57 @@
+{
+  "presentation_rubric": {
+    "scores": ["red", "yellow", "green"],
+    "dimensions": [
+      {
+        "id": "audience_fit",
+        "label": "Audience fit",
+        "question": "Is the deck built for the actual audience rather than a generic pitch?"
+      },
+      {
+        "id": "hook",
+        "label": "Hook",
+        "question": "Can the audience understand the company and why it matters in under 10 seconds?"
+      },
+      {
+        "id": "problem",
+        "label": "Problem",
+        "question": "Is the pain concrete, urgent, and tied to a specific customer?"
+      },
+      {
+        "id": "demo_or_product",
+        "label": "Demo/product",
+        "question": "Does the deck show the actual product, demo, workflow, or proof of build?"
+      },
+      {
+        "id": "evidence",
+        "label": "Evidence",
+        "question": "Are traction, usage, revenue, pilots, LOIs, demo proof, or customer quotes concrete and honest?"
+      },
+      {
+        "id": "differentiation",
+        "label": "Differentiation",
+        "question": "Does the deck explain why this wins against competitors, substitutes, and doing nothing?"
+      },
+      {
+        "id": "team_edge",
+        "label": "Team edge",
+        "question": "Does the deck prove why this team is unusually suited to win?"
+      },
+      {
+        "id": "ask",
+        "label": "Ask",
+        "question": "Is the ask specific, with amount, terms or prize/grant target, use of funds, timeline, and milestone?"
+      },
+      {
+        "id": "visual_clarity",
+        "label": "Visual clarity",
+        "question": "Is each slide scannable, not overcrowded, and visually coherent?"
+      },
+      {
+        "id": "objection_readiness",
+        "label": "Objection readiness",
+        "question": "Does the deck anticipate the hardest questions instead of hiding weak points?"
+      }
+    ]
+  }
+}
