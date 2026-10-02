@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { getSetupStatus, checkColosseum, runSetupCli } from "../skills/proofpilot/scripts/setup.js";
-import { runConnectionHelper, loginColosseum, COLOSSEUM_HELPER_PACKAGE } from "../skills/proofpilot/scripts/colosseum-connection.js";
+import { runConnectionHelper, loginColosseum, helperFailureCode, COLOSSEUM_HELPER_PACKAGE } from "../skills/proofpilot/scripts/colosseum-connection.js";
+import { CONNECTION_HELPER_TREE_SHA256, createHelperInvocation, trustedNpmCli } from "../skills/proofpilot/scripts/connection-helper.js";
 
 const filename = fileURLToPath(import.meta.url);
 const sentinel = "synthetic-v1-credential-never-display";
@@ -19,6 +22,83 @@ function localHelper(cache) {
   fs.mkdirSync(cache, { recursive: true });
   fs.writeFileSync(cli, "process.exitCode = 99;\n");
   return fs.realpathSync(cli);
+}
+
+// The managed-helper validator's length-framed listing, computed for a synthetic tree.
+function treeDigest(root) {
+  const digest = createHash("sha256");
+  const walk = (directory, relative = "") => {
+    for (const name of fs.readdirSync(directory).sort()) {
+      const file = path.join(directory, name);
+      const entry = relative ? `${relative}/${name}` : name;
+      if (fs.lstatSync(file).isDirectory()) {
+        digest.update(`d ${Buffer.byteLength(entry)}:${entry}\n`);
+        walk(file, entry);
+      } else {
+        const bytes = fs.readFileSync(file);
+        digest.update(`f ${Buffer.byteLength(entry)}:${entry} ${bytes.length} ${createHash("sha256").update(bytes).digest("hex")}\n`);
+      }
+    }
+  };
+  walk(root);
+  return digest.digest("hex");
+}
+
+function treeSnapshot(directory, prefix = "") {
+  return fs.readdirSync(directory).sort().flatMap(name => {
+    const file = path.join(directory, name);
+    const stat = fs.lstatSync(file);
+    const entry = `${prefix}${name}:${stat.mode}`;
+    return stat.isDirectory() ? [entry, ...treeSnapshot(file, `${prefix}${name}/`)] : [`${entry}:${fs.readFileSync(file, "hex")}`];
+  });
+}
+
+// Explicit validator seam: copies of the connection modules whose pinned digest is
+// replaced by a synthetic tree's digest. This models only "the managed cache passed
+// validation"; it makes no claim that the synthetic package is the official helper.
+async function acceptingValidatorSeam(directory, digest) {
+  const scripts = new URL("../skills/proofpilot/scripts/", import.meta.url);
+  const pinned = /^export const CONNECTION_HELPER_TREE_SHA256 = "[0-9a-f]{64}";/gm;
+  const source = fs.readFileSync(new URL("connection-helper.js", scripts), "utf8");
+  assert.equal(source.match(pinned)?.length, 1, "The seam must replace exactly the pinned tree digest");
+  fs.mkdirSync(directory, { mode: 0o700 });
+  fs.writeFileSync(path.join(directory, "package.json"), "{\"private\":true,\"type\":\"module\"}\n");
+  fs.writeFileSync(path.join(directory, "connection-helper.js"), source.replace(pinned, `export const CONNECTION_HELPER_TREE_SHA256 = "${digest}";`));
+  fs.copyFileSync(new URL("colosseum-connection.js", scripts), path.join(directory, "colosseum-connection.js"));
+  return {
+    helper: await import(pathToFileURL(path.join(directory, "connection-helper.js")).href),
+    connection: await import(pathToFileURL(path.join(directory, "colosseum-connection.js")).href)
+  };
+}
+
+// A synthetic Node installation that is only inspected, never executed.
+function nodeLayout(root, name, withNpm) {
+  const prefix = path.join(root, name);
+  const node = path.join(prefix, "bin", "node");
+  fs.mkdirSync(path.dirname(node), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(node, "synthetic Node layout, never executed\n", { mode: 0o700 });
+  if (!withNpm) return { node, npmCli: null };
+  const npm = path.join(prefix, "lib", "node_modules", "npm");
+  fs.mkdirSync(path.join(npm, "bin"), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(path.join(npm, "bin", "npm-cli.js"), "synthetic npm, never executed\n", { mode: 0o600 });
+  fs.writeFileSync(path.join(npm, "package.json"), JSON.stringify({ name: "npm", version: "10.9.0" }), { mode: 0o600 });
+  return { node, npmCli: path.join(npm, "bin", "npm-cli.js") };
+}
+
+// Resolve the running Node into a synthetic layout for npm discovery only;
+// `nodeOwner` emulates a Node executable owned by another account.
+async function withNodeLayout(node, run, nodeOwner) {
+  const realpath = fs.realpathSync;
+  const stat = fs.statSync;
+  fs.realpathSync = Object.assign((file, ...args) => realpath(file === process.execPath ? node : file, ...args), { native: realpath.native });
+  if (nodeOwner !== undefined) {
+    fs.statSync = (file, ...args) => {
+      const result = stat(file, ...args);
+      if (file === node && result) result.uid = nodeOwner;
+      return result;
+    };
+  }
+  try { return await run(); } finally { fs.realpathSync = realpath; fs.statSync = stat; }
 }
 
 export async function runSetupTests() {
@@ -282,6 +362,162 @@ export async function runSetupTests() {
     } });
     assert.equal(result.status, 0);
   });
+  {
+    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-helper-npm-")));
+    try {
+      const home = fs.realpathSync(os.userInfo().homedir);
+      const helperWork = path.join(home, ".proofpilot", "helper-work");
+      const workspaces = () => fs.existsSync(helperWork) ? fs.readdirSync(helperWork).filter(name => name.startsWith(".proofpilot-helper-")).sort() : [];
+      const withoutNpm = nodeLayout(root, "node-without-npm", false);
+      const withNpm = nodeLayout(root, "node-with-npm", true);
+      const unavailable = [["absent npm", withoutNpm.node]];
+      // npm owned by the user while the Node executable belongs to another account.
+      if (typeof process.getuid === "function") unavailable.push(["npm not owned like node", withNpm.node, process.getuid() === 0 ? 1 : 0]);
+      const cache = path.join(root, "validated-cache");
+      const helperRoot = path.join(cache, "_proofpilot_helpers", "copilot-connect-0.2.2");
+      const packageRoot = path.join(helperRoot, "node_modules", "@colosseum-org", "copilot-connect");
+      const cli = path.join(packageRoot, "bin", "cli.js");
+      fs.mkdirSync(path.dirname(cli), { recursive: true, mode: 0o700 });
+      fs.writeFileSync(path.join(packageRoot, "package.json"), JSON.stringify({
+        name: "@colosseum-org/copilot-connect", version: "0.2.2", type: "module", bin: { "copilot-connect": "bin/cli.js" }
+      }), { mode: 0o600 });
+      fs.writeFileSync(cli, "process.exitCode = 97; // synthetic helper fixture, never executed\n", { mode: 0o600 });
+      const digest = treeDigest(packageRoot);
+      assert.notEqual(digest, CONNECTION_HELPER_TREE_SHA256, "The synthetic tree must not match the official pinned digest");
+      const seam = await acceptingValidatorSeam(path.join(root, "seam"), digest);
+      const emptyCache = path.join(root, "empty-cache");
+      fs.mkdirSync(emptyCache, { mode: 0o700 });
+      const env = { PATH: process.env.PATH, COLOSSEUM_COPILOT_PAT: sentinel, NODE_OPTIONS: "--require=/synthetic/preload",
+        npm_config_registry: "https://registry.invalid" };
+      const exited = code => {
+        const child = new EventEmitter();
+        queueMicrotask(() => child.emit("close", code));
+        return child;
+      };
+
+      await test("a validated helper signs in directly whether npm is absent, foreign-owned or trusted", async () => {
+        for (const [condition, node, nodeOwner] of [...unavailable, ["trusted npm", withNpm.node]]) {
+          await withNodeLayout(node, async () => {
+            assert.equal(trustedNpmCli(), condition === "trusted npm" ? withNpm.npmCli : null, `${condition} fixture`);
+            const before = workspaces();
+            for (const [args, online] of [[["login"], true], [["token"], false], [["status", "--local"], false]]) {
+              const invocation = seam.helper.createHelperInvocation(args, { online, cache, env });
+              try {
+                assert.equal(invocation.command, process.execPath);
+                assert.deepEqual(invocation.args, [cli, ...args], `${condition}: the validated helper must run ${args[0]} directly`);
+                assert.equal(invocation.cwd, helperRoot);
+                assert.equal(invocation.shell, false);
+                assert.equal(invocation.helperCacheIssue ?? invocation.helperPrerequisiteIssue, undefined);
+                assert.equal(invocation.env.HOME, home);
+                for (const name of ["npm_config_userconfig", "npm_config_globalconfig", "npm_config_cache", "npm_config_registry",
+                  "TMPDIR", "TMP", "TEMP", "COLOSSEUM_COPILOT_PAT", "NODE_OPTIONS"]) {
+                  assert.equal(invocation.env[name], undefined, `${name} must not reach a validated helper`);
+                }
+              } finally { invocation.cleanup(); }
+            }
+            const spawned = [];
+            const login = await seam.connection.loginColosseum({ device: true, env, helperCache: cache, spawn: (command, args, transport) => {
+              spawned.push({ command, args, transport });
+              return exited(0);
+            } });
+            assert.deepEqual(login, { status: 0 }, `${condition}: sign-in must use the validated helper`);
+            assert.equal(spawned.length, 1);
+            assert.equal(spawned[0].command, process.execPath);
+            assert.deepEqual(spawned[0].args, [cli, "login", "--device"]);
+            assert.equal(spawned[0].transport.cwd, helperRoot);
+            assert.equal(spawned[0].transport.shell, false);
+            assert.equal(spawned[0].transport.env.npm_config_userconfig, undefined);
+            assert.equal(spawned[0].transport.env.COLOSSEUM_COPILOT_PAT, undefined);
+            noLeak(spawned[0].args);
+            let output = "";
+            const exit = await runSetupCli(["--connect-colosseum"], { ...options, env, helperCache: cache,
+              loginRunner: seam.connection.loginColosseum,
+              spawn: (command, args) => { assert.deepEqual(args, [cli, "login"]); return exited(0); },
+              stdout: { write: text => { output += text; } }, stderr: { write: () => {} } });
+            assert.equal(exit, 0, `${condition}: --connect-colosseum must complete with the validated helper`);
+            assert.equal(JSON.parse(output).colosseum.status, "verified");
+            assert.deepEqual(workspaces(), before, "No npm workspace may be prepared for a validated helper");
+          }, nodeOwner);
+        }
+      });
+      await test("an absent helper without trusted npm reports that prerequisite instead of ENOTCACHED", async () => {
+        for (const [condition, node, nodeOwner] of unavailable) {
+          await withNodeLayout(node, async () => {
+            assert.equal(trustedNpmCli(), null, `${condition} fixture`);
+            const before = workspaces();
+            const invocation = createHelperInvocation(["login"], { online: true, cache: emptyCache, env });
+            let result;
+            try {
+              assert.equal(invocation.helperPrerequisiteIssue?.code, "helper_npm_unavailable");
+              assert.match(invocation.helperPrerequisiteIssue.diagnostic, /preparing it needs the npm CLI/);
+              assert.equal(invocation.helperCacheIssue, undefined);
+              assert.equal(invocation.cwd, home, "No preparation workspace is created");
+              assert.equal(invocation.args.includes("login"), false, "No helper operation may run");
+              assert.equal(invocation.args.some(arg => arg === COLOSSEUM_HELPER_PACKAGE || path.basename(arg) === "npm-cli.js"), false);
+              assert.equal(invocation.env.npm_config_userconfig, undefined);
+              result = spawnSync(invocation.command, invocation.args, { cwd: invocation.cwd, env: invocation.env, encoding: "utf8", timeout: 15000 });
+            } finally { invocation.cleanup(); }
+            assert.equal(result.status, 1, result.stderr);
+            assert.match(result.stderr, /EHELPERNPM: .*preparing it needs the npm CLI/);
+            assert.doesNotMatch(result.stderr, /ENOTCACHED/);
+            assert.notEqual(helperFailureCode(result), "helper_missing", "A missing npm prerequisite is not a missing helper");
+            const spawned = [];
+            const login = await loginColosseum({ env, helperCache: emptyCache, spawn: (command, args) => { spawned.push(args); return exited(1); } });
+            assert.deepEqual(login, { status: 1, error: "helper_npm_unavailable" });
+            assert.equal(spawned.length, 1);
+            assert.match(spawned[0].join("\n"), /EHELPERNPM/);
+            assert.doesNotMatch(spawned[0].join("\n"), /ENOTCACHED/);
+            let output = "";
+            let errorText = "";
+            const exit = await runSetupCli(["--connect-colosseum"], { env, helperCache: emptyCache, spawn: () => exited(1),
+              statusRunner: () => { throw new Error("A failed sign-in must not check status"); },
+              stdout: { write: text => { output += text; } }, stderr: { write: text => { errorText += text; } } });
+            assert.equal(exit, 1);
+            assert.equal(output, "");
+            assert.match(errorText, /sign-in did not complete/);
+            assert.deepEqual(workspaces(), before, "Missing npm must not create a preparation workspace");
+            assert.deepEqual(fs.readdirSync(emptyCache), [], "Nothing may be prepared or downloaded into the cache");
+          }, nodeOwner);
+        }
+      });
+      await test("an absent helper with trusted npm still prepares through the isolated bootstrap", async () => {
+        await withNodeLayout(withNpm.node, async () => {
+          assert.equal(trustedNpmCli(), withNpm.npmCli);
+          const invocation = createHelperInvocation(["login"], { online: true, cache: emptyCache, env });
+          try {
+            assert.equal(invocation.helperPrerequisiteIssue, undefined);
+            assert.equal(invocation.args[0], "--input-type=module");
+            assert.ok(invocation.args.includes(withNpm.npmCli) && invocation.args.includes(COLOSSEUM_HELPER_PACKAGE) &&
+              invocation.args.includes(CONNECTION_HELPER_TREE_SHA256), "Preparation must use the npm CLI tied to the running Node");
+            assert.equal(invocation.args.at(-1), "login");
+            assert.ok(path.basename(invocation.cwd).startsWith(".proofpilot-helper-"));
+            for (const name of ["npm_config_userconfig", "npm_config_globalconfig"]) assert.equal(path.dirname(invocation.env[name]), invocation.cwd);
+            assert.equal(invocation.env.npm_config_cache, emptyCache);
+          } finally { invocation.cleanup(); }
+          assert.equal(fs.existsSync(invocation.cwd), false, "cleanup removes its preparation workspace");
+        });
+      });
+      await test("an untrusted existing helper stays refused and preserved when npm is unavailable", async () => {
+        const before = treeSnapshot(cache);
+        await withNodeLayout(withoutNpm.node, async () => {
+          for (const online of [true, false]) {
+            const refusal = createHelperInvocation(["login"], { online, cache, env });
+            try {
+              assert.equal(refusal.helperCacheIssue?.code, "helper_untrusted", "The shipped pinned digest refuses the synthetic tree");
+              assert.equal(refusal.helperCacheIssue.path, helperRoot);
+              assert.equal(refusal.helperPrerequisiteIssue, undefined, "Cache refusal precedes any npm prerequisite");
+              assert.equal(refusal.cwd, home);
+              assert.equal(refusal.args.some(arg => arg.startsWith(helperRoot + path.sep) || path.basename(arg) === "npm-cli.js"), false);
+            } finally { refusal.cleanup(); }
+          }
+          const login = await loginColosseum({ env, helperCache: cache, spawn: () => { throw new Error("A rejected cache must not start a process"); } });
+          assert.equal(login.error, "helper_untrusted");
+          assert.equal(login.helper_cache, helperRoot);
+        });
+        assert.deepEqual(treeSnapshot(cache), before, "Refusal changed the untrusted cache");
+      });
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  }
   await test("legacy files are neither read nor rewritten", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-old-credentials-"));
     try {

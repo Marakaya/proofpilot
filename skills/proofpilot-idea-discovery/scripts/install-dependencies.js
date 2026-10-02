@@ -169,6 +169,9 @@ function recoveryFingerprint(location) {
   walk(location, "");
   return `sha256-recovery-v1:${digest.digest("hex")}`;
 }
+function contentFingerprint(location) {
+  try { return recoveryFingerprint(location); } catch { return null; }
+}
 export function hardenPreparedTree(location) {
   const walk = file => {
     const stat = fs.lstatSync(file);
@@ -179,6 +182,21 @@ export function hardenPreparedTree(location) {
     else if (!stat.isSymbolicLink()) throw new Error(`A prepared installation tree contains an unsupported special file: ${file}`);
   };
   walk(location);
+}
+/** POSIX managed copies stay owned by this account (or root) and closed to group/other writes; links are never followed. */
+export function inspectTreePermissions(location) {
+  const result = { foreignOwned: [], writable: [] };
+  if (typeof process.getuid !== "function") return result;
+  const uid = process.getuid();
+  const walk = file => {
+    const stat = fs.lstatSync(file);
+    if (stat.isSymbolicLink()) return;
+    if (![0, uid].includes(stat.uid)) result.foreignOwned.push(file);
+    if ((stat.mode & 0o022) !== 0) result.writable.push(file);
+    if (stat.isDirectory()) for (const name of fs.readdirSync(file)) walk(path.join(file, name));
+  };
+  walk(location);
+  return result;
 }
 export function canonicalInstallPath(location, { replaceFinalLink = false } = {}) {
   const resolved = path.resolve(location);
@@ -346,16 +364,18 @@ function readState(root) {
     return state && typeof state === "object" && !Array.isArray(state) ? { state, status: "valid" } : { state: {}, status: "invalid" };
   } catch { return { state: {}, status: "invalid" }; }
 }
-function readStateForMutation(root) {
+function readStateSnapshot(root) {
   const file = path.join(root, stateName);
-  if (!exists(file)) return {};
-  const stat = fs.lstatSync(file);
-  if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error(`The ProofPilot bundle state is incompatible: ${file}`);
-  try {
-    const state = JSON.parse(fs.readFileSync(file, "utf8"));
-    if (!state || typeof state !== "object" || Array.isArray(state)) throw new Error("invalid state");
-    return state;
-  } catch { throw new Error(`The ProofPilot bundle state is invalid JSON: ${file}`); }
+  if (!exists(file)) return { state: {}, hash: null };
+  const identity = pathIdentity(file);
+  if (identity.type !== "file" || fs.lstatSync(file).size > 1024 * 1024) throw new Error(`The ProofPilot bundle state is incompatible: ${file}`);
+  const bytes = fs.readFileSync(file);
+  // The transaction later requires these exact bytes, never a later save.
+  if (bytes.length > 1024 * 1024 || !hasIdentity(file, identity)) throw new Error(`The ProofPilot bundle state changed while it was being read: ${file}`);
+  let state;
+  try { state = JSON.parse(bytes.toString("utf8")); } catch { /* Reported below. */ }
+  if (!state || typeof state !== "object" || Array.isArray(state)) throw new Error(`The ProofPilot bundle state is invalid JSON: ${file}`);
+  return { state, hash: stateDigest(bytes) };
 }
 function readOwnershipMarker(location) {
   try {
@@ -453,6 +473,13 @@ function assertRegularTree(location) {
   };
   walk(location);
 }
+function assertAccountOwnedTree(location) {
+  const [foreign] = inspectTreePermissions(location).foreignOwned;
+  if (foreign) throw new Error(`An existing support path contains an entry owned by another account: ${foreign}. Inspect it and move it aside before installing.`);
+}
+function managedAssetPaths(destination, expectsDirectory) {
+  return expectsDirectory ? [destination] : [destination, supportPolicySidecarPath(destination), assetOwnerPath(destination)].filter(exists);
+}
 function preflightExistingDestinations(root, manifest, state) {
   const problems = [];
   for (const source of manifest.sources) for (const kind of ["skills", "assets"]) for (const item of source[kind]) {
@@ -471,6 +498,7 @@ function preflightSingleDestination(root, manifest, state) {
       const stat = fs.lstatSync(destination);
       if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error(`An existing dependency path is an incompatible collision: ${destination}`);
       assertRegularTree(destination);
+      assertAccountOwnedTree(destination);
       if (!ownedSkill(state, source, skill, destination)) {
         throw new Error(`An existing dependency is an incompatible collision because it is not owned by this ProofPilot installation: ${destination}. Move it aside before installing; --update does not adopt foreign skills.`);
       }
@@ -510,6 +538,7 @@ function preflightSingleDestination(root, manifest, state) {
         const sidecar = supportPolicySidecarPath(destination);
         if (exists(sidecar) && !isRegularFile(sidecar)) throw new Error(`An existing support-policy sidecar is an incompatible collision: ${sidecar}`);
       }
+      for (const location of managedAssetPaths(destination, expectsDirectory)) assertAccountOwnedTree(location);
       if (!ownedAsset(state, source, asset, destination)) {
         throw new Error(`An existing support asset is an incompatible collision because it is not owned by this ProofPilot installation: ${destination}. Move it aside before installing; --update does not adopt foreign guidance.`);
       }
@@ -522,6 +551,9 @@ function helperVersion(manifest, online = false, options = {}) {
     if (invocation.helperCacheIssue) {
       // Not a plain "unavailable": the operator must move the rejected tree aside.
       throw Object.assign(new Error(invocation.helperCacheIssue.diagnostic), { code: "EHELPERCACHE", helperCache: invocation.helperCacheIssue.path });
+    }
+    if (invocation.helperPrerequisiteIssue) {
+      throw Object.assign(new Error(invocation.helperPrerequisiteIssue.diagnostic), { code: "EHELPERNPM" });
     }
     const result = spawnSync(invocation.command, invocation.args, { cwd: invocation.cwd, env: invocation.env,
       encoding: "utf8", timeout: online ? 115000 : 45000, maxBuffer: 128 * 1024, windowsHide: true, shell: invocation.shell });
@@ -552,26 +584,38 @@ export function getDependencyStatus(root, options = {}) {
       ownershipMarker.token !== ownershipRecord.management_token || ownershipMarker.repo !== ownershipRecord.repo ||
       ownershipMarker.ref !== ownershipRecord.ref || ownershipMarker.skill_id !== skill.id);
     let safeTree = false;
+    let writableEntries = false;
     try {
       if (exists(location) && fs.lstatSync(location).isDirectory() && !fs.lstatSync(location).isSymbolicLink()) {
-        assertRegularTree(location); safeTree = true;
+        assertRegularTree(location);
+        const permissions = inspectTreePermissions(location);
+        safeTree = !permissions.foreignOwned.length;
+        writableEntries = permissions.writable.length > 0;
       }
     } catch { /* Report the path as incompatible below. */ }
     const policy = compatible && owned && safeTree ? inspectSupportPolicy({ location, root, sourceId: source.id, skillId: skill.id, manifest }) : null;
     const source_repair_required = owned && (!compatible || missing_source_files.length > 0 || source_update_required);
+    // Drifted descendant modes are never reused; a preserving replacement hardens them.
+    const permission_repair_required = owned && safeTree && writableEntries;
     const status = !exists(location) ? "missing" : !owned || !safeTree ? "incompatible" :
-      source_repair_required || ownership_migration_required || missing_files.length || !policy?.complete ? "incomplete" : "installed";
+      source_repair_required || ownership_migration_required || permission_repair_required || missing_files.length || !policy?.complete ? "incomplete" : "installed";
     return { id: skill.id, status, owned, skill_file: compatible ? skillFile : null, missing_files, missing_source_files,
-      source_repair_required, source_update_required, ownership_migration_required, policy };
+      source_repair_required, source_update_required, ownership_migration_required, permission_repair_required, policy };
   }));
   const assets = manifest.sources.flatMap(source => source.assets.map(asset => {
     const destination = path.join(root, asset.destination);
     const expectsDirectory = Array.isArray(asset.required_files);
     let safeType = false;
+    let writableEntries = false;
     try {
       const stat = fs.lstatSync(destination);
       safeType = !stat.isSymbolicLink() && (expectsDirectory ? stat.isDirectory() : stat.isFile());
       if (safeType && expectsDirectory) assertRegularTree(destination);
+      if (safeType) {
+        const permissions = managedAssetPaths(destination, expectsDirectory).map(inspectTreePermissions);
+        safeType = permissions.every(item => !item.foreignOwned.length);
+        writableEntries = permissions.some(item => item.writable.length > 0);
+      }
     } catch { safeType = false; }
     const files = asset.required_files ?? [""];
     const missing = files.filter(file => file ? !requiredFile(destination, file) : (() => { try { assertInstallDestination(root, destination); return !fs.lstatSync(destination).isFile(); } catch { return true; } })());
@@ -580,9 +624,10 @@ export function getDependencyStatus(root, options = {}) {
     const record = state.asset_provenance?.[asset.destination];
     const source_update_required = owned && record?.ref !== source.ref;
     const source_repair_required = owned && !expectsDirectory && Boolean(record?.policy_sidecar_hash) && !exists(supportPolicySidecarPath(destination));
+    const permission_repair_required = owned && writableEntries;
     return { path: asset.destination, status: exists(destination) && (!safeType || !owned) ? "incompatible" : missing.length ? "missing" :
-      policy?.complete && !source_update_required && !source_repair_required ? "installed" : "incomplete", owned, source_update_required,
-      source_repair_required, missing_files: missing, policy };
+      policy?.complete && !source_update_required && !source_repair_required && !permission_repair_required ? "installed" : "incomplete", owned, source_update_required,
+      source_repair_required, permission_repair_required, missing_files: missing, policy };
   }));
   let helperReady = false;
   let helperCacheIssue = null;
@@ -1095,9 +1140,14 @@ function journalAbsolute(root, relative) { return path.join(root, ...relative.sp
 function persistTransaction(transaction) {
   writeDurableAtomic(journalFile(transaction.root), `${JSON.stringify(transaction, null, 2)}\n`, ".proofpilot-journal-");
 }
-function beginInstallTransaction(root, { createdRoot = false, requestedInstallMode = "full" } = {}) {
+function beginInstallTransaction(root, { createdRoot = false, requestedInstallMode = "full", stateSnapshot } = {}) {
   const file = journalFile(root);
   if (exists(file)) throw new Error(`A pending ProofPilot transaction must be recovered before a new installation starts: ${file}`);
+  // The fields carried into the new state must be the ones the journal binds.
+  const previousStateHash = installedStateDigest(root);
+  if (stateSnapshot && previousStateHash !== stateSnapshot.hash) {
+    throw new Error(`The ProofPilot bundle state changed after this installation read it; no installed files were changed and the current state was preserved: ${path.join(root, stateName)}. Re-run installation after the edit is complete.`);
+  }
   const transaction = {
     version: 1,
     transaction_id: crypto.randomBytes(24).toString("hex"),
@@ -1105,7 +1155,7 @@ function beginInstallTransaction(root, { createdRoot = false, requestedInstallMo
     created_root: createdRoot,
     requested_install_mode: requestedInstallMode,
     started_at: new Date().toISOString(),
-    previous_state_hash: installedStateDigest(root),
+    previous_state_hash: previousStateHash,
     expected_state_hash: null,
     actions: [],
     cleanup_paths: []
@@ -1209,6 +1259,7 @@ function readPendingTransaction(root) {
       (transaction.requested_install_mode !== undefined && !["full", "core_only"].includes(transaction.requested_install_mode)) ||
       (hasPreviousStateHash && transaction.previous_state_hash !== null && !/^sha256:[0-9a-f]{64}$/.test(transaction.previous_state_hash)) ||
       (transaction.rollback_state_hash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(transaction.rollback_state_hash)) ||
+      (transaction.concurrent_state_hash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(transaction.concurrent_state_hash)) ||
       (transaction.expected_state_hash !== null && !/^sha256:[0-9a-f]{64}$/.test(transaction.expected_state_hash))) {
     throw new Error(`The pending ProofPilot transaction journal is incompatible: ${file}`);
   }
@@ -1224,6 +1275,18 @@ function readPendingTransaction(root) {
           !/^sha256:[0-9a-f]{64}$/.test(capture.prepared_hash ?? ""))) ||
         (capture.prepared_hash !== undefined && capture.prepared_identity === undefined)) {
       throw new Error(`The pending transaction rollback state capture is invalid: ${file}`);
+    }
+    assertInstallDestination(root, journalAbsolute(root, capture.path));
+  }
+  if (transaction.commit_state_capture !== undefined) {
+    const capture = transaction.commit_state_capture;
+    if (!capture || capture.path !== `.proofpilot-commit-state-${transaction.transaction_id}` ||
+        !validIdentity(capture.directory_identity) || capture.directory_identity.type !== "directory" ||
+        (capture.state_identity !== undefined && (!validIdentity(capture.state_identity) || capture.state_identity.type !== "file")) ||
+        (capture.prepared_identity !== undefined && (!validIdentity(capture.prepared_identity) || capture.prepared_identity.type !== "file" ||
+          !/^sha256:[0-9a-f]{64}$/.test(capture.prepared_hash ?? ""))) ||
+        (capture.prepared_hash !== undefined && capture.prepared_identity === undefined)) {
+      throw new Error(`The pending transaction commit state capture is invalid: ${file}`);
     }
     assertInstallDestination(root, journalAbsolute(root, capture.path));
   }
@@ -1344,25 +1407,51 @@ function prepareTransactionRestore(transaction, action, backup, destination, act
   persistTransaction(transaction);
   return temporary;
 }
-function updateRolledBackCoreOwnership(transaction) {
+/** Earlier releases persisted NFKC (and on darwin/win32 case-folded) keys instead of exact core paths. */
+export function legacyCorePathAliases(relative) {
+  const normalized = relative.normalize("NFKC");
+  return [...new Set([relative, normalized, normalized.toLowerCase().replaceAll("ß", "ss")])];
+}
+function updateRolledBackOwnership(transaction) {
   const file = path.join(transaction.root, stateName);
   if (!exists(file)) return;
   const previousBytes = fs.readFileSync(file), previousHash = stateDigest(previousBytes);
-  if (![transaction.previous_state_hash, transaction.rollback_state_hash].includes(previousHash)) {
+  if (![transaction.previous_state_hash, transaction.rollback_state_hash, transaction.concurrent_state_hash].includes(previousHash)) {
     throw new Error("rollback_state_changed_before_capture; active state and the journal were left unchanged");
   }
   const previousIdentity = pathIdentity(file);
-  const state = JSON.parse(previousBytes);
-  if (!state.core_entries || typeof state.core_entries !== "object" || Array.isArray(state.core_entries)) return;
+  let state;
+  // A preserved concurrent save need not be state JSON; it stays exactly as saved.
+  try { state = JSON.parse(previousBytes); } catch { return; }
+  if (!state || typeof state !== "object" || Array.isArray(state)) return;
   let changed = false;
   for (const action of transaction.actions) {
-    if (action.kind !== "core" || !action.original_exists || !action.restored_identity) continue;
+    if (!action.original_exists || !action.restored_identity) continue;
     const destination = journalAbsolute(transaction.root, action.destination);
     if (!hasIdentity(destination, action.restored_identity)) continue;
+    // A copied directory-asset restore also has a new inode. Refresh only a
+    // record proven to have owned this action's original physical directory;
+    // otherwise a safe preserving rollback would make the next repair refuse it.
+    if (action.kind === "support" && action.original_identity.type === "directory") {
+      const record = state.asset_provenance?.[action.destination], identity = record?.path_identity;
+      if (identity && identity.dev === action.original_identity.dev && identity.ino === action.original_identity.ino &&
+          identity.type === action.original_identity.type) {
+        if (![transaction.previous_state_hash, transaction.rollback_state_hash].includes(previousHash)) {
+          throw new Error(`A concurrent state save prevents refreshing restored directory ownership: ${file}. The exact saved state bytes and restored content at ${destination} were preserved; pending journal ${journalFile(transaction.root)} was retained. Reconcile the saved asset ownership with this journal's proven restored directory identity before retrying installation.`);
+        }
+        record.path_identity = pathIdentity(destination);
+        changed = true;
+      }
+    }
+    if (action.kind !== "core" || !state.core_entries || typeof state.core_entries !== "object" || Array.isArray(state.core_entries)) continue;
     for (const record of Object.values(state.core_entries)) {
       const identity = record?.path_identity;
-      if (record?.path !== action.destination || !identity || identity.dev !== action.original_identity.dev ||
-          identity.ino !== action.original_identity.ino || identity.type !== action.original_identity.type) continue;
+      // The pre-rollback inode is the only proof that a legacy normalized key
+      // named this physical path; the refreshed record stores the exact path.
+      if (!identity || identity.dev !== action.original_identity.dev || identity.ino !== action.original_identity.ino ||
+          identity.type !== action.original_identity.type || typeof record.path !== "string" ||
+          !legacyCorePathAliases(action.destination).includes(record.path)) continue;
+      record.path = action.destination;
       record.path_identity = pathIdentity(destination);
       changed = true;
     }
@@ -1374,14 +1463,16 @@ function updateRolledBackCoreOwnership(transaction) {
   transaction.rollback_state_hash = stateDigest(bytes);
   persistTransaction(transaction);
   writeDurableAtomic(file, bytes, ".proofpilot-state-", prepared => {
-    captureRollbackState(transaction, previousIdentity, previousHash);
+    prepareRollbackStateCapture(transaction, previousIdentity, previousHash);
     const captured = rollbackCapturedFile(transaction);
     const preparedState = path.join(path.dirname(captured), "prepared.json");
     if (exists(preparedState)) removePreparedRollbackState(transaction);
     transaction.rollback_state_capture.prepared_identity = pathIdentity(prepared);
     transaction.rollback_state_capture.prepared_hash = transaction.rollback_state_hash;
     persistTransaction(transaction);
-    renameInstalledPath(prepared, preparedState);
+    // Prove exclusive publication works before moving the active state name.
+    publishInstalledPath(prepared, preparedState);
+    captureRollbackState(transaction, previousIdentity, previousHash);
     try { publishInstalledPath(preparedState, file); }
     catch (error) {
       if (!exists(file) && exists(captured)) {
@@ -1413,8 +1504,7 @@ function removePreparedRollbackState(transaction) {
   }
   removeDurably(prepared);
 }
-function captureRollbackState(transaction, stateIdentity, stateHash) {
-  const file = path.join(transaction.root, stateName);
+function prepareRollbackStateCapture(transaction, stateIdentity, stateHash) {
   if (!transaction.rollback_state_capture) {
     const relative = `.proofpilot-rollback-state-${transaction.transaction_id}`, directory = journalAbsolute(transaction.root, relative);
     if (exists(directory)) throw new Error("rollback_state_quarantine_path_already_exists");
@@ -1423,7 +1513,11 @@ function captureRollbackState(transaction, stateIdentity, stateHash) {
     transaction.rollback_state_capture = { path: relative, directory_identity: pathIdentity(directory), state_identity: stateIdentity, state_hash: stateHash };
     persistTransaction(transaction);
   }
-  assertRollbackStateDirectory(transaction);
+  return assertRollbackStateDirectory(transaction);
+}
+function captureRollbackState(transaction, stateIdentity, stateHash) {
+  const file = path.join(transaction.root, stateName);
+  prepareRollbackStateCapture(transaction, stateIdentity, stateHash);
   const captured = rollbackCapturedFile(transaction);
   if (exists(captured)) throw new Error("rollback_state_quarantine_already_contains_state");
   renameInstalledPath(file, captured);
@@ -1466,25 +1560,83 @@ function cleanupRollbackStateCapture(transaction) {
   fs.rmdirSync(directory);
   syncInstallDirectory(transaction.root);
 }
+function commitStateDirectoryTrusted(transaction) {
+  const capture = transaction.commit_state_capture, directory = journalAbsolute(transaction.root, capture.path);
+  try {
+    if (!hasIdentity(directory, capture.directory_identity)) return false;
+    assertPrivateDirectory(directory, "The commit state holding directory");
+    return fs.readdirSync(directory).every(name => ["original.json", "prepared.json"].includes(name));
+  } catch { return false; }
+}
+function recoverCommitStateCapture(transaction) {
+  if (!transaction.commit_state_capture || !commitStateDirectoryTrusted(transaction)) return;
+  const file = path.join(transaction.root, stateName), directory = journalAbsolute(transaction.root, transaction.commit_state_capture.path);
+  const captured = path.join(directory, "original.json");
+  // The prepared state is held before the old name is captured and is unlinked
+  // only after publication, so without it a later deletion is left untouched.
+  if (exists(file) || !isRegularFile(captured) || !exists(path.join(directory, "prepared.json"))) return;
+  // An interrupted commit left the active state only in its holding path.
+  publishInstalledPath(captured, file);
+  const hash = installedStateDigest(transaction.root);
+  if (![transaction.previous_state_hash, transaction.concurrent_state_hash].includes(hash)) {
+    // The capture held another writer's save; roll back while keeping it active.
+    transaction.concurrent_state_hash = hash;
+    persistTransaction(transaction);
+  }
+}
+function cleanupCommitStateCapture(transaction) {
+  const capture = transaction.commit_state_capture;
+  if (!capture) return [];
+  const directory = journalAbsolute(transaction.root, capture.path);
+  if (!exists(directory)) return [];
+  if (!commitStateDirectoryTrusted(transaction)) return [directory];
+  const active = (() => {
+    try { return isRegularFile(path.join(transaction.root, stateName)) ? currentStateBinding(transaction.root) : null; }
+    catch { return null; }
+  })();
+  const preserved = [];
+  for (const [name, identity, hash] of [["prepared.json", capture.prepared_identity, capture.prepared_hash],
+    ["original.json", capture.state_identity, transaction.previous_state_hash]]) {
+    const location = path.join(directory, name);
+    if (!exists(location)) continue;
+    try {
+      // A second name of the active state and the unpublished prepared state hold
+      // no unique bytes. The captured original is superseded only by this commit;
+      // a state created by another writer leaves it preserved and reported.
+      const secondName = Boolean(active) && hasIdentity(location, active.identity);
+      const unchanged = Boolean(identity) && hasIdentity(location, identity) && stateDigest(fs.readFileSync(location)) === hash;
+      if (secondName || (unchanged && (name === "prepared.json" || (Boolean(active) && active.hash === capture.prepared_hash)))) removeDurably(location);
+      else preserved.push(location);
+    } catch { preserved.push(location); }
+  }
+  if (preserved.length) return preserved;
+  try { fs.rmdirSync(directory); syncInstallDirectory(transaction.root); }
+  catch { return [directory]; }
+  return [];
+}
 function recoverPendingTransactionLocked(root) {
   const transaction = readPendingTransaction(root);
   if (!transaction) return { recovered: false, committed: false, backups: [] };
   const capturedStateHash = recoverRollbackStateCapture(transaction);
+  recoverCommitStateCapture(transaction);
   const currentStateHash = installedStateDigest(root);
   // The durable state write is the commit point. Later user edits, atomic saves or
   // deletions must never turn a committed transaction back into a rollback.
   const committed = Boolean(transaction.expected_state_hash && currentStateHash === transaction.expected_state_hash);
   if (committed) {
+    const preservedState = cleanupCommitStateCapture(transaction);
     cleanupTransactionPaths(transaction);
     clearTransaction(transaction);
-    const backups = transaction.actions.flatMap(action => [action.backup,
-      action.backup_quarantine && journalAbsolute(root, action.backup_quarantine)]).filter(location => location && exists(location));
+    const backups = [...transaction.actions.flatMap(action => [action.backup,
+      action.backup_quarantine && journalAbsolute(root, action.backup_quarantine)]).filter(location => location && exists(location)), ...preservedState];
     return { recovered: true, committed: true, backups };
   }
   const hasPreviousStateHash = Object.prototype.hasOwnProperty.call(transaction, "previous_state_hash");
+  // A save that another writer made before the commit stays active; the journal
+  // recorded its exact hash when the commit refused to replace it.
   if ((!hasPreviousStateHash && currentStateHash !== null) ||
       (hasPreviousStateHash && currentStateHash !== transaction.previous_state_hash && currentStateHash !== transaction.rollback_state_hash &&
-        (!capturedStateHash || currentStateHash !== capturedStateHash))) {
+        currentStateHash !== transaction.concurrent_state_hash && (!capturedStateHash || currentStateHash !== capturedStateHash))) {
     throw new Error("ProofPilot cannot safely roll back a pending transaction because the bundle state no longer matches the transaction's starting state. Active data and the journal were left unchanged.");
   }
   const failures = [];
@@ -1583,8 +1735,9 @@ function recoverPendingTransactionLocked(root) {
   if (failures.length) {
     throw new Error(`ProofPilot could not safely recover a pending transaction (${journalFile(transaction.root)}). Preserved backup/recovery paths: ${JSON.stringify(failures)}`);
   }
+  preservedBackups.push(...cleanupCommitStateCapture(transaction));
   try {
-    updateRolledBackCoreOwnership(transaction);
+    updateRolledBackOwnership(transaction);
     cleanupRollbackStateCapture(transaction);
   } catch (error) {
     if (transaction.rollback_state_capture) error.message += ` Preserved rollback state holding path: ${journalAbsolute(root, transaction.rollback_state_capture.path)}; pending journal: ${journalFile(root)}`;
@@ -1605,9 +1758,10 @@ function prepareTransactionCommit(transaction, state) {
 }
 function finishInstallTransaction(transaction, state, afterStateWrite) {
   const bytes = prepareTransactionCommit(transaction, state);
-  writeBundleState(transaction.root, state, bytes);
+  const preserved = writeBundleState(transaction, bytes);
   afterStateWrite?.({ root: transaction.root, state, transaction });
   clearTransaction(transaction);
+  return preserved;
 }
 export function recoverPendingInstallation(root) {
   root = canonicalInstallPath(root);
@@ -1791,6 +1945,25 @@ function pruneEmptyParents(start, stop) {
     cursor = path.dirname(cursor);
   }
 }
+function assertPreservedContent(plan) {
+  // Root identity alone misses same-inode edits and added children.
+  if (plan.preservedFingerprint && contentFingerprint(plan.destination) !== plan.preservedFingerprint) {
+    throw new Error(`Existing support content changed after it was staged for a preserving repair; it was left unchanged: ${plan.destination}. Re-run installation to repair it from the newest content.`);
+  }
+}
+function assertCapturedPreservedContent(plan, action, transaction) {
+  if (!plan.preservedFingerprint || !action.backup) return;
+  if (!hasIdentity(action.backup, action.backupIdentity)) throw new Error("preserving_backup_identity_changed");
+  const capturedFingerprint = contentFingerprint(action.backup);
+  if (!capturedFingerprint) throw new Error("preserving_backup_content_unreadable");
+  if (capturedFingerprint === plan.preservedFingerprint) return;
+  // An ordinary save can land after the last live-path check. The actual
+  // captured original is now the rollback source; durably bind its newest
+  // bytes/modes before refusing to publish the older preserving preparation.
+  plan.transactionAction.original_fingerprint = capturedFingerprint;
+  persistTransaction(transaction);
+  throw new Error(`Existing support content changed while its preserving backup was captured; the newest captured content is restored instead of publishing an older repair: ${plan.destination}. Re-run installation after the edit is complete.`);
+}
 function buildFullState(root, manifest, previous, plans) {
   const byDestination = new Map(plans.map(plan => [plan.destination, plan]));
   const provenance = {};
@@ -1875,7 +2048,8 @@ function installDependenciesLocked(root, options) {
   const allItems = manifest.sources.flatMap(source => [...source.skills, ...source.assets]);
   for (const item of allItems) assertInstallDestination(root, path.join(root, item.id ?? item.destination), { replaceFinalLink: true });
   assertInstallDestination(root, path.join(root, stateName));
-  const previous = readStateForMutation(root);
+  const stateSnapshot = readStateSnapshot(root);
+  const previous = stateSnapshot.state;
   // This complete collision/ownership pass must finish before helper or source-provider access.
   preflightExistingDestinations(root, manifest, previous);
   options.afterLockAcquired?.({ root, manifest, previous });
@@ -1885,7 +2059,7 @@ function installDependenciesLocked(root, options) {
   }
   if (options.offline) {
     if (!before.complete) throw new Error("The full bundle is incomplete. Run installation with network access; no offline downloads were attempted.");
-    const transaction = beginInstallTransaction(root, { createdRoot: rootWasInitiallyMissing });
+    const transaction = beginInstallTransaction(root, { createdRoot: rootWasInitiallyMissing, stateSnapshot });
     let completedResult;
     try {
       const activation_result = options.afterDependenciesActivated?.({ plans: [], backups: [], root, manifest, transaction });
@@ -1896,7 +2070,7 @@ function installDependenciesLocked(root, options) {
         stateOverride: state, ignorePendingTransaction: true });
       completedResult = { ...finalStatus,
         installed: [], updated: [], reused: before.skills.map(item => item.id), backups: [...recoveredBackups], activation_result };
-      finishInstallTransaction(transaction, state, options.afterStateWrite);
+      completedResult.backups.push(...finishInstallTransaction(transaction, state, options.afterStateWrite));
       return completedResult;
     } catch (error) {
       try {
@@ -1954,6 +2128,12 @@ function installDependenciesLocked(root, options) {
         const current = item.id ? before.skills.find(entry => entry.id === item.id) : before.assets.find(entry => entry.path === item.destination);
         const preserveExisting = existed && !options.update && !upgrades.has(item.id) && !current.source_update_required;
         const staging = path.join(temporaryRoot, "prepared", item.id ?? item.destination);
+        // A preserving plan copies the current custom bytes. Bind it to exactly
+        // those bytes so a later in-place edit or added child is never replaced.
+        const stagedFromExisting = existed && (!needsSource(item) || preserveExisting);
+        const sidecarFromExisting = stagedFromExisting && !item.id && !needsSource(item) && exists(supportPolicySidecarPath(destination));
+        const preservedFingerprint = stagedFromExisting ? contentFingerprint(destination) : null;
+        const preservedSidecarFingerprint = sidecarFromExisting ? contentFingerprint(supportPolicySidecarPath(destination)) : null;
         if (!needsSource(item)) {
           stageExistingSupportBundle({ location: destination, staging, destination, root, sourceId: source.id, skillId: item.id ?? null, manifest });
           if (!item.id) {
@@ -1999,6 +2179,10 @@ function installDependenciesLocked(root, options) {
             fs.copyFileSync(validateSourcePath(checkout, source.license_path), path.join(staging, "UPSTREAM-LICENSE.txt"));
           }
         }
+        if ((stagedFromExisting && (!preservedFingerprint || contentFingerprint(destination) !== preservedFingerprint)) ||
+            (sidecarFromExisting && (!preservedSidecarFingerprint || contentFingerprint(supportPolicySidecarPath(destination)) !== preservedSidecarFingerprint))) {
+          throw new Error(`Existing support content changed while it was being staged; it was left unchanged: ${destination}. Re-run installation after the edit is complete.`);
+        }
         if (item.id) ensureOwnershipMarker(staging, manifest, source, item);
         if (item.id && [...item.required_files, ...(item.adapted_required_files ?? []), ...(source.license_path ? ["UPSTREAM-LICENSE.txt"] : [])]
           .some(file => !requiredFile(staging, file))) throw new Error(`Prepared ${item.id} lacks required files.`);
@@ -2008,7 +2192,7 @@ function installDependenciesLocked(root, options) {
         try { previous_content_exact = existed && /^sha256v2:[0-9a-f]{64}$/.test(priorRecord?.content_hash ?? "") &&
           hashInstalledPath(destination) === priorRecord.content_hash; } catch { /* Preflight already reports unsafe trees. */ }
         plans.push({ item, source, staging, destination, existed, initialIdentity, preserveExisting,
-          fromSource: needsSource(item), previous_content_exact });
+          fromSource: needsSource(item), previous_content_exact, preservedFingerprint });
         if (!item.id && !item.required_files) {
           const markerDestination = assetOwnerPath(destination);
           const markerStaging = assetOwnerPath(staging);
@@ -2026,7 +2210,7 @@ function installDependenciesLocked(root, options) {
           plans.push({ item: { auxiliary: "support_policy_sidecar", parent_destination: item.destination }, source,
             staging: supportPolicySidecarPath(staging), destination: sidecarDestination, existed: exists(sidecarDestination),
             initialIdentity: exists(sidecarDestination) ? pathIdentity(sidecarDestination) : null,
-            preserveExisting: false, fromSource: needsSource(item), auxiliary: true });
+            preserveExisting: false, fromSource: needsSource(item), auxiliary: true, preservedFingerprint: preservedSidecarFingerprint });
         }
       }
     }
@@ -2035,7 +2219,7 @@ function installDependenciesLocked(root, options) {
       let prepared;
       try { prepared = versionCheck(manifest, true, options); }
       catch (error) {
-        if (error?.code !== "EHELPERCACHE") throw error;
+        if (!["EHELPERCACHE", "EHELPERNPM"].includes(error?.code)) throw error;
         throw new Error(`Could not prepare the official connection helper. ${error.message} No account login or upstream setup was run.`);
       }
       if (!prepared) throw new Error("Could not prepare the official connection helper. No account login or upstream setup was run.");
@@ -2049,10 +2233,11 @@ function installDependenciesLocked(root, options) {
       if (currentExists !== plan.existed || (currentExists && !hasIdentity(plan.destination, plan.initialIdentity))) {
         throw new Error(`A support installation target appeared or changed while installation was in progress: ${plan.destination}`);
       }
+      assertPreservedContent(plan);
     }
     ensureDirectoryTracked(root, createdDirectories);
     assertRootGuard(root, options.rootGuard, { allowCreatedRoot: true });
-    transaction = beginInstallTransaction(root, { createdRoot: rootWasInitiallyMissing });
+    transaction = beginInstallTransaction(root, { createdRoot: rootWasInitiallyMissing, stateSnapshot });
     if (plans.length) activationRoot = fs.mkdtempSync(path.join(root, ".proofpilot-staging-"));
     if (activationRoot) addTransactionCleanup(transaction, activationRoot);
     // Prepare complete replacements on the destination filesystem before backups.
@@ -2075,11 +2260,13 @@ function installDependenciesLocked(root, options) {
       if (currentExists !== plan.existed || (currentExists && !hasIdentity(plan.destination, plan.initialIdentity))) {
         throw new Error(`A support installation target appeared or changed before activation: ${plan.destination}`);
       }
+      assertPreservedContent(plan);
       const action = { destination: plan.destination, backup: null, backupIdentity: null, backupIncomplete: false, activated: false, identity: null };
       committed.push(action);
       startTransactionActivation(transaction, plan.transactionAction);
       if (plan.existed) {
         startTransactionBackup(transaction, plan.transactionAction);
+        assertPreservedContent(plan);
         try { action.backup = backupInstalledPath(plan.destination, root, { backupPath: plan.transactionAction.backup,
           quarantinePath: journalAbsolute(root, plan.transactionAction.backup_quarantine) }); }
         catch (error) {
@@ -2092,6 +2279,7 @@ function installDependenciesLocked(root, options) {
         }
         action.backupIdentity = pathIdentity(action.backup);
         backups.push(action.backup);
+        assertCapturedPreservedContent(plan, action, transaction);
       }
       ensureDirectoryTracked(path.dirname(plan.destination), createdDirectories);
       publishInstalledPath(plan.staging, plan.destination);
@@ -2109,7 +2297,7 @@ function installDependenciesLocked(root, options) {
     completedResult = { ...after, mode: "full", installed: plans.filter(plan => plan.item.id && !plan.existed).map(plan => plan.item.id),
       updated: plans.filter(plan => plan.item.id && plan.existed).map(plan => plan.item.id), reused,
       backups: [...recoveredBackups, ...backups], activation_result };
-    finishInstallTransaction(transaction, state, options.afterStateWrite);
+    completedResult.backups.push(...finishInstallTransaction(transaction, state, options.afterStateWrite));
     succeeded = true;
     return completedResult;
   } catch (error) {
@@ -2162,10 +2350,66 @@ function installDependenciesLocked(root, options) {
   }
 }
 
-function writeBundleState(root, state, bytes = stateBytes(state)) {
-  const destination = path.join(root, stateName);
-  assertInstallDestination(root, destination);
-  writeDurableAtomic(destination, bytes, ".proofpilot-state-");
+function currentStateBinding(root) {
+  const file = path.join(root, stateName);
+  let identity;
+  try { identity = pathIdentity(file); }
+  catch (error) { if (error.code === "ENOENT") return null; throw error; }
+  const hash = installedStateDigest(root);
+  if (hash === null) return null;
+  if (!hasIdentity(file, identity)) throw new Error(`The ProofPilot bundle state changed while it was being read: ${file}`);
+  return { identity, hash };
+}
+function refuseConcurrentState(transaction) {
+  const file = path.join(transaction.root, stateName);
+  try {
+    const hash = installedStateDigest(transaction.root);
+    // Recovery may then roll back while keeping exactly this active save.
+    if (hash && hash !== transaction.previous_state_hash) {
+      transaction.concurrent_state_hash = hash;
+      persistTransaction(transaction);
+    }
+  } catch { /* A special or unreadable state stays untouched and keeps recovery conservative. */ }
+  throw new Error(`concurrent_state_save: ${file} changed while ProofPilot was installing. The installation was not committed and the active state was preserved; its uncommitted changes are rolled back. Re-run installation after the edit is complete.`);
+}
+function writeBundleState(transaction, bytes) {
+  const root = transaction.root, file = path.join(root, stateName);
+  assertInstallDestination(root, file);
+  writeDurableAtomic(file, bytes, ".proofpilot-state-", prepared => {
+    // Commit only over the exact starting state. The prepared state waits in a
+    // private holding path, the old name is captured by one rename, and the
+    // exclusive publication never replaces a later save.
+    let current;
+    try { current = currentStateBinding(root); } catch { refuseConcurrentState(transaction); }
+    if (current && current.hash !== transaction.previous_state_hash) refuseConcurrentState(transaction);
+    const relative = `.proofpilot-commit-state-${transaction.transaction_id}`, directory = journalAbsolute(root, relative);
+    if (exists(directory)) throw new Error("commit_state_holding_path_already_exists");
+    fs.mkdirSync(directory, { mode: 0o700 });
+    syncInstallDirectory(root);
+    transaction.commit_state_capture = { path: relative, directory_identity: pathIdentity(directory),
+      ...(current ? { state_identity: current.identity } : {}),
+      prepared_identity: pathIdentity(prepared), prepared_hash: transaction.expected_state_hash };
+    persistTransaction(transaction);
+    const captured = path.join(directory, "original.json"), staged = path.join(directory, "prepared.json");
+    // A filesystem that rejects hard links must fail while the old state is
+    // still active; recovery must never depend on its first such publication.
+    publishInstalledPath(prepared, staged);
+    if (current) {
+      try { renameInstalledPath(file, captured); }
+      catch (error) { if (error.code !== "ENOENT") throw error; }
+      if (exists(captured) && (!hasIdentity(captured, current.identity) || stateDigest(fs.readFileSync(captured)) !== transaction.previous_state_hash)) {
+        try { if (!exists(file)) publishInstalledPath(captured, file); }
+        catch { /* A newer save keeps this one in the reported holding path. */ }
+        refuseConcurrentState(transaction);
+      }
+    }
+    try { publishInstalledPath(staged, file); }
+    catch (error) {
+      if (error.code === "EEXIST") refuseConcurrentState(transaction);
+      throw error;
+    }
+  });
+  return cleanupCommitStateCapture(transaction);
 }
 
 export function markCoreOnly(root, options = {}) {
@@ -2181,11 +2425,14 @@ export function markCoreOnly(root, options = {}) {
     const rootWasInitiallyMissing = !rootGuard.rootIdentity;
     const stateFile = path.join(root, stateName);
     if (exists(stateFile) && !isRegularFile(stateFile)) throw new Error(`The ProofPilot bundle state is an incompatible special file: ${stateFile}`);
-    const previous = readStateForMutation(root);
+    const stateSnapshot = readStateSnapshot(root);
+    const previous = stateSnapshot.state;
     ensureDirectoryTracked(root, new Set());
     assertRootGuard(root, rootGuard, { allowCreatedRoot: true });
-    const transaction = beginInstallTransaction(root, { createdRoot: rootWasInitiallyMissing, requestedInstallMode: "core_only" });
+    const transaction = beginInstallTransaction(root, { createdRoot: rootWasInitiallyMissing, requestedInstallMode: "core_only", stateSnapshot });
     let activation_result;
+    const coreResult = paths => ({ ...activation_result,
+      backups: [...new Set([...(activation_result?.backups ?? []), ...paths])] });
     try {
       activation_result = options.afterLockAcquired?.({ root, previous, transaction });
       const state = withCoreActivation({ ...previous, bundle_id: manifest.bundle_id,
@@ -2193,12 +2440,12 @@ export function markCoreOnly(root, options = {}) {
       support_mode: previous.support_mode ?? (previous.mode === "full" ? "full" : "not_installed"),
       requested_install_mode: "core_only", core_completed_at: new Date().toISOString() }, activation_result);
       options.beforeStateWrite?.({ root, state, transaction });
-      finishInstallTransaction(transaction, state, options.afterStateWrite);
-      return activation_result;
+      const preserved = finishInstallTransaction(transaction, state, options.afterStateWrite);
+      return coreResult(preserved);
     } catch (error) {
       try {
         const recovery = recoverPendingTransactionLocked(root);
-        if (recovery.committed) return activation_result;
+        if (recovery.committed) return coreResult(recovery.backups);
         error.proofpilotTransactionHandled = true;
         if (recovery.backups.length) error.message += ` Preserved transaction backups: ${JSON.stringify(recovery.backups)}`;
       } catch (recoveryError) {

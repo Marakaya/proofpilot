@@ -8,12 +8,39 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const filename = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(filename), "..");
 const discoveryUrl = pathToFileURL(path.join(root, "skills/proofpilot/scripts/discover-sources.js")).href;
+const setupUrl = pathToFileURL(path.join(root, "skills/proofpilot/scripts/setup.js")).href;
 const isolationUrl = pathToFileURL(path.join(root, "scripts/test-isolation.js")).href;
+const connectionFields = ["colosseum_copilot_connection_stored", "colosseum_copilot_connection_status", "colosseum_copilot_connection_reason"];
+const optionalCredentials = ["github_token_configured", "kaggle_configured", "hugging_face_token_configured",
+  "openai_key_configured", "anthropic_key_configured", "gemini_key_configured"];
+
+// Paths and file bytes, so a scenario proves inspection wrote, repaired or removed nothing.
+function snapshot(directory) {
+  const entries = [];
+  const visit = (current, prefix = "") => {
+    for (const name of fs.readdirSync(current).sort()) {
+      const file = path.join(current, name);
+      const relative = prefix ? `${prefix}/${name}` : name;
+      const stat = fs.lstatSync(file);
+      entries.push(stat.isDirectory() ? `${relative}/` : `${relative}:${stat.isFile() ? fs.readFileSync(file, "base64") : "other"}`);
+      if (stat.isDirectory()) visit(file, relative);
+    }
+  };
+  visit(directory);
+  return entries;
+}
 
 export function runDiscoveryCredentialTests() {
   const token = "synthetic-kaggle-token-must-not-appear";
   const username = "synthetic-kaggle-user-must-not-appear";
   const key = "synthetic-kaggle-key-must-not-appear";
+  const connectionSecret = "synthetic-colosseum-token-must-not-appear";
+  // The pinned helper's package digest cannot be reproduced offline, so these
+  // scenarios replace only the helper process reply; setup.js parsing and the
+  // discovery mapping run unchanged.
+  const storedReply = credentialState => ({ status: 0, stderr: connectionSecret, stdout: JSON.stringify({
+    state: "stored credentials present (not verified)", credentialState, scopes: ["evidence:read"], token: connectionSecret }) });
+  const managedHelper = ".proofpilot/helpers/copilot-connect-0.2.2/node_modules/@colosseum-org/copilot-connect";
   const scenarios = [
     { name: "no credentials", env: {}, configured: false },
     { name: "API token only", env: { KAGGLE_API_TOKEN: token }, configured: true },
@@ -56,8 +83,51 @@ export function runDiscoveryCredentialTests() {
       openai_key_configured: false, anthropic_key_configured: false, gemini_key_configured: true } },
     { name: "optional blank aliases", env: { GH_TOKEN: "\t", HUGGINGFACE_TOKEN: " ", GOOGLE_API_KEY: "\n" },
       configured: false, credentials: { github_token_configured: false, hugging_face_token_configured: false,
-        openai_key_configured: false, anthropic_key_configured: false, gemini_key_configured: false } }
+        openai_key_configured: false, anthropic_key_configured: false, gemini_key_configured: false } },
+    // Every scenario above runs the real offline probe in a home without a prepared helper.
+    { name: "Colosseum helper not prepared", configured: false, colosseum: { stored: null, status: "helper_missing" } },
+    { name: "Colosseum stored connection", configured: false, helper: storedReply("ready"),
+      colosseum: { stored: true, status: "configured_unverified" } },
+    { name: "Colosseum stored expired connection", configured: false, helper: storedReply("expired"),
+      colosseum: { stored: true, status: "expired" } },
+    { name: "Colosseum not logged in", configured: false, helper: { status: 5, stdout: JSON.stringify({ state: "not-logged-in" }), stderr: "" },
+      colosseum: { stored: false, status: "missing" } },
+    { name: "Colosseum not logged in with zero exit", configured: false, helper: { status: 0, stdout: JSON.stringify({ state: "not-logged-in" }), stderr: "" },
+      colosseum: { stored: false, status: "missing" } },
+    { name: "Colosseum untrusted helper cache", configured: false, helper: null, marker: "untrusted-helper-ran", files: dir => ({
+      [`${managedHelper}/package.json`]: JSON.stringify({ name: "@colosseum-org/copilot-connect", version: "0.2.2", type: "module", bin: { "copilot-connect": "src/cli.js" } }),
+      [`${managedHelper}/src/cli.js`]: `import fs from "node:fs"; fs.writeFileSync(${JSON.stringify(path.join(dir, "untrusted-helper-ran"))}, "");\n`
+    }), colosseum: { stored: null, status: "helper_untrusted", reason: /repeating sign-in alone cannot repair it/ } },
+    { name: "Colosseum helper environment unavailable", configured: false, helper: null,
+      files: { ".config": "Synthetic file where the helper configuration directory belongs\n" },
+      colosseum: { stored: null, status: "unavailable", reason: "helper_environment_unavailable" } },
+    { name: "Colosseum helper failure", configured: false, helper: { status: 1, stdout: "", stderr: connectionSecret },
+      colosseum: { stored: null, status: "unavailable" } },
+    { name: "Colosseum expiry exit without a stored state", configured: false, helper: { status: 2, stdout: "", stderr: "" },
+      colosseum: { stored: null, status: "expired" } },
+    { name: "Colosseum invalid helper reply", configured: false, helper: { status: 0, stdout: JSON.stringify({ state: connectionSecret }), stderr: "" },
+      colosseum: { stored: null, status: "invalid_response" } }
   ];
+
+  // Inspection may start only the offline status probe: token and login use
+  // spawn. A declared helper reply replaces spawnSync; null means no process may start.
+  const prelude = (scenario, isolatedHome) => [
+    'import os from "node:os";',
+    'import childProcess from "node:child_process";',
+    'import { syncBuiltinESMExports } from "node:module";',
+    `os.homedir = () => ${JSON.stringify(isolatedHome)};`,
+    `Object.defineProperty(process, "platform", { value: ${JSON.stringify(scenario.platform || "darwin")} });`,
+    "childProcess.spawn = () => process.exit(98);",
+    ...(Object.hasOwn(scenario, "helper") ? [
+      `const reply = ${JSON.stringify(scenario.helper)};`,
+      "let probes = 0;",
+      "childProcess.spawnSync = (command, args, options) => {",
+      "  if (reply === null || ++probes > 1 || command !== process.execPath || options?.shell !== false) process.exit(97);",
+      "  return reply;",
+      "};"
+    ] : []),
+    "syncBuiltinESMExports();"
+  ].join("\n");
 
   // Minimal child environments still isolate both account and environment home lookups.
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-discovery-test-"));
@@ -68,35 +138,64 @@ export function runDiscoveryCredentialTests() {
       for (const directory of scenario.directories || []) {
         fs.mkdirSync(path.join(isolatedHome, directory), { recursive: true, mode: 0o700 });
       }
-      for (const [relativePath, contents] of Object.entries(scenario.files || {})) {
+      const files = typeof scenario.files === "function" ? scenario.files(isolatedHome) : scenario.files || {};
+      for (const [relativePath, contents] of Object.entries(files)) {
         const fixture = path.join(isolatedHome, relativePath);
         fs.mkdirSync(path.dirname(fixture), { recursive: true, mode: 0o700 });
         fs.writeFileSync(fixture, contents, { mode: 0o600 });
       }
-      const script = `import os from "node:os"; os.homedir = () => ${JSON.stringify(isolatedHome)}; Object.defineProperty(process, "platform", { value: ${JSON.stringify(scenario.platform || "darwin")} }); await import(${JSON.stringify(discoveryUrl)});`;
+      const before = snapshot(isolatedHome);
       const scenarioEnv = typeof scenario.env === "function" ? scenario.env(isolatedHome) : scenario.env || {};
-      const result = spawnSync(process.execPath, ["--import", isolationUrl, "--input-type=module", "--eval", script], {
-        cwd: root,
-        env: { ...scenarioEnv, HOME: isolatedHome, USERPROFILE: isolatedHome, PROOFPILOT_TEST_HOME: isolatedHome,
-          NODE_OPTIONS: `--import=${isolationUrl}` },
-        encoding: "utf8",
-        timeout: 15000
-      });
-      assert.ifError(result.error);
-      assert.equal(result.status, 0, `Discovery failed for ${scenario.name}`);
-      for (const secret of [token, username, key]) {
-        assert.ok(!result.stdout.includes(secret), "Discovery leaked a credential to stdout");
-        assert.ok(!result.stderr.includes(secret), "Discovery leaked a credential to stderr");
-      }
-      const output = JSON.parse(result.stdout);
-      assert.equal(output.credentials.kaggle_configured, scenario.configured, scenario.name);
+      const run = (label, entry) => {
+        const result = spawnSync(process.execPath, ["--import", isolationUrl, "--input-type=module", "--eval", `${prelude(scenario, isolatedHome)}\n${entry}`], {
+          cwd: root,
+          env: { ...scenarioEnv, HOME: isolatedHome, USERPROFILE: isolatedHome, PROOFPILOT_TEST_HOME: isolatedHome,
+            NODE_OPTIONS: `--import=${isolationUrl}` },
+          encoding: "utf8",
+          timeout: 15000
+        });
+        assert.ifError(result.error);
+        assert.notEqual(result.status, 97, `${label} started an unexpected helper process for ${scenario.name}`);
+        assert.notEqual(result.status, 98, `${label} started a token or login process for ${scenario.name}`);
+        assert.equal(result.status, 0, `${label} failed for ${scenario.name}`);
+        for (const secret of [token, username, key, connectionSecret]) {
+          assert.ok(!result.stdout.includes(secret), `${label} leaked a credential to stdout`);
+          assert.ok(!result.stderr.includes(secret), `${label} leaked a credential to stderr`);
+        }
+        if (scenario.marker) {
+          assert.equal(fs.existsSync(path.join(isolatedHome, scenario.marker)), false, `${label} executed an untrusted helper cache`);
+        }
+        assert.deepEqual(snapshot(isolatedHome), before, `${label} changed the isolated home for ${scenario.name}`);
+        return JSON.parse(result.stdout);
+      };
+
+      const { credentials } = run("Discovery", `await import(${JSON.stringify(discoveryUrl)});`);
+      assert.deepEqual(Object.keys(credentials).sort(), [...connectionFields, ...optionalCredentials].sort(),
+        `${scenario.name}: credential hints gained or lost a field`);
+      assert.equal(credentials.kaggle_configured, scenario.configured, scenario.name);
       for (const [name, expected] of Object.entries(scenario.credentials || {})) {
-        assert.equal(output.credentials[name], expected, `${scenario.name}: ${name}`);
+        assert.equal(credentials[name], expected, `${scenario.name}: ${name}`);
       }
-      assert.equal(output.credentials.colosseum_copilot_connection_stored, false,
-        "Discovery tests must not observe a connection from the real account home");
-      assert.ok(Object.values(output.credentials).every(value => typeof value === "boolean"),
-        "Discovery credential hints must contain booleans only");
+      assert.ok(optionalCredentials.every(name => typeof credentials[name] === "boolean"),
+        "Optional credential hints must contain booleans only");
+
+      // Presence is true or false only where setup.js established it; otherwise
+      // null with setup's own status and reason, never an absent-looking false.
+      const connection = scenario.colosseum ?? { stored: null, status: "helper_missing" };
+      assert.equal(credentials.colosseum_copilot_connection_stored, connection.stored,
+        `${scenario.name}: connection presence (tests must not observe the real account home)`);
+      assert.equal(credentials.colosseum_copilot_connection_status, connection.status, `${scenario.name}: connection status`);
+      assert.equal(typeof credentials.colosseum_copilot_connection_reason, "string", `${scenario.name}: connection reason`);
+      if (connection.reason instanceof RegExp) assert.match(credentials.colosseum_copilot_connection_reason, connection.reason);
+      else if (connection.reason) assert.equal(credentials.colosseum_copilot_connection_reason, connection.reason);
+      if (scenario.colosseum) {
+        const primary = run("Setup status",
+          `const { getSetupStatus } = await import(${JSON.stringify(setupUrl)}); console.log(JSON.stringify(getSetupStatus()));`).colosseum;
+        assert.equal(primary.status, connection.status, `${scenario.name}: setup status`);
+        assert.equal(credentials.colosseum_copilot_connection_reason, primary.reason, `${scenario.name}: discovery must reuse setup's reason`);
+        assert.equal(primary.configured, connection.stored === true, `${scenario.name}: presence must agree with setup configured`);
+        if (connection.status === "helper_untrusted") assert.equal(primary.credentials_inspected, false);
+      }
     }
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });

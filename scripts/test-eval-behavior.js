@@ -18,8 +18,8 @@ export function runBehaviorCliTests() {
   const runs = path.join(temporaryRoot, 'prepared');
   const judgmentsFile = path.join(temporaryRoot, 'judgments.json');
   let cases = 0;
-  const execute = (args, expectedStatus = 0) => {
-    const result = spawnSync(process.execPath, [runner, ...args], { cwd: root, encoding: 'utf8', timeout: 15000 });
+  const execute = (args, expectedStatus = 0, env = {}) => {
+    const result = spawnSync(process.execPath, [runner, ...args], { cwd: root, encoding: 'utf8', timeout: 15000, env: { ...process.env, ...env } });
     assert.ifError(result.error);
     assert.equal(result.status, expectedStatus, `Behavior CLI failed: ${result.stderr || result.stdout}`);
     return result;
@@ -39,6 +39,8 @@ export function runBehaviorCliTests() {
     const manifestFile = path.join(runs, 'manifest.json');
     const manifestBytes = fs.readFileSync(manifestFile);
     const manifest = JSON.parse(manifestBytes);
+    assert.equal(manifest.version, 2);
+    assert.equal(manifest.skill_hash_scheme, 'sha256-json-tree-utf8-v2');
     assert.equal(prepared.status, 'prepared_only');
     assert.equal(prepared.cases, suite.cases.length);
     assert.deepEqual(new Set(manifest.cases.map(item => item.id)), new Set(suite.cases.map(item => item.id)));
@@ -56,6 +58,12 @@ export function runBehaviorCliTests() {
       }
       assert.ok(!fs.existsSync(path.join(runs, entry.response_file)), 'Preparation must not fabricate model responses');
     }
+    cases++;
+
+    const preideaPrompt = fs.readFileSync(path.join(runs, 'preidea-program.prompt.md'), 'utf8');
+    assert.match(preideaPrompt, /hypothetical request date is 2026-09-10, regardless of the actual execution date/);
+    assert.match(preideaPrompt, /Applications close 2026-09-30/);
+    assert.match(preideaPrompt, /full-time 2026-11-01/);
     cases++;
 
     execute(['prepare', '--out', runs, '--skill', skill], 1);
@@ -152,6 +160,106 @@ export function runBehaviorCliTests() {
 
     fs.appendFileSync(referenceFile, 'Changed after preparation.\n');
     rejectReport(/Skill snapshot differs/);
+    cases++;
+
+    // Public prepare/report --skill flow must survive relocation AND a locale
+    // change. The legacy comparator demonstrably orders these names differently.
+    const unicodeSkill = path.join(temporaryRoot, 'unicode-skill');
+    fs.mkdirSync(path.join(unicodeSkill, 'references'), { recursive: true });
+    fs.writeFileSync(path.join(unicodeSkill, 'SKILL.md'), '# Unicode synthetic skill fixture\n');
+    fs.writeFileSync(path.join(unicodeSkill, 'references/z.md'), 'ASCII reference.\n');
+    fs.writeFileSync(path.join(unicodeSkill, 'references/ä.md'), 'Unicode reference.\n');
+    const english = { LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+    const swedish = { LANG: 'sv_SE.UTF-8', LC_ALL: 'sv_SE.UTF-8' };
+    const oldDigest = env => {
+      const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+        import fs from 'node:fs'; import path from 'node:path'; import {createHash} from 'node:crypto';
+        const sha = value => createHash('sha256').update(value).digest('hex');
+        function digest(dir) { return sha(JSON.stringify(fs.readdirSync(dir, {withFileTypes:true})
+          .sort((a,b) => a.name.localeCompare(b.name)).map(entry => [entry.name,
+            entry.isDirectory() ? digest(path.join(dir,entry.name)) : sha(fs.readFileSync(path.join(dir,entry.name)))]))); }
+        console.log(JSON.stringify({hash:digest(process.argv[1]), locale:new Intl.Collator().resolvedOptions().locale}));
+      `, unicodeSkill], { encoding: 'utf8', env: { ...process.env, ...env } });
+      assert.ifError(result.error);
+      assert.equal(result.status, 0, result.stderr);
+      return JSON.parse(result.stdout);
+    };
+    const oldEnglish = oldDigest(english);
+    const oldSwedish = oldDigest(swedish);
+    assert.notEqual(oldEnglish.hash, oldSwedish.hash, 'Fixture must expose the former locale-dependent digest');
+    cases++;
+    const unicodeRuns = path.join(temporaryRoot, 'unicode-runs');
+    execute(['prepare', '--out', unicodeRuns, '--skill', unicodeSkill, '--cases', customFile], 0, english);
+    const unicodeManifestBytes = fs.readFileSync(path.join(unicodeRuns, 'manifest.json'));
+    const unicodeManifest = JSON.parse(unicodeManifestBytes);
+    const unicodeArchive = path.join(temporaryRoot, 'identical-unicode-archive');
+    fs.cpSync(unicodeSkill, unicodeArchive, { recursive: true });
+    const unicodeJudgmentsFile = path.join(temporaryRoot, 'unicode-judgments.json');
+    const unicodeJudgments = { ...judgments, manifest_sha256: sha(unicodeManifestBytes), runs: [{ case_id: 'custom-case', response_sha256: sha(response), criteria: { 'custom-check': { verdict: 'pass', rationale: 'Artificial harness fixture only.', evidence: 'Synthetic CLI fixture only.' } } }] };
+    fs.writeFileSync(path.join(unicodeRuns, 'custom-case.response.md'), response);
+    fs.writeFileSync(unicodeJudgmentsFile, JSON.stringify(unicodeJudgments));
+    const unicodeArgs = ['report', '--runs', unicodeRuns, '--judgments', unicodeJudgmentsFile, '--cases', customFile, '--skill', unicodeArchive];
+    const crossLocaleReport = JSON.parse(execute(unicodeArgs, 0, swedish).stdout);
+    assert.equal(crossLocaleReport.skill_sha256, unicodeManifest.skill_sha256);
+    assert.equal(crossLocaleReport.manifest_version, 2);
+    cases++;
+    const swedishRuns = path.join(temporaryRoot, 'swedish-runs');
+    execute(['prepare', '--out', swedishRuns, '--skill', unicodeArchive, '--cases', customFile], 0, swedish);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(swedishRuns, 'manifest.json'))).skill_sha256, unicodeManifest.skill_sha256);
+    cases++;
+    assert.match(execute([...unicodeArgs, '--legacy-locale', 'en-US'], 1).stderr, /only valid for legacy v1/);
+    cases++;
+    const unsupportedScheme = { ...unicodeManifest, skill_hash_scheme: 'unknown-scheme' };
+    const replaceUnicodeManifest = value => {
+      const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+      fs.writeFileSync(path.join(unicodeRuns, 'manifest.json'), bytes);
+      unicodeJudgments.manifest_sha256 = sha(bytes);
+      fs.writeFileSync(unicodeJudgmentsFile, JSON.stringify(unicodeJudgments));
+    };
+    replaceUnicodeManifest(unsupportedScheme);
+    assert.match(execute(unicodeArgs, 1).stderr, /Unsupported skill hash scheme/);
+    cases++;
+    // This is an explicitly artificial v1 fixture produced by the old digest,
+    // not a rewritten real trial or a claim that a model was executed.
+    const legacyManifest = { ...unicodeManifest, version: 1, skill_sha256: oldEnglish.hash };
+    delete legacyManifest.skill_hash_scheme;
+    replaceUnicodeManifest(legacyManifest);
+    const legacyManifestBytes = fs.readFileSync(path.join(unicodeRuns, 'manifest.json'));
+    const legacyJudgmentBytes = fs.readFileSync(unicodeJudgmentsFile);
+    assert.equal(JSON.parse(execute(unicodeArgs, 0, english).stdout).skill_hash_scheme, 'legacy-v1-localeCompare');
+    cases++;
+    assert.match(execute(unicodeArgs, 1, swedish).stderr, /--legacy-locale with the known original/);
+    cases++;
+    const recovered = JSON.parse(execute([...unicodeArgs, '--legacy-locale', oldEnglish.locale], 0, swedish).stdout);
+    assert.equal(recovered.skill_sha256, oldEnglish.hash);
+    assert.equal(recovered.legacy_locale, oldEnglish.locale);
+    assert.equal(recovered.legacy_locale_source, 'explicit_option');
+    assert.deepEqual(fs.readFileSync(path.join(unicodeRuns, 'manifest.json')), legacyManifestBytes);
+    assert.deepEqual(fs.readFileSync(unicodeJudgmentsFile), legacyJudgmentBytes);
+    cases++;
+    assert.match(execute([...unicodeArgs, '--legacy-locale', oldSwedish.locale], 1, swedish).stderr, /Skill snapshot differs/);
+    cases++;
+    assert.match(execute([...unicodeArgs, '--legacy-locale', 'not_a_BCP47_locale'], 1).stderr, /Invalid legacy locale/);
+    cases++;
+    fs.appendFileSync(path.join(unicodeArchive, 'references/ä.md'), 'Archive changed.\n');
+    assert.match(execute([...unicodeArgs, '--legacy-locale', oldEnglish.locale], 1, swedish).stderr, /Skill snapshot differs/);
+    cases++;
+
+    const welcomeFile = path.join(root, 'examples/evals/welcome-cases.json');
+    const welcomeSuite = JSON.parse(fs.readFileSync(welcomeFile, 'utf8'));
+    const welcomeRuns = path.join(temporaryRoot, 'welcome-runs');
+    execute(['prepare', '--out', welcomeRuns, '--skill', skill, '--cases', welcomeFile]);
+    assert.equal(welcomeSuite.cases.length, 7);
+    const welcomeManifest = JSON.parse(fs.readFileSync(path.join(welcomeRuns, 'manifest.json')));
+    for (const item of welcomeSuite.cases) {
+      const prompt = fs.readFileSync(path.join(welcomeRuns, `${item.id}.prompt.md`), 'utf8');
+      assert.ok(prompt.includes(item.prompt));
+      assert.match(prompt, /SYNTHETIC TOOL STATE/);
+      assert.match(prompt, /do not execute helpers/);
+      for (const criterion of welcomeSuite.cases.flatMap(candidate => candidate.criteria)) assert.ok(!prompt.includes(criterion.description));
+      assert.ok(!fs.existsSync(path.join(welcomeRuns, `${item.id}.response.md`)));
+    }
+    assert.equal(welcomeManifest.cases_sha256, sha(fs.readFileSync(welcomeFile)));
     cases++;
     return { cases };
   } finally {

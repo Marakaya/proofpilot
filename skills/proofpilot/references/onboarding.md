@@ -32,6 +32,8 @@ The project-count wording below is a dated coverage claim: on 2026-10-02 the [of
 
 ### Before Authorization
 
+Even in a shortened introduction, explicitly name both idea discovery and competitor/precedent analysis as purposes of Colosseum Copilot. Finding similar solutions alone does not explain its idea-discovery role.
+
 For a full installation with missing access, use this Russian example, adapting only the actual installation/access state and language:
 
 > **В пакет ProofPilot входит скилл Colosseum Copilot**, который открывает доступ к базе **более 8 000 проектов с хакатонов Colosseum**.
@@ -58,7 +60,13 @@ node "<absolute installed skill directory>/scripts/discover-sources.js" --root "
 
 Use `support_bundle.skills` and their installed statuses for the actual names and count. The main ProofPilot router supports five venture stages; its five separately installable profiles are not part of the 36 support skills. Installed guidance does not establish availability of a compiler, API connection or host plugin. Use the full-package example only when that package is present, and adapt it for core-only or incomplete installations.
 
+Even when shortening this first post-authorization overview to continue an existing task, explicitly distinguish the five venture stages/profiles from the actual support-skill count, name all five stages, and give the phrase for requesting the full catalog. These are required parts of the overview; a list of support capabilities alone does not replace them. Keep them compact and immediately resume the known task.
+
+When resuming a competitor comparison, preserve the granularity of every supplied record, including in the headline conclusion. Unspecified human review does not establish the reviewer's profession, approval of every proposal, or an equivalent workflow. Attribute only the actors and actions actually stated; keep additional details unknown rather than upgrading a broad description into a specific feature.
+
 > **Colosseum подключён! Теперь расскажу, что ещё умеет ProofPilot.**
+>
+> Сам ProofPilot ведёт через пять этапов: **поиск идеи → проверка спроса → планирование MVP → оценка готовности → подготовка заявки**. Отдельные профили этих этапов не входят в число вспомогательных скиллов.
 >
 > В полной установке есть **36 вспомогательных скиллов**, которые помогают пройти путь от идеи до разработки и подготовки к запуску:
 >
@@ -100,13 +108,13 @@ Give the actual installed command path:
 node "<absolute installed skill directory>/scripts/setup.js" --connect-colosseum
 ```
 
-The command uses official `@colosseum-org/copilot-connect@0.2.2 login` from an isolated directory with independent empty npm configuration. Caller-project packages and npmrc files cannot select a different helper. The managed helper path must have a non-symlinked, non-writable directory chain owned by the current user; an unsafe preseeded tree is rejected. It may download that pinned helper through npm, opens a browser, and uses PKCE with a local callback. The user signs in to their Colosseum account and reviews the requested access. Browser approval alone is insufficient; the command checks authenticated V2 evidence access afterward.
+The command runs official `@colosseum-org/copilot-connect@0.2.2 login` directly from a validated managed copy with a restricted environment. Preparing an absent helper uses an isolated directory with independent empty npm configuration; caller-project packages and npmrc files cannot select a different helper. The managed helper path must have a non-symlinked, non-writable directory chain owned by the current user; an unsafe preseeded tree is rejected. It may download that pinned helper through npm, opens a browser, and uses PKCE with a local callback. The user signs in to their Colosseum account and reviews the requested access. Browser approval alone is insufficient; the command checks authenticated V2 evidence access afterward.
 
-For SSH, remote environments, or a blocked browser callback, use `--connect-colosseum --device`. Show its device link/code only to the signed-in user; never ask them to paste a code or token into chat. The user completes approval in the browser. Node.js 20+, npm and curl are required. The full support installer prepares a validated managed copy of the helper without sign-in or lifecycle scripts. Offline status only inspects and directly runs an existing validated copy; for a standalone copy, complete [installation.md](installation.md) first or give the connect command above.
+For SSH, remote environments, or a blocked browser callback, use `--connect-colosseum --device`. Show its device link/code only to the signed-in user; never ask them to paste a code or token into chat. The user completes approval in the browser. Node.js 20+ and trusted system curl are required; npm is needed only to prepare an absent helper. A validated managed helper runs without npm. If preparation cannot find a trusted npm CLI, the `EHELPERNPM` diagnostic explains that prerequisite before sign-in. The full support installer prepares a validated managed copy of the helper without sign-in or lifecycle scripts. Offline status only inspects and directly runs an existing validated copy; for a standalone copy, complete [installation.md](installation.md) first or give the connect command above.
 
 Credentials and refresh rotation belong to the official helper's OS credential store or its supported protected file fallback. Do not invent a plaintext store, inspect saved contents, copy credentials to another environment, or collect secrets in chat, logs, argv or environment variables. ProofPilot transfers bearer authorization privately between helper and curl; no token is returned to the agent.
 
-Live requests accept curl only through the verified system search path. On POSIX, every directory in the resolved PATH entry's ancestor chain must be root-owned and not writable by group or others; defaults include `/usr/local/bin`, `/usr/bin`, `/bin`, `/usr/sbin` and `/sbin` when they pass these checks. User-bin, project `node_modules/.bin`, and user-owned Homebrew/Conda directories are not accepted. On Windows, eligible directories are anchored to loaded OS modules rather than caller-supplied `SystemRoot`/`WINDIR`. The resolved curl executable must be a regular file and, on POSIX, executable. If none is found, `transport_missing` and setup `next_action: prepare_curl` identify the missing prerequisite before token retrieval or renewal. Prepare system curl in an accepted location, then retry `--check-colosseum`; preserve the connection and do not repeat sign-in on this evidence. ProofPilot does not install curl automatically.
+Live requests accept curl only through the verified system search path. On POSIX, every directory in the resolved PATH entry's ancestor chain must be root-owned and not writable by group or others; defaults include `/usr/local/bin`, `/usr/bin`, `/bin`, `/usr/sbin` and `/sbin` when they pass these checks. User-bin, project `node_modules/.bin`, and user-owned Homebrew/Conda directories are not accepted. On Windows, eligible directories are anchored to loaded OS modules rather than caller-supplied `SystemRoot`/`WINDIR`. The resolved curl executable must be a regular file. On POSIX it must also be root-owned, executable, and not writable by group or others, with the same protection on its canonical directory chain. On Windows its canonical parent must remain within the loaded-module OS anchor; a link escaping it is refused. If none is found, `transport_missing` and setup `next_action: prepare_curl` identify the missing prerequisite before token retrieval or renewal. Prepare system curl in an accepted location, then retry `--check-colosseum`; preserve the connection and do not repeat sign-in on this evidence. ProofPilot does not install curl automatically.
 
 Follow the [official V2 connection guide](https://github.com/ColosseumOrg/colosseum-copilot/blob/079bd44b0d4d221d6a893764d8ec6f5f4845707e/skills/colosseum-copilot/references/connection.md). Ignore leftover V1 PAT settings and legacy ProofPilot/Superstack credential files; preserve them without reading or reusing secrets. ProofPilot status and corpus requests never fall back to V1. Official V1 support ends 2026-10-28 00:00 UTC; that date does not extend V1 access to V2.
 
@@ -118,11 +126,11 @@ Revoke access through [Arena connected agents](https://colosseum.com/arena/copil
 
 ## What Costs Money
 
-Use [service-access.json](service-access.json) for the selected service. The Colosseum V2 connection contract was reviewed on 2026-10-01; other service pricing cards retain their individual dates.
+Use [service-access.json](service-access.json) for the selected service. The Colosseum V2 connection contract was reviewed on 2026-10-01 and its public cost terms on 2026-10-02; other service pricing cards retain their individual dates.
 
 | Access | Needed for research setup? | Cost boundary |
 |---|---|---|
-| Colosseum account via Copilot Connect | **Required** | Review account terms at sign-in. The public FAQ still describes free V1 PAT access; it does not verify V2 pricing. |
+| Colosseum account via Copilot Connect | **Required** | On 2026-10-02 the [official Copilot page](https://colosseum.com/copilot) FAQ said Copilot is free with a Colosseum account. Premium Frames data sources use the user's credits only after their permission: a paid action needing scoped authorization. |
 | GitHub, Kaggle, Hugging Face | Optional | Public research first; scoped account access for specific resources. Paid compute and other products are separate. |
 | DefiLlama | Optional, no key for Free API | Public analytics are free; Pro API is separate. |
 | ETHGlobal Skills | Optional, no key for free reads | Published free rate allowance; stop at 402. No automatic wallet/payment setup. |
@@ -130,7 +138,7 @@ Use [service-access.json](service-access.json) for the selected service. The Col
 | Gemini API | Optional | Model-specific free tiers; verify paid features and data-use terms. |
 | Replit MCP | Optional OAuth | Account plan and Agent/cloud usage apply. Use `list_apps` for access checking; Agent questions may be billable. |
 
-Agent/model subscriptions and usage remain separate from Colosseum access. A connection does not authorize spending. Before a cost-sensitive recommendation, check current terms. For an optional service, explain its purpose, minimum scope, secure connection/revocation route, free alternative and paid boundary. Do not request every catalogued key.
+Agent/model subscriptions and usage remain separate from Colosseum access. A connection does not authorize spending, including Frames credits. Before a cost-sensitive recommendation, check current terms; the dated Colosseum FAQ is not a permanent price guarantee. For an optional service, explain its purpose, minimum scope, secure connection/revocation route, free alternative and paid boundary. Do not request every catalogued key.
 
 ## Use Colosseum As The Foundation
 

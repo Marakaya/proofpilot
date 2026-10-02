@@ -26,7 +26,7 @@ const costClasses = new Set([
   "free_rate_limited_plus_x402", "public_research_account_access",
   "free_public_plus_compute_credits", "separate_usage_billed_api",
   "separate_prepaid_or_invoiced_api", "model_specific_free_tier_plus_usage_billing",
-  "account_plan_and_usage", "account_terms_at_sign_in"
+  "account_plan_and_usage", "account_terms_at_sign_in", "free_account_plus_premium_credits"
 ]);
 const topKeys = new Set(["checked_at", "scope", "policy", "services"]);
 const serviceKeys = new Set([

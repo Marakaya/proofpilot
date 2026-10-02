@@ -22,7 +22,7 @@ const recordCoreIdentity = (root, name, location) => {
   fs.writeFileSync(stateFile, `${JSON.stringify(state, null, 2)}\n`);
 };
 function tracePersistence(run, beforeSync = () => {}) {
-  const original = { open: fs.openSync, close: fs.closeSync, sync: fs.fsyncSync, rename: fs.renameSync };
+  const original = { open: fs.openSync, close: fs.closeSync, sync: fs.fsyncSync, rename: fs.renameSync, link: fs.linkSync };
   const paths = new Map(), events = [];
   fs.openSync = (file, ...args) => { const fd = original.open(file, ...args); paths.set(fd, String(file)); return fd; };
   fs.closeSync = fd => { paths.delete(fd); return original.close(fd); };
@@ -31,8 +31,9 @@ function tracePersistence(run, beforeSync = () => {}) {
     const result = original.sync(fd); events.push({ op: "sync", file }); return result;
   };
   fs.renameSync = (from, to) => { const result = original.rename(from, to); events.push({ op: "rename", from, to }); return result; };
+  fs.linkSync = (from, to) => { const result = original.link(from, to); events.push({ op: "link", from, to }); return result; };
   try { return run(events); }
-  finally { fs.openSync = original.open; fs.closeSync = original.close; fs.fsyncSync = original.sync; fs.renameSync = original.rename; }
+  finally { fs.openSync = original.open; fs.closeSync = original.close; fs.fsyncSync = original.sync; fs.renameSync = original.rename; fs.linkSync = original.link; }
 }
 export function runInstallSafetyTests({ testNamePattern } = {}) {
   const temporary = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-install-safety-")));
@@ -109,6 +110,78 @@ export function runInstallSafetyTests({ testNamePattern } = {}) {
       const retry = core("core-rollback-ownership", { force: true });
       assert.deepEqual(retry.installed, ["proofpilot"]);
       assert.ok(retry.backups.some(backup => fs.existsSync(path.join(backup, "SKILL.md")) && fs.readFileSync(path.join(backup, "SKILL.md")).equals(original)));
+    });
+    test("compatibility Unicode core destinations retain physical paths through rollback and reject duplicate names", () => {
+      for (const [index, [basename, folded]] of [["ｐｒｏｏｆｐｉｌｏｔ", "proofpilot"], ["proofßpilot", "proofsspilot"]].entries()) {
+        const root = path.join(temporary, `unicode-core-${index}`, "skills");
+        const target = path.join(root, basename), alternate = path.join(root, folded);
+        fs.mkdirSync(target, { recursive: true });
+        const aliased = fs.existsSync(alternate);
+        fs.rmdirSync(target);
+        if (aliased) continue; // Only distinct physical names exercise this regression.
+        const args = { destination: target, coreOnly: true };
+        installPackage(args);
+        const stateFile = path.join(root, ".proofpilot-bundle.json");
+        const installedState = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        assert.equal(installedState.core_entries.proofpilot.path, basename);
+        assert.equal(fs.existsSync(path.join(root, installedState.core_entries.proofpilot.path)), true);
+        fs.appendFileSync(path.join(target, "SKILL.md"), "\nUnicode-path user customization survives rollback.\n");
+        const bytes = fs.readFileSync(path.join(target, "SKILL.md"));
+        assert.throws(() => installPackage({ ...args, force: true }, {
+          afterCoreActivated: () => { throw new Error("controlled Unicode core rollback"); }
+        }), /controlled Unicode core rollback/);
+        assert.deepEqual(fs.readFileSync(path.join(target, "SKILL.md")), bytes);
+        const rollbackState = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        assert.equal(rollbackState.core_entries.proofpilot.path, basename);
+        assert.deepEqual(rollbackState.core_entries.proofpilot.path_identity, pathIdentity(target));
+        assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+        const retry = installPackage({ ...args, force: true });
+        assert.deepEqual(retry.installed, ["proofpilot"]);
+        assert.ok(retry.backups.some(backup => fs.readFileSync(path.join(backup, "SKILL.md")).equals(bytes)));
+        assert.throws(() => installPackage({ destination: alternate, coreOnly: true }), /already has a recorded ProofPilot core|another entry declaring name/);
+        assert.equal(fs.existsSync(alternate), false);
+        assert.equal(JSON.parse(fs.readFileSync(stateFile, "utf8")).core_entries.proofpilot.path, basename);
+      }
+    });
+    test("inode-proven legacy folded core paths migrate without permitting unbound ownership", () => {
+      const basename = "ｐｒｏｏｆｐｉｌｏｔ";
+      for (const failBeforeCommit of [false, true]) {
+        const root = path.join(temporary, `unicode-legacy-${failBeforeCommit}`, "skills"), target = path.join(root, basename);
+        const args = { destination: target, coreOnly: true };
+        installPackage(args);
+        if (fs.existsSync(path.join(root, "proofpilot"))) continue;
+        const stateFile = path.join(root, ".proofpilot-bundle.json");
+        const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        state.core_entries.proofpilot.path = "proofpilot";
+        fs.writeFileSync(stateFile, `${JSON.stringify(state, null, 2)}\n`);
+        fs.appendFileSync(path.join(target, "SKILL.md"), "\nLegacy Unicode-path customization.\n");
+        const bytes = fs.readFileSync(path.join(target, "SKILL.md"));
+        if (failBeforeCommit) {
+          assert.throws(() => installPackage({ ...args, force: true }, {
+            afterCoreActivated: () => { throw new Error("controlled legacy Unicode rollback"); }
+          }), /controlled legacy Unicode rollback/);
+          assert.deepEqual(fs.readFileSync(path.join(target, "SKILL.md")), bytes);
+          const rolledBack = JSON.parse(fs.readFileSync(stateFile, "utf8")).core_entries.proofpilot;
+          assert.equal(rolledBack.path, basename);
+          assert.deepEqual(rolledBack.path_identity, pathIdentity(target));
+        }
+        assert.deepEqual(installPackage({ ...args, force: true }).installed, ["proofpilot"]);
+        const migrated = JSON.parse(fs.readFileSync(stateFile, "utf8")).core_entries.proofpilot;
+        assert.equal(migrated.path, basename);
+        assert.deepEqual(migrated.path_identity, pathIdentity(target));
+      }
+      const root = path.join(temporary, "unicode-unbound", "skills"), target = path.join(root, basename);
+      installPackage({ destination: target, coreOnly: true });
+      if (!fs.existsSync(path.join(root, "proofpilot"))) {
+        const stateFile = path.join(root, ".proofpilot-bundle.json"), state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        state.core_entries.proofpilot.path = "proofpilot";
+        state.core_entries.proofpilot.path_identity.ino = `${BigInt(state.core_entries.proofpilot.path_identity.ino) + 1n}`;
+        fs.writeFileSync(stateFile, JSON.stringify(state));
+        fs.appendFileSync(path.join(target, "SKILL.md"), "\nUnbound legacy state cannot authorize replacement.\n");
+        const bytes = fs.readFileSync(path.join(target, "SKILL.md"));
+        assert.throws(() => installPackage({ destination: target, coreOnly: true, force: true }), /unowned existing path/);
+        assert.deepEqual(fs.readFileSync(path.join(target, "SKILL.md")), bytes);
+      }
     });
     test("owned forced updates accept plain and balanced quoted names with YAML inline comments", () => {
       for (const [index, name] of ['proofpilot # user note', '"proofpilot" # user note', "'proofpilot'\t# user note"].entries()) {
@@ -310,6 +383,66 @@ export function runInstallSafetyTests({ testNamePattern } = {}) {
           assert.deepEqual(core(name, { mode }).reused.sort(), ["proofpilot", ...profileNames].sort());
         } finally { process.umask(previous); }
       }
+    });
+    if (typeof process.getuid === "function") test("physical core reuse rejects writable descendants and forced replacement hardens a preserved backup", () => {
+      for (const [index, [entryName, relative, mode]] of [
+        ["proofpilot", "SKILL.md", 0o666],
+        ["proofpilot", "references", 0o777],
+        [profileNames[0], "scripts/setup.js", 0o666],
+        [profileNames[0], "references", 0o777]
+      ].entries()) {
+        const label = `writable-core-descendant-${index}`, root = path.dirname(destination(label));
+        core(label, { profiles: true });
+        const changed = path.join(root, entryName, relative);
+        const bytes = fs.lstatSync(changed).isFile() ? fs.readFileSync(changed) : null;
+        fs.chmodSync(changed, mode);
+        assert.throws(() => core(label), /different files or installation mode/);
+        assert.equal(fs.lstatSync(changed).mode & 0o777, mode);
+        assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+        const replaced = core(label, { force: true });
+        assert.equal(fs.lstatSync(changed).mode & 0o022, 0);
+        const backup = replaced.backups.find(file => path.basename(file).endsWith(`-${entryName}`));
+        assert.ok(backup, `Missing preserved ${entryName} backup`);
+        assert.equal(fs.lstatSync(path.join(backup, relative)).mode & 0o777, mode);
+        if (bytes) assert.deepEqual(fs.readFileSync(path.join(backup, relative)), bytes);
+        assert.deepEqual(core(label).reused.sort(), ["proofpilot", ...profileNames].sort());
+      }
+    });
+    if (typeof process.getuid === "function") test("physical core reuse checks descendant ownership and ignored metadata permissions", () => {
+      const label = "unsafe-core-descendant-owner", root = path.dirname(destination(label));
+      core(label);
+      const descendant = path.join(destination(label), "references/onboarding.md");
+      const lstat = fs.lstatSync;
+      fs.lstatSync = (file, options) => {
+        const stat = lstat(file, options);
+        if (file === descendant) return Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+          uid: options?.bigint ? BigInt(process.getuid() + 1) : process.getuid() + 1
+        });
+        return stat;
+      };
+      try { assert.throws(() => core(label), /different files or installation mode/); }
+      finally { fs.lstatSync = lstat; }
+      const metadata = path.join(destination(label), ".DS_Store");
+      fs.writeFileSync(metadata, "Synthetic ignored OS metadata\n", { mode: 0o666 }); fs.chmodSync(metadata, 0o666);
+      assert.throws(() => core(label), /different files or installation mode/);
+      assert.equal(fs.existsSync(path.join(root, ".proofpilot-transaction.json")), false);
+      fs.chmodSync(metadata, 0o600);
+      assert.deepEqual(core(label).reused, ["proofpilot"]);
+    });
+    if (typeof process.getuid === "function") test("development symlink reuse keeps writable checkout semantics without changing the source", () => {
+      const label = "writable-development-checkout", root = path.dirname(destination(label));
+      const installDevelopment = () => spawnSync(process.execPath, [path.join(clone, "scripts/install-skills.js"), "--target", root, "--core-only"], { cwd: clone, encoding: "utf8" });
+      const installed = installDevelopment();
+      assert.equal(installed.status, 0, installed.stderr);
+      const checkoutFile = path.join(clone, "skills/proofpilot/references/onboarding.md"), previousMode = fs.lstatSync(checkoutFile).mode & 0o777;
+      fs.chmodSync(checkoutFile, 0o666);
+      try {
+        const reused = installDevelopment();
+        assert.equal(reused.status, 0, reused.stderr);
+        assert.equal(fs.lstatSync(checkoutFile).mode & 0o777, 0o666);
+        assert.equal(fs.lstatSync(destination(label)).isSymbolicLink(), true);
+        assert.equal(fs.lstatSync(path.join(root, profileNames[0], "references")).isSymbolicLink(), true);
+      } finally { fs.chmodSync(checkoutFile, previousMode); }
     });
     if (typeof process.getuid === "function") test("an unsafe writable ancestor is rejected unless it is sticky", () => {
       const shared = path.join(temporary, "unsafe-ancestor");
@@ -865,14 +998,25 @@ export function runInstallSafetyTests({ testNamePattern } = {}) {
       const top = path.join(temporary, "nested-parent-cleanup");
       const target = path.join(top, "one", "two", "skills", "proofpilot");
       const state = path.join(path.dirname(target), ".proofpilot-bundle.json");
-      const rename = fs.renameSync;
-      fs.renameSync = (from, to) => {
-        if (to === state && path.basename(from).startsWith(".proofpilot-state-")) throw new Error("Synthetic post-core state failure");
-        return rename(from, to);
+      const link = fs.linkSync;
+      let injected = false;
+      fs.linkSync = (from, to) => {
+        if (to === state && path.basename(from) === "prepared.json" &&
+            path.basename(path.dirname(from)).startsWith(".proofpilot-commit-state-")) {
+          injected = true;
+          assert.equal(fs.existsSync(path.join(target, "SKILL.md")), true, "Core activation must finish before the state-publication failure.");
+          const journal = JSON.parse(fs.readFileSync(path.join(path.dirname(target), ".proofpilot-transaction.json"), "utf8"));
+          const action = journal.actions.find(action => action.kind === "core" && action.destination === "proofpilot");
+          assert.equal(action.activation_started, true);
+          assert.deepEqual(action.staged_identity, pathIdentity(target));
+          throw new Error("Synthetic post-core state failure");
+        }
+        return link(from, to);
       };
       try {
         assert.throws(() => installPackage({ destination: target, coreOnly: true }), /Synthetic post-core state failure/);
-      } finally { fs.renameSync = rename; }
+      } finally { fs.linkSync = link; }
+      assert.equal(injected, true, "The failure must reach the actual active-state publication boundary.");
       assert.equal(fs.existsSync(top), false);
     });
     test("data ancestor symlink refuses all installation writes and downloads", () => {
@@ -953,7 +1097,8 @@ export function runInstallSafetyTests({ testNamePattern } = {}) {
           assert.ok(events.slice(0, backup).some(event => event.op === "sync" && event.file === parent), `Unpersisted backup ancestor: ${parent}`);
           if (parent === path.dirname(root)) break;
         }
-        const state = events.findIndex(event => event.op === "rename" && event.to === path.join(root, ".proofpilot-bundle.json"));
+        const state = events.findIndex(event => event.op === "link" && event.to === path.join(root, ".proofpilot-bundle.json"));
+        assert.ok(state > activation, "The trace must contain the actual state publication after core activation.");
         const afterBackup = events.slice(backup + 1, activation);
         const backupSync = afterBackup.findIndex(event => event.op === "sync" && event.file === path.dirname(result.backups[0]));
         const removalSync = afterBackup.findIndex(event => event.op === "sync" && event.file === root);

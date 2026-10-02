@@ -47,10 +47,11 @@ Use the result to find:
 - `support_bundle`: the complete 36-skill catalog and shared guidance file inventory; it does not check helper/account/toolchain execution
 - `solana_development`: bundled guidance and a catalog with `installed` / `not_found` statuses and exact `skill_file` paths for separate developer skills
 - installed solana.new skills in project-local `.agents/skills`, `.codex/skills`, `.claude/skills`, beside the invoked installed skill/profile, and global `~/.codex/skills` (or `$CODEX_HOME/skills`), `~/.agents/skills`, `~/.claude/skills`. An explicit `--root` is checked first, so its copy wins; project-local roots are the fallback when it lacks a skill. Without `--root`, project-local copies take precedence over sibling and global roots
+- `CODEX_HOME` overrides must be absolute; relative paths and shell-style `~` are refused before inventory or account inspection
 - shared Solana data in `data/solana-knowledge/`, `data/ideas/`, `data/guides/`, `data/colosseum/`, and `data/defi/`
 - local shared data paths; `--capabilities` omits credential checks, account calls and setup writes
 
-Run without `--capabilities` only when a research task also needs credential-availability booleans. A `not_found` entry means the helper did not find its `SKILL.md` in the checked roots; it does not mean ProofPilot lacks an implementation route. The support inventory covers the locked bundle; protocol-specific candidates and third-party extensions are discovered when needed.
+Run without `--capabilities` only when a research task also needs credential availability: optional service flags are booleans; Colosseum connection presence is true (stored), false (definitely missing), or null (unknown), with its setup status and reason. For helper trust failure details and the cache path, use `setup.js --status`. A `not_found` entry means the helper did not find its `SKILL.md` in the checked roots; it does not mean ProofPilot lacks an implementation route. The support inventory covers the locked bundle; protocol-specific candidates and third-party extensions are discovered when needed.
 
 If local solana.new data is unavailable, fall back to the upstream GitHub repo and official Solana docs/templates.
 

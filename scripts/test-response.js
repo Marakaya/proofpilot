@@ -208,8 +208,74 @@ export function runResponseTests() {
   test("snapshot source must exist in registry", partial, (r) => { r.run.evaluation_snapshot.allowed_source_ids.push("invented"); }, /unknown source_id/);
   test("evidence after cutoff rejected", partial, (r) => { r.evidence[0].retrieved_at = "2026-09-05T09:30:00Z"; }, /after evidence_cutoff/);
   test("cutoff after generation rejected", partial, (r) => { r.run.evaluation_snapshot.evidence_cutoff = "2026-09-05T11:00:00Z"; }, /after generated_at/);
+  const timestampCases = [
+    {
+      name: "retrieval one microsecond after cutoff rejected",
+      generated: "2026-09-05T08:00:00.123458Z", cutoff: "2026-09-05T08:00:00.123456Z", retrieved: "2026-09-05T08:00:00.123457Z",
+      error: /retrieved after evidence_cutoff/
+    },
+    {
+      name: "cutoff one microsecond after generation rejected",
+      generated: "2026-09-05T08:00:00.123456Z", cutoff: "2026-09-05T08:00:00.123457Z", retrieved: "2026-09-05T08:00:00.123455Z",
+      error: /evidence_cutoff is after generated_at/
+    },
+    {
+      name: "retrieval one microsecond after generation rejected",
+      generated: "2026-09-05T08:00:00.123456Z", cutoff: "2026-09-05T08:00:00.123455Z", retrieved: "2026-09-05T08:00:00.123457Z",
+      error: /retrieved after generated_at/
+    },
+    {
+      name: "millisecond-late retrieval remains rejected",
+      generated: "2026-09-05T08:00:00.125Z", cutoff: "2026-09-05T08:00:00.123Z", retrieved: "2026-09-05T08:00:00.124Z",
+      error: /retrieved after evidence_cutoff/
+    },
+    {
+      name: "long fraction preserves a difference beyond numeric precision",
+      generated: "2026-09-05T08:00:00.123456789012345678901234567892Z", cutoff: "2026-09-05T08:00:00.123456789012345678901234567890Z", retrieved: "2026-09-05T08:00:00.123456789012345678901234567891Z",
+      error: /retrieved after evidence_cutoff/
+    },
+    {
+      name: "equal instants accept timezone offsets and trailing fractional zeroes",
+      generated: "2026-09-05T13:00:00.123456+05:00", cutoff: "2026-09-05T03:00:00.1234560-05:00", retrieved: "2026-09-05T08:00:00.123456000Z"
+    },
+    {
+      name: "equal whole seconds accept missing and zero fractions",
+      generated: "2026-09-05T08:00:00Z", cutoff: "2026-09-05T08:00:00.000Z", retrieved: "2026-09-05T08:00:00.000000Z"
+    },
+    {
+      name: "equal long fractions remain accepted",
+      generated: "2026-09-05T08:00:00.12345678901234567890123456789Z", cutoff: "2026-09-05T08:00:00.123456789012345678901234567890Z", retrieved: "2026-09-05T08:00:00.12345678901234567890123456789000Z"
+    },
+    {
+      name: "timezone normalization preserves equality across calendar days",
+      generated: "2026-09-05T00:00:00.123456Z", cutoff: "2026-09-04T19:00:00.123456-05:00", retrieved: "2026-09-05T05:30:00.12345600+05:30"
+    },
+    {
+      name: "whole-second ordering dominates fractional ordering",
+      generated: "2026-09-05T08:00:01.000000Z", cutoff: "2026-09-05T08:00:00.999999Z", retrieved: "2026-09-05T08:00:00.999998Z"
+    },
+    {
+      name: "precise boundaries work before the Unix epoch",
+      generated: "1969-12-31T23:59:59.123458Z", cutoff: "1969-12-31T23:59:59.123456Z", retrieved: "1969-12-31T23:59:59.123455Z"
+    },
+    {
+      name: "year zero leap-day remains valid",
+      generated: "0000-02-29T08:00:00.123458Z", cutoff: "0000-02-29T08:00:00.123456Z", retrieved: "0000-02-29T08:00:00.123455Z"
+    }
+  ].map(({ name, generated, cutoff, retrieved, error }) => ({
+    name,
+    error,
+    response: test(name, partial, (r) => {
+      r.run.generated_at = generated;
+      r.run.evaluation_snapshot.evidence_cutoff = cutoff;
+      r.evidence[0].retrieved_at = retrieved;
+    }, error)
+  }));
   test("invalid calendar date rejected", partial, (r) => { r.evidence[0].retrieved_at = "2026-02-30T08:00:00Z"; }, /date-time/);
   test("ambiguous timestamp without timezone rejected", partial, (r) => { r.evidence[0].retrieved_at = "2026-09-05T08:00:00"; }, /date-time/);
+  for (const timestamp of ["1900-02-29T08:00:00Z", "2026-00-01T08:00:00Z", "2026-13-01T08:00:00Z", "2026-09-00T08:00:00Z", "2026-09-05T24:00:00Z", "2026-09-05T08:60:00Z", "2026-09-05T08:00:60Z", "2026-09-05T08:00:00+24:00", "2026-09-05T08:00:00+05:60"]) {
+    test(`invalid timestamp ${timestamp} rejected`, partial, (r) => { r.evidence[0].retrieved_at = timestamp; }, /date-time/);
+  }
   test("verified user artifact must be pinned in evaluator", partial, (r) => { delete r.evidence[0].artifact_ref; }, /requires artifact_ref/);
   test("artifact reference must exist in snapshot", partial, (r) => { r.evidence[0].artifact_ref = "missing"; }, /unknown artifact_ref/);
   test("artifact identity must be unique", partial, (r) => { r.run.evaluation_snapshot.artifacts.push(structuredClone(r.run.evaluation_snapshot.artifacts[0])); }, /Duplicate artifact id/);
@@ -284,6 +350,14 @@ export function runResponseTests() {
       const result = spawnSync(process.execPath, [command, inputPath], { encoding: "utf8" });
       assert.equal(result.status, expectedStatus, result.stderr || result.stdout);
       if (expectedStatus === 1) assert.match(result.stderr, /credential_class must be api_token/);
+      count++;
+    }
+    for (const { name, response, error } of timestampCases) {
+      fs.writeFileSync(inputPath, JSON.stringify(response));
+      const result = spawnSync(process.execPath, [command, inputPath], { cwd: temporary, encoding: "utf8" });
+      assert.equal(result.status, error ? 1 : 0, `${name}: ${result.stderr || result.stdout}`);
+      if (error) assert.match(result.stderr, error, name);
+      else assert.match(result.stdout, /response validation passed/, name);
       count++;
     }
     fs.writeFileSync(inputPath, "{broken");

@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-01",
+  "checked_at": "2026-10-02",
   "scope": "Onboarding reference for required Colosseum access and optional service connections. Documentation and cost categories were checked on the recorded dates; account access and available credits must be checked for the selected capability.",
   "policy": "Complete Colosseum setup first: it is the foundation of ProofPilot research. Request other connections only when the selected task needs them. Reuse working access and explain cost before any billable operation.",
   "services": [
@@ -16,11 +16,12 @@
       "urls": [
         "https://github.com/ColosseumOrg/colosseum-copilot/blob/079bd44b0d4d221d6a893764d8ec6f5f4845707e/skills/colosseum-copilot/references/connection.md",
         "https://github.com/ColosseumOrg/colosseum-copilot/blob/079bd44b0d4d221d6a893764d8ec6f5f4845707e/README.md",
-        "https://colosseum.com/arena/copilot/connections"
+        "https://colosseum.com/arena/copilot/connections",
+        "https://colosseum.com/copilot"
       ],
-      "cost_class": "account_terms_at_sign_in",
-      "free_scope": "No verified V2 price guarantee. The public FAQ still describes free V1 PAT access; that historical statement does not establish V2 entitlement. Review current account terms at browser authorization.",
-      "paid_scope": "No automatic payment or paid request. Agent/model provider usage has separate billing and limits; stop at an API payment requirement.",
+      "cost_class": "free_account_plus_premium_credits",
+      "free_scope": "Checked 2026-10-02: the official Copilot page describes V2 browser sign-in, and its FAQ says Copilot is free with a Colosseum account. This dated public statement is not a permanent price guarantee; recheck current terms before cost-sensitive advice.",
+      "paid_scope": "Premium Frames data sources use the user's credits only after the user's permission; treat that as a paid action needing scoped authorization. ProofPilot's bounded read helper does not request Frames data. No automatic payment or paid request. Agent/model provider usage has separate billing and limits; stop at an API payment requirement.",
       "limitations": [
         "Requires a Colosseum account, Node.js 20+, npm/npx and curl. Connect may download the pinned official helper; offline status never installs it.",
         "A stored connection is unverified until a live V2 response confirms the current evidence grant. Transport or permission failure does not prove expiry.",
@@ -28,7 +29,7 @@
         "Refresh rotation is owned by the official helper. Preserve interrupted/pending state; do not reset credentials or repeat login for an unavailable evidence feature.",
         "The bounded connector does not share conversations or submit feedback/source suggestions. Such actions require separate user authorization."
       ],
-      "checked_at": "2026-10-01"
+      "checked_at": "2026-10-02"
     },
     {
       "service_id": "github",

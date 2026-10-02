@@ -152,6 +152,37 @@ async function windowsBranchFixtures(fixture, helperUrl, connectionUrl) {
   assert.equal(fs.existsSync(runtimeReceived), false, "A Node runtime directory authorized caller curl.exe");
   cases++;
 
+  // The PATH entry is anchored, but its file link must not confer that trust on
+  // a canonical target outside the allowed OS directories. This models an
+  // existing link; it does not establish native Windows permission to create it.
+  const systemCurl = path.join(system, "curl.exe");
+  fs.rmSync(systemCurl);
+  fs.symlinkSync(path.join(attacker, "curl.exe"), systemCurl, "file");
+  const beforeEscapedLink = helperInvocations;
+  assert.deepEqual(parseColosseumResponse(await request()), { error: "transport_missing", http_status: null });
+  assert.equal(helperInvocations, beforeEscapedLink, "An escaped canonical Windows target must stop before token-helper construction");
+  assert.equal(fs.existsSync(received), false, "The system-directory link delivered a bearer to the caller target");
+  cases++;
+
+  // A link whose canonical target remains in another accepted OS directory is
+  // still usable. Verify the complete synthetic transfer, not only a resolver.
+  const anchoredTarget = path.join(system, "Wbem", "anchored-curl.exe");
+  fs.rmSync(systemCurl);
+  curl(system, systemReceived);
+  fs.renameSync(systemCurl, anchoredTarget);
+  fs.symlinkSync(anchoredTarget, systemCurl, "file");
+  fs.rmSync(systemReceived, { force: true });
+  const beforeAnchoredLink = helperInvocations;
+  assert.deepEqual(parseColosseumResponse(await request()), { data: { ok: true }, http_status: 200 });
+  assert.equal(helperInvocations, beforeAnchoredLink + 1);
+  const anchoredTransfer = JSON.parse(fs.readFileSync(systemReceived, "utf8"));
+  assert.ok(anchoredTransfer.input.includes(`Authorization: Bearer ${bearer}`));
+  assert.equal(anchoredTransfer.root, root);
+  assert.equal(fs.existsSync(received), false);
+  cases++;
+  fs.rmSync(systemCurl);
+  fs.renameSync(anchoredTarget, systemCurl);
+
   const wow = path.join(root, "SysWOW64");
   const wowModules = [path.join(wow, "ntdll.dll"), path.join(wow, "kernel32.dll")];
   for (const module of wowModules) write(module);

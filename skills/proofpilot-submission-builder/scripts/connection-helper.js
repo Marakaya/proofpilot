@@ -226,6 +226,16 @@ function missingHelperArgs() {
   return ["--input-type=module", "--eval", "process.stderr.write('ENOTCACHED: exact connection helper is not installed in the managed helper cache\\n'); process.exit(1);"];
 }
 
+// Only preparing an absent helper needs npm, so a missing npm is its own prerequisite.
+const npmUnavailableDiagnostic = "The pinned connection helper is not prepared, and preparing it needs the npm CLI installed with " +
+  "the running Node.js; none passed the ownership and permission checks (same owner as the node executable, not writable by " +
+  "group or others). Install or repair npm for this Node.js, then retry setup.js --connect-colosseum. A validated prepared " +
+  "helper runs without npm. Saved account credentials were not inspected or changed.";
+
+function npmUnavailableArgs() {
+  return ["--input-type=module", "--eval", "process.stderr.write('EHELPERNPM: ' + process.argv[1] + '\\n'); process.exit(1);", "--", npmUnavailableDiagnostic];
+}
+
 /** Operator recovery text for an existing managed helper root that failed validation. */
 function untrustedHelperCacheDiagnostic(root) {
   return `The managed connection-helper cache at ${JSON.stringify(root)} exists but is incomplete or untrusted; ` +
@@ -422,6 +432,33 @@ function trustedPathEntry(entry, windowsAnchor) {
   } catch { return null; }
 }
 
+/**
+ * Canonical file for `executable` from a search PATH built by helperEnvironment,
+ * or null. A link in a verified directory confers no trust of its own: on POSIX
+ * the resolved file must be a root-owned executable that group and others cannot
+ * write, and its own directory chain must pass the root-owned PATH policy. On
+ * Windows the regular file's canonical parent must also be one of the
+ * directories anchored to loaded OS modules; a PATH link cannot grant it trust.
+ */
+export function trustedSystemExecutable(executable, searchPath) {
+  const windowsAnchor = process.platform === "win32" ? windowsSystemAnchor() : null;
+  for (const directory of String(searchPath ?? "").split(path.delimiter)) {
+    if (!directory || !path.isAbsolute(directory)) continue;
+    try {
+      const resolved = fs.realpathSync(path.join(directory, executable));
+      const stat = fs.lstatSync(resolved);
+      if (!stat.isFile()) continue;
+      if (process.platform === "win32") {
+        if (trustedPathEntry(path.dirname(resolved), windowsAnchor) !== null) return resolved;
+        continue;
+      }
+      if (typeof process.getuid === "function" && stat.uid === 0 && (stat.mode & 0o022) === 0 && (stat.mode & 0o111) !== 0 &&
+          trustedPathEntry(path.dirname(resolved)) !== null) return resolved;
+    } catch { /* Try the next verified directory. */ }
+  }
+  return null;
+}
+
 function trustedConfigHome(env) {
   const home = securePrivateBase();
   const requested = typeof env?.XDG_CONFIG_HOME === "string" && path.isAbsolute(env.XDG_CONFIG_HOME) ? env.XDG_CONFIG_HOME : null;
@@ -482,14 +519,18 @@ export function helperEnvironment(env = process.env) {
 }
 
 /**
- * Build a spawn description for the pinned helper. The process runs in a private
- * temporary directory with its own package.json and two empty npmrc files, so a
- * caller project's node_modules, .npmrc or npm_config_* values cannot shadow the
- * official package. No credential is placed in argv or env. `cache` is an explicit
- * absolute npm cache used by tests; callers normally omit it. `cleanup()` removes
- * only the temporary directory created here. When the managed helper root exists
- * but fails validation, `helperCacheIssue` names it and the command only prints
- * the recovery diagnostic, online or offline.
+ * Build a spawn description for the pinned helper. A managed helper that passes
+ * validation runs directly with the restricted environment for every operation,
+ * online or offline; npm is never needed for it. Only online preparation of an
+ * absent helper uses npm, from a private temporary directory with its own
+ * package.json and two empty npmrc files, so a caller project's node_modules,
+ * .npmrc or npm_config_* values cannot shadow the official package. When that
+ * preparation has no trusted npm CLI, `helperPrerequisiteIssue` says so and the
+ * command only prints the npm diagnostic. No credential is placed in argv or env.
+ * `cache` is an explicit absolute npm cache used by tests; callers normally omit
+ * it. `cleanup()` removes only the temporary directory created here. When the
+ * managed helper root exists but fails validation, `helperCacheIssue` names it
+ * and the command only prints the recovery diagnostic, online or offline.
  */
 export function createHelperInvocation(args, { online = false, env = process.env, cache } = {}) {
   if (!Array.isArray(args) || args.length > 8 || args.some(arg => typeof arg !== "string" || !safeArgument.test(arg))) {
@@ -505,14 +546,14 @@ export function createHelperInvocation(args, { online = false, env = process.env
   const validated = managedHelperEntrypoint(managedRoot, managedBase);
   // An existing root that fails validation is never executed or prepared over.
   const helperCacheIssue = validated ? null : existingHelperCacheIssue(managedRoot);
-  const cached = online ? null : validated;
-  const cwd = online && !helperCacheIssue ? createPrivateWorkspace() : cached ? managedRoot : home;
+  let cwd = validated ? managedRoot : home;
+  let workspace = null;
   let removed = false;
   const cleanup = () => {
     if (removed) return;
     removed = true;
-    if (online && path.basename(cwd).startsWith(temporaryPrefix)) {
-      try { fs.rmSync(cwd, { recursive: true, force: true }); }
+    if (workspace) {
+      try { fs.rmSync(workspace, { recursive: true, force: true }); }
       catch { /* A cleanup failure must not change the helper's result. */ }
     }
   };
@@ -523,8 +564,17 @@ export function createHelperInvocation(args, { online = false, env = process.env
     Object.assign(helperEnv, trustedLinuxSessionEnvironment());
     if (helperCacheIssue) return { command: process.execPath, args: untrustedHelperArgs(helperCacheIssue),
       shell: false, cwd, env: helperEnv, cleanup, helperCacheIssue };
-    if (!online) return { command: process.execPath, args: cached ? [cached, ...args] : missingHelperArgs(),
+    // A validated helper runs directly for login, token and status alike, and an
+    // offline lookup never prepares one: neither needs npm, its config or a workspace.
+    if (validated || !online) return { command: process.execPath, args: validated ? [validated, ...args] : missingHelperArgs(),
       shell: false, cwd, env: helperEnv, cleanup };
+    if (!safeManagedPath(managedBase, path.dirname(managedRoot), { allowMissing: true })) {
+      throw new Error("The managed connection-helper path is unsafe.");
+    }
+    const npmCli = trustedNpmCli();
+    if (!npmCli) return { command: process.execPath, args: npmUnavailableArgs(), shell: false, cwd, env: helperEnv, cleanup,
+      helperPrerequisiteIssue: { code: "helper_npm_unavailable", diagnostic: npmUnavailableDiagnostic } };
+    cwd = workspace = createPrivateWorkspace();
     // A package.json here makes this directory npm's project root instead of a caller folder.
     fs.writeFileSync(path.join(cwd, "package.json"), "{\"private\":true}\n", { flag: "wx", mode: 0o600 });
     const userConfig = path.join(cwd, "user.npmrc");
@@ -548,14 +598,10 @@ export function createHelperInvocation(args, { online = false, env = process.env
     // A disposable config home makes file-backed/headless connections invisible.
     helperEnv.XDG_CONFIG_HOME = trustedConfigHome(env);
     if (cache) helperEnv.npm_config_cache = cacheRoot;
-    if (online && !safeManagedPath(managedBase, path.dirname(managedRoot), { allowMissing: true })) {
-      throw new Error("The managed connection-helper path is unsafe.");
-    }
-    const npmCli = online ? trustedNpmCli() : null;
     return {
       command: process.execPath,
-      args: cached ? [cached, ...args] : npmCli ? ["--input-type=module", "--eval", onlineBootstrap, "--", managedBase, managedRoot, npmCli,
-        CONNECTION_HELPER_PACKAGE, CONNECTION_HELPER_VERSION, CONNECTION_HELPER_TREE_SHA256, ...args] : missingHelperArgs(),
+      args: ["--input-type=module", "--eval", onlineBootstrap, "--", managedBase, managedRoot, npmCli,
+        CONNECTION_HELPER_PACKAGE, CONNECTION_HELPER_VERSION, CONNECTION_HELPER_TREE_SHA256, ...args],
       shell: false,
       cwd,
       env: helperEnv,

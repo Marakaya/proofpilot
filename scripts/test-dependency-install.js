@@ -3,9 +3,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import childProcess from "node:child_process";
+import { syncBuiltinESMExports } from "node:module";
 import { fileURLToPath } from "node:url";
 import { installPackage, profileNames } from "./install-package.js";
-import { acquireDependencyInstallLock, loadDependencyManifest, getDependencyStatus, installDependencies, markCoreOnly, readSkillMetadata, recoverPendingInstallation, runDependencyCli, trustedGitExecutable } from "../skills/proofpilot/scripts/install-dependencies.js";
+import { acquireDependencyInstallLock, addTransactionAction, backupInstalledPath, loadDependencyManifest, getDependencyStatus, installDependencies, legacyCorePathAliases, markCoreOnly, readSkillMetadata, recoverPendingInstallation, runDependencyCli, startTransactionActivation, startTransactionBackup, trustedGitExecutable } from "../skills/proofpilot/scripts/install-dependencies.js";
 
 const repository = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const manifest = loadDependencyManifest();
@@ -18,10 +20,13 @@ const markOwned = (root, source, skill, token = "a".repeat(64)) => {
   return token;
 };
 
-export function runDependencyInstallTests() {
+export function runDependencyInstallTests({ testNamePattern } = {}) {
   const temporary = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-dependency-tests-")));
   let cases = 0;
-  const test = (name, run) => { try { run(); cases++; } catch (error) { error.message = `${name}: ${error.message}`; throw error; } };
+  const test = (name, run) => {
+    if (testNamePattern && !testNamePattern.test(name)) return;
+    try { run(); cases++; } catch (error) { error.message = `${name}: ${error.message}`; throw error; }
+  };
   try {
     const sources = path.join(temporary, "sources");
     for (const source of manifest.sources) {
@@ -407,20 +412,21 @@ export function runDependencyInstallTests() {
       const failed = path.join(temporary, "core-rollback-ownership", "skills");
       const core = path.join(failed, "proofpilot");
       const state = path.join(failed, ".proofpilot-bundle.json");
-      const rename = fs.renameSync;
+      const link = fs.linkSync;
       let replaced = false;
-      fs.renameSync = (from, to) => {
-        if (!replaced && to === state && path.basename(from).startsWith(".proofpilot-state-")) {
+      // The state commit is an exclusive link from its private holding path.
+      fs.linkSync = (from, to) => {
+        if (!replaced && to === state && path.basename(path.dirname(from)).startsWith(".proofpilot-commit-state-")) {
           replaced = true;
           fs.rmSync(core, { recursive: true, force: true });
           write(path.join(core, "external.txt"), "replacement owned by another process\n");
           throw new Error("synthetic state commit failure");
         }
-        return rename(from, to);
+        return link(from, to);
       };
       try {
         assert.throws(() => installPackage({ destination: core }, options), /active_path_ownership_changed/);
-      } finally { fs.renameSync = rename; }
+      } finally { fs.linkSync = link; }
       assert.equal(replaced, true);
       assert.equal(fs.readFileSync(path.join(core, "external.txt"), "utf8"), "replacement owned by another process\n");
       assert.equal(fs.existsSync(state), false);
@@ -541,6 +547,38 @@ export function runDependencyInstallTests() {
       const failed = path.join(temporary, "helper-failed", "skills");
       assert.throws(() => installPackage({ destination: path.join(failed, "proofpilot") }, { ...options, helperVersion: () => false }), /connection helper/);
       assert.equal(fs.existsSync(failed), false);
+    });
+    test("an absent trusted npm prerequisite remains actionable during helper preparation", () => {
+      const failed = path.join(temporary, "helper-npm-unavailable", "skills");
+      const cache = path.join(temporary, "helper-npm-unavailable-cache");
+      fs.mkdirSync(cache, { mode: 0o700 });
+      const realpath = fs.realpathSync, subprocess = childProcess.spawnSync;
+      const subprocesses = [];
+      fs.realpathSync = (file, ...args) => {
+        if (path.basename(String(file)) === "npm-cli.js") throw Object.assign(new Error("Synthetic absent npm"), { code: "ENOENT" });
+        return realpath(file, ...args);
+      };
+      childProcess.spawnSync = (command, args) => {
+        subprocesses.push({ command, args });
+        return { status: 1, stdout: "", stderr: "ENOTCACHED: synthetic offline lookup\n" };
+      };
+      syncBuiltinESMExports();
+      try {
+        assert.throws(() => installDependencies(failed, { manifest, sourceProvider, helperCache: cache }), error =>
+          /Could not prepare the official connection helper/.test(error.message) &&
+          /preparing it needs the npm CLI installed with the running Node.js/.test(error.message) &&
+          /Install or repair npm for this Node.js, then retry/.test(error.message));
+        const helperChecks = subprocesses.filter(call => call.command === process.execPath);
+        assert.ok(helperChecks.length > 0, "The synthetic offline availability lookup must be exercised.");
+        assert.ok(helperChecks.every(({ args }) => args.some(arg => typeof arg === "string" && arg.includes("ENOTCACHED"))),
+          "Only synthetic offline lookups may run; the missing prerequisite must stop online preparation.");
+      } finally {
+        fs.realpathSync = realpath;
+        childProcess.spawnSync = subprocess;
+        syncBuiltinESMExports();
+      }
+      assert.equal(fs.existsSync(failed), false);
+      assert.deepEqual(fs.readdirSync(cache), []);
     });
     test("damaged managed helper cache stops installation with its path and recovery step and stays untouched", () => {
       const cache = path.join(temporary, "damaged-helper-cache");
@@ -1002,6 +1040,466 @@ export function runDependencyInstallTests() {
       assert.match(fs.readFileSync(path.join(editorRoot, "SKILL_ROUTER.md"), "utf8"), /my-qa-skill/);
       assert.equal(JSON.parse(fs.readFileSync(path.join(editorRoot, "data/catalogs/solana-skills.json"))).userCustomization, true);
     });
+    const preservingManifest = structuredClone(manifest);
+    const preservingSource = preservingManifest.sources.find(source => source.id === "solana-new");
+    preservingManifest.sources = [{ ...preservingSource, skills: preservingSource.skills.filter(skill => skill.id === "brand-design"),
+      assets: preservingSource.assets.filter(asset => ["data/guides", "SKILL_ROUTER.md"].includes(asset.destination)) }];
+    const preservingOptions = { ...options, manifest: preservingManifest, helperVersion: () => true };
+    const stateWith = (file, fields) => `${JSON.stringify({ ...JSON.parse(fs.readFileSync(file, "utf8")), ...fields }, null, 2)}\n`;
+    test("unsupported hard links refuse core state commits before capturing the active state", () => {
+      for (const code of ["EPERM", "ENOTSUP"]) {
+        const target = path.join(temporary, `unsupported-state-link-${code}`, "skills");
+        markCoreOnly(target);
+        const stateFile = path.join(target, ".proofpilot-bundle.json"), original = fs.readFileSync(stateFile);
+        const inode = fs.lstatSync(stateFile, { bigint: true }).ino, link = fs.linkSync;
+        let refused = false;
+        fs.linkSync = (from, to) => {
+          if (String(to).startsWith(`${target}${path.sep}`)) {
+            refused = true;
+            throw Object.assign(new Error(`Synthetic unsupported state publication: ${code}`), { code });
+          }
+          return link(from, to);
+        };
+        try { assert.throws(() => markCoreOnly(target), /Synthetic unsupported state publication/); }
+        finally { fs.linkSync = link; }
+        assert.equal(refused, true);
+        assert.deepEqual(fs.readFileSync(stateFile), original);
+        assert.equal(fs.lstatSync(stateFile, { bigint: true }).ino, inode);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+        assert.equal(fs.readdirSync(target).some(name => name.startsWith(".proofpilot-commit-state-")), false);
+        markCoreOnly(target);
+      }
+    });
+    test("unsupported rollback state hard links leave directory originals active and permit recovery", () => {
+      for (const code of ["EPERM", "ENOTSUP"]) {
+        const target = path.join(temporary, `unsupported-rollback-state-link-${code}`, "skills");
+        installDependencies(target, preservingOptions);
+        const directory = path.join(target, "data/guides"), custom = path.join(directory, "personal-notes.md");
+        const missing = path.join(directory, "deploy-runbook.md"), stateFile = path.join(target, ".proofpilot-bundle.json");
+        write(custom, "Custom content remains active through unsupported rollback-state publication.\n");
+        fs.rmSync(missing);
+        const original = fs.readFileSync(stateFile), customBytes = fs.readFileSync(custom);
+        const inode = fs.lstatSync(stateFile, { bigint: true }).ino, link = fs.linkSync;
+        let refused = false;
+        fs.linkSync = (from, to) => {
+          if (String(to).startsWith(`${target}${path.sep}`)) {
+            refused = true;
+            throw Object.assign(new Error(`Synthetic unsupported rollback state publication: ${code}`), { code });
+          }
+          return link(from, to);
+        };
+        try { assert.throws(() => installDependencies(target, { ...preservingOptions,
+          beforeStateWrite: () => { throw new Error("Synthetic failure after directory activation"); } }),
+          /Synthetic failure after directory activation.*Synthetic unsupported rollback state publication/); }
+        finally { fs.linkSync = link; }
+        assert.equal(refused, true);
+        assert.deepEqual(fs.readFileSync(stateFile), original);
+        assert.equal(fs.lstatSync(stateFile, { bigint: true }).ino, inode);
+        assert.deepEqual(fs.readFileSync(custom), customBytes);
+        assert.equal(fs.existsSync(missing), false);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), true,
+          "The restored directory identity still needs acknowledgment; keep its recoverable journal.");
+        for (const name of fs.readdirSync(target).filter(name => name.startsWith(".proofpilot-rollback-state-"))) {
+          assert.equal(fs.existsSync(path.join(target, name, "original.json")), false, "Unsupported links must not strand active state in a holding path.");
+        }
+        assert.equal(recoverPendingInstallation(target).recovered, true);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+        assert.equal(fs.readdirSync(target).some(name => name.startsWith(".proofpilot-rollback-state-")), false);
+        assert.deepEqual(fs.readFileSync(custom), customBytes);
+        assert.equal(installDependencies(target, preservingOptions).complete, true);
+        assert.deepEqual(fs.readFileSync(custom), customBytes);
+      }
+    });
+    test("core-only commits report unique state edits made through captured file descriptors", () => {
+      for (const api of ["markCoreOnly", "installPackage"]) {
+        const target = path.join(temporary, `captured-state-fd-${api}`, "skills"), stateFile = path.join(target, ".proofpilot-bundle.json");
+        const destination = path.join(target, "proofpilot");
+        const install = () => api === "markCoreOnly" ? markCoreOnly(target) : installPackage({ destination, coreOnly: true });
+        install();
+        const unique = Buffer.from(stateWith(stateFile, { personal_metadata: { keep: "Unique editor bytes written through the captured descriptor" } }));
+        const descriptor = fs.openSync(stateFile, "r+"), link = fs.linkSync;
+        let wrote = false;
+        fs.linkSync = (from, to) => {
+          if (!wrote && to === stateFile && path.basename(path.dirname(from)).startsWith(".proofpilot-commit-state-")) {
+            wrote = true;
+            fs.ftruncateSync(descriptor, 0);
+            fs.writeFileSync(descriptor, unique);
+            fs.fsyncSync(descriptor);
+          }
+          return link(from, to);
+        };
+        let result;
+        try { result = install(); }
+        finally { fs.linkSync = link; fs.closeSync(descriptor); }
+        assert.equal(wrote, true, "The write must land after the capture check, before active state publication.");
+        assert.notDeepEqual(fs.readFileSync(stateFile), unique);
+        const preserved = result.backups.filter(file => file.endsWith(`${path.sep}original.json`) &&
+          path.basename(path.dirname(file)).startsWith(".proofpilot-commit-state-"));
+        assert.equal(preserved.length, 1, `${api}: unique captured bytes must be reported to the caller.`);
+        assert.deepEqual(fs.readFileSync(preserved[0]), unique);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+      }
+    });
+    test("core-only commits never replace in-place or atomic state saves made during installation", () => {
+      for (const save of ["inPlace", "atomic"]) {
+        const target = path.join(temporary, `state-save-core-${save}`, "skills"), stateFile = path.join(target, ".proofpilot-bundle.json");
+        markCoreOnly(target);
+        let edited;
+        assert.throws(() => markCoreOnly(target, { beforeStateWrite: () => {
+          edited = stateWith(stateFile, { personal_metadata: { keep: `Editor ${save} save survives` } });
+          if (save === "inPlace") fs.writeFileSync(stateFile, edited);
+          else { fs.writeFileSync(`${stateFile}.editor-save`, edited); fs.renameSync(`${stateFile}.editor-save`, stateFile); }
+        } }), /concurrent_state_save/);
+        assert.equal(fs.readFileSync(stateFile, "utf8"), edited);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+        assert.equal(fs.readdirSync(target).some(name => name.startsWith(".proofpilot-commit-state-")), false);
+        markCoreOnly(target);
+        assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, "utf8")).personal_metadata, { keep: `Editor ${save} save survives` });
+      }
+    });
+    test("a full repair rolls back without replacing a state save made before its commit", () => {
+      const target = path.join(temporary, "state-save-full", "skills"), stateFile = path.join(target, ".proofpilot-bundle.json");
+      installDependencies(target, preservingOptions);
+      const missing = path.join(target, "brand-design/references/contrast-rules.md");
+      fs.rmSync(missing);
+      let edited;
+      assert.throws(() => installDependencies(target, { ...preservingOptions, beforeStateWrite: () => {
+        edited = stateWith(stateFile, { personal_metadata: { keep: "Full-install editor save survives" } });
+        fs.writeFileSync(`${stateFile}.editor-save`, edited);
+        fs.renameSync(`${stateFile}.editor-save`, stateFile);
+      } }), /concurrent_state_save/);
+      assert.equal(fs.readFileSync(stateFile, "utf8"), edited);
+      assert.equal(fs.existsSync(missing), false, "The uncommitted repair must be rolled back.");
+      assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+      const repaired = installDependencies(target, preservingOptions);
+      assert.equal(repaired.complete, true);
+      assert.equal(fs.existsSync(missing), true);
+      assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, "utf8")).personal_metadata, { keep: "Full-install editor save survives" });
+    });
+    test("a concurrent state editor save stays byte-exact when directory restoration needs ownership reconciliation", () => {
+      const target = path.join(temporary, "directory-restore-concurrent-state", "skills");
+      installDependencies(target, preservingOptions);
+      const directory = path.join(target, "data/guides"), custom = path.join(directory, "personal-notes.md");
+      const missing = path.join(directory, "deploy-runbook.md"), stateFile = path.join(target, ".proofpilot-bundle.json");
+      const journalFile = path.join(target, ".proofpilot-transaction.json");
+      write(custom, "Latest active custom guidance must survive directory restoration.\n");
+      const latestCustom = fs.readFileSync(custom), stateBefore = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+      fs.rmSync(missing);
+      const editedState = Buffer.from(`${JSON.stringify({ ...stateBefore,
+        personal_metadata: { keep: "Exactly preserve this editor's state bytes and formatting" } }, null, "\t")}\r\n`);
+      assert.throws(() => installDependencies(target, { ...preservingOptions, beforeStateWrite: () => {
+        fs.writeFileSync(`${stateFile}.editor-save`, editedState);
+        fs.renameSync(`${stateFile}.editor-save`, stateFile);
+      } }), /concurrent state save prevents refreshing restored directory ownership.*exact saved state bytes.*pending journal.*Reconcile/);
+      assert.deepEqual(fs.readFileSync(stateFile), editedState);
+      assert.deepEqual(fs.readFileSync(custom), latestCustom);
+      assert.equal(fs.existsSync(missing), false, "The directory restoration must have happened before conservative refusal.");
+      assert.equal(fs.existsSync(journalFile), true);
+      const journal = JSON.parse(fs.readFileSync(journalFile, "utf8"));
+      const action = journal.actions.find(action => action.destination === "data/guides");
+      assert.deepEqual(action.original_identity, stateBefore.asset_provenance["data/guides"].path_identity);
+      const active = fs.lstatSync(directory, { bigint: true });
+      assert.deepEqual(action.restored_identity, { dev: String(active.dev), ino: String(active.ino), type: "directory" });
+      assert.notDeepEqual(action.restored_identity, action.original_identity);
+      let fetched = 0;
+      assert.throws(() => installDependencies(target, { ...preservingOptions, sourceProvider: () => {
+        fetched++; throw new Error("Pending ownership reconciliation must stop before preparation.");
+      } }), /concurrent state save prevents refreshing restored directory ownership.*Reconcile/);
+      assert.equal(fetched, 0);
+      assert.deepEqual(fs.readFileSync(stateFile), editedState);
+      assert.deepEqual(fs.readFileSync(custom), latestCustom);
+      assert.equal(fs.existsSync(journalFile), true);
+    });
+    test("state saves racing the commit capture or its exclusive publication stay active", () => {
+      const held = location => path.basename(path.dirname(location)).startsWith(".proofpilot-commit-state-");
+      for (const mode of ["inPlace", "atomic", "competing"]) {
+        const target = path.join(temporary, `state-commit-race-${mode}`, "skills"), stateFile = path.join(target, ".proofpilot-bundle.json");
+        markCoreOnly(target);
+        const prior = fs.readFileSync(stateFile);
+        const saved = stateWith(stateFile, { personal_metadata: { keep: `Racing ${mode} save survives` } });
+        const rename = fs.renameSync, link = fs.linkSync;
+        let raced = false;
+        fs.renameSync = (from, to) => {
+          if (!raced && mode !== "competing" && from === stateFile && path.basename(to) === "original.json" && held(to)) {
+            raced = true;
+            if (mode === "inPlace") fs.writeFileSync(stateFile, saved);
+            else { fs.writeFileSync(`${stateFile}.editor-save`, saved); rename(`${stateFile}.editor-save`, stateFile); }
+          }
+          return rename(from, to);
+        };
+        fs.linkSync = (from, to) => {
+          if (!raced && mode === "competing" && to === stateFile && held(from)) {
+            raced = true;
+            fs.writeFileSync(stateFile, saved, { flag: "wx" });
+          }
+          return link(from, to);
+        };
+        let message = "";
+        try { assert.throws(() => markCoreOnly(target), error => { message = error.message; return /concurrent_state_save/.test(message); }); }
+        finally { fs.renameSync = rename; fs.linkSync = link; }
+        assert.equal(raced, true);
+        assert.equal(fs.readFileSync(stateFile, "utf8"), saved);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+        const holding = fs.readdirSync(target).filter(name => name.startsWith(".proofpilot-commit-state-"));
+        if (mode === "competing") {
+          // The competing writer never saw the captured prior state; it stays preserved and reported.
+          assert.equal(holding.length, 1);
+          assert.deepEqual(fs.readdirSync(path.join(target, holding[0])), ["original.json"]);
+          assert.deepEqual(fs.readFileSync(path.join(target, holding[0], "original.json")), prior);
+          assert.ok(message.includes(JSON.stringify(path.join(target, holding[0], "original.json"))));
+        } else assert.deepEqual(holding, []);
+        markCoreOnly(target);
+        assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, "utf8")).personal_metadata, { keep: `Racing ${mode} save survives` });
+      }
+    });
+    test("a state file created by another writer during a fresh installation stays active", () => {
+      const created = `${JSON.stringify({ personal_metadata: { keep: "State from another writer survives" } }, null, 2)}\n`;
+      const fullTarget = path.join(temporary, "state-appears-full", "skills"), fullState = path.join(fullTarget, ".proofpilot-bundle.json");
+      assert.throws(() => installDependencies(fullTarget, { ...preservingOptions,
+        beforeStateWrite: () => fs.writeFileSync(fullState, created, { flag: "wx" }) }), /concurrent_state_save/);
+      assert.equal(fs.readFileSync(fullState, "utf8"), created);
+      assert.equal(fs.existsSync(path.join(fullTarget, "brand-design")), false);
+      assert.equal(fs.existsSync(path.join(fullTarget, "SKILL_ROUTER.md")), false);
+      assert.equal(fs.existsSync(path.join(fullTarget, ".proofpilot-transaction.json")), false);
+      const coreTarget = path.join(temporary, "state-appears-core", "skills"), coreState = path.join(coreTarget, ".proofpilot-bundle.json");
+      const link = fs.linkSync;
+      let raced = false;
+      fs.linkSync = (from, to) => {
+        if (!raced && to === coreState && path.basename(path.dirname(from)).startsWith(".proofpilot-commit-state-")) {
+          raced = true;
+          fs.writeFileSync(coreState, created, { flag: "wx" });
+        }
+        return link(from, to);
+      };
+      try { assert.throws(() => markCoreOnly(coreTarget), /concurrent_state_save/); }
+      finally { fs.linkSync = link; }
+      assert.equal(raced, true);
+      assert.equal(fs.readFileSync(coreState, "utf8"), created);
+      assert.equal(fs.existsSync(path.join(coreTarget, ".proofpilot-transaction.json")), false);
+      assert.equal(fs.readdirSync(coreTarget).some(name => name.startsWith(".proofpilot-commit-state-")), false);
+    });
+    test("a state save between the installer's read and its transaction start stops before any change", () => {
+      const target = path.join(temporary, "state-save-before-begin", "skills"), stateFile = path.join(target, ".proofpilot-bundle.json");
+      installDependencies(target, preservingOptions);
+      const missing = path.join(target, "brand-design/references/contrast-rules.md");
+      fs.rmSync(missing);
+      let edited;
+      assert.throws(() => installDependencies(target, { ...preservingOptions, afterLockAcquired: () => {
+        edited = stateWith(stateFile, { personal_metadata: { keep: "Save before the transaction survives" } });
+        fs.writeFileSync(stateFile, edited);
+      } }), /changed after this installation read it/);
+      assert.equal(fs.readFileSync(stateFile, "utf8"), edited);
+      assert.equal(fs.existsSync(missing), false);
+      assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+      assert.equal(installDependencies(target, preservingOptions).complete, true);
+      assert.equal(fs.existsSync(missing), true);
+      assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, "utf8")).personal_metadata, { keep: "Save before the transaction survives" });
+    });
+    test("preserving repairs never replace same-inode custom edits or children added after staging", () => {
+      for (const { name, installed, missing, edited } of [
+        { name: "skill-file", installed: "brand-design", missing: "brand-design/references/contrast-rules.md", edited: "brand-design/references/palette-recipes.md" },
+        { name: "skill-child", installed: "brand-design", missing: "brand-design/references/contrast-rules.md", edited: "brand-design/custom-notes.md" },
+        { name: "directory-asset", installed: "data/guides", missing: "data/guides/deploy-runbook.md", edited: "data/guides/security-checklist.md" },
+        { name: "file-asset", installed: "SKILL_ROUTER.md", missing: ".proofpilot-upstream/SKILL_ROUTER.md.txt", edited: "SKILL_ROUTER.md" }
+      ]) {
+        const target = path.join(temporary, `late-preserved-edit-${name}`, "skills");
+        installDependencies(target, preservingOptions);
+        const active = path.join(target, installed), missingFile = path.join(target, missing), editedFile = path.join(target, edited);
+        fs.rmSync(missingFile);
+        const identity = fs.lstatSync(active, { bigint: true }).ino;
+        let cached = false;
+        // Helper preparation runs after every preserving plan staged the custom bytes.
+        const lateEdit = (_selected, online) => {
+          if (online && !cached) { fs.appendFileSync(editedFile, "Late custom guidance survives.\n"); cached = true; }
+          return cached;
+        };
+        assert.throws(() => installDependencies(target, { ...preservingOptions, helperVersion: lateEdit }), /changed after it was staged for a preserving repair/);
+        assert.equal(cached, true);
+        assert.equal(fs.lstatSync(active, { bigint: true }).ino, identity, `${name}: the changed original was moved`);
+        assert.match(fs.readFileSync(editedFile, "utf8"), /Late custom guidance survives/);
+        assert.equal(fs.existsSync(missingFile), false);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+        // Control: the next ordinary repair stages the newest bytes and completes.
+        const repaired = installDependencies(target, preservingOptions);
+        assert.equal(repaired.complete, true);
+        assert.match(fs.readFileSync(editedFile, "utf8"), /Late custom guidance survives/);
+        assert.equal(fs.existsSync(missingFile), true);
+      }
+    });
+    test("a custom edit landing during activation aborts before its original is backed up", () => {
+      const target = path.join(temporary, "late-preserved-edit-activation", "skills");
+      installDependencies(target, preservingOptions);
+      const brand = path.join(target, "brand-design"), guides = path.join(target, "data/guides"), edited = path.join(guides, "security-checklist.md");
+      fs.rmSync(path.join(brand, "references/contrast-rules.md"));
+      fs.rmSync(path.join(guides, "deploy-runbook.md"));
+      const brandBytes = fs.readFileSync(path.join(brand, "SKILL.md")), guidesIdentity = fs.lstatSync(guides, { bigint: true }).ino;
+      const rename = fs.renameSync;
+      let raced = false;
+      fs.renameSync = (from, to) => {
+        const result = rename(from, to);
+        if (!raced && to === brand && String(from).includes(".proofpilot-staging-")) {
+          raced = true;
+          fs.appendFileSync(edited, "Edit during activation survives.\n");
+        }
+        return result;
+      };
+      try { assert.throws(() => installDependencies(target, preservingOptions), /changed after it was staged for a preserving repair/); }
+      finally { fs.renameSync = rename; }
+      assert.equal(raced, true);
+      assert.equal(fs.lstatSync(guides, { bigint: true }).ino, guidesIdentity);
+      assert.match(fs.readFileSync(edited, "utf8"), /Edit during activation survives/);
+      assert.equal(fs.existsSync(path.join(guides, "deploy-runbook.md")), false);
+      assert.equal(fs.existsSync(path.join(brand, "references/contrast-rules.md")), false, "The activated earlier plan must roll back.");
+      assert.deepEqual(fs.readFileSync(path.join(brand, "SKILL.md")), brandBytes);
+      assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+      assert.equal(installDependencies(target, preservingOptions).complete, true);
+      assert.match(fs.readFileSync(edited, "utf8"), /Edit during activation survives/);
+    });
+    test("a preserving edit during activation journal publication stays active and can be repaired on retry", () => {
+      const target = path.join(temporary, "preserving-journal-capture-edit", "skills");
+      installDependencies(target, preservingOptions);
+      const active = path.join(target, "brand-design"), edited = path.join(active, "references/palette-recipes.md");
+      const missing = path.join(active, "references/contrast-rules.md"), stateFile = path.join(target, ".proofpilot-bundle.json");
+      fs.rmSync(missing);
+      const stateBefore = fs.readFileSync(stateFile), identity = fs.lstatSync(active, { bigint: true }).ino;
+      const rename = fs.renameSync;
+      let raced = false, latest;
+      fs.renameSync = (from, to) => {
+        const result = rename(from, to);
+        if (!raced && to === path.join(target, ".proofpilot-transaction.json")) {
+          const journal = JSON.parse(fs.readFileSync(to, "utf8"));
+          if (journal.actions.some(action => action.destination === "brand-design" && action.activation_started)) {
+            raced = true;
+            fs.appendFileSync(edited, "Latest journal-boundary custom edit survives.\n");
+            latest = fs.readFileSync(edited);
+          }
+        }
+        return result;
+      };
+      try { assert.throws(() => installDependencies(target, preservingOptions), /changed after it was staged for a preserving repair/); }
+      finally { fs.renameSync = rename; }
+      assert.equal(raced, true, "The activation-journal publication boundary must be reached.");
+      assert.deepEqual(fs.readFileSync(edited), latest);
+      assert.equal(fs.lstatSync(active, { bigint: true }).ino, identity);
+      assert.deepEqual(fs.readFileSync(stateFile), stateBefore);
+      assert.equal(fs.existsSync(missing), false);
+      assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+      assert.equal(installDependencies(target, preservingOptions).complete, true);
+      assert.deepEqual(fs.readFileSync(edited), latest);
+      assert.equal(fs.existsSync(missing), true);
+    });
+    test("preserving repairs restore the newest content and modes captured at the actual backup boundary", () => {
+      const items = [
+        { name: "skill", installed: "brand-design", missing: "brand-design/references/contrast-rules.md", edited: "brand-design/references/palette-recipes.md" },
+        { name: "directory-asset", installed: "data/guides", missing: "data/guides/deploy-runbook.md", edited: "data/guides/security-checklist.md" },
+        { name: "file-asset", installed: "SKILL_ROUTER.md", missing: ".proofpilot-upstream/SKILL_ROUTER.md.txt", edited: "SKILL_ROUTER.md" }
+      ];
+      for (const mode of ["content", ...(typeof process.getuid === "function" ? ["permissions"] : [])]) for (const item of items) {
+        const target = path.join(temporary, `preserving-backup-capture-${item.name}-${mode}`, "skills");
+        installDependencies(target, preservingOptions);
+        const active = path.join(target, item.installed), missing = path.join(target, item.missing), edited = path.join(target, item.edited);
+        const stateFile = path.join(target, ".proofpilot-bundle.json"), stateBefore = fs.readFileSync(stateFile);
+        fs.rmSync(missing);
+        const rename = fs.renameSync;
+        let raced = false, latest, latestMode;
+        fs.renameSync = (from, to) => {
+          if (!raced && from === active && (path.basename(to).startsWith(".proofpilot-move-") ||
+            String(to).includes(`${path.sep}.proofpilot-backups${path.sep}transaction-`))) {
+            raced = true;
+            if (mode === "content") fs.appendFileSync(edited, "Latest capture-boundary custom edit survives.\n");
+            else fs.chmodSync(edited, 0o600);
+            latest = fs.readFileSync(edited);
+            latestMode = fs.lstatSync(edited).mode & 0o777;
+          }
+          return rename(from, to);
+        };
+        try { assert.throws(() => installDependencies(target, preservingOptions), /changed while its preserving backup was captured/); }
+        finally { fs.renameSync = rename; }
+        assert.equal(raced, true, `${item.name}/${mode}: the actual original capture boundary must be reached.`);
+        assert.deepEqual(fs.readFileSync(edited), latest, `${item.name}/${mode}: newest bytes must be active.`);
+        if (mode === "permissions") assert.equal(fs.lstatSync(edited).mode & 0o777, latestMode);
+        const stateAfter = JSON.parse(fs.readFileSync(stateFile, "utf8")), previousState = JSON.parse(stateBefore);
+        if (item.name === "directory-asset") {
+          previousState.asset_provenance[item.installed].path_identity = stateAfter.asset_provenance[item.installed].path_identity;
+          assert.deepEqual(stateAfter.asset_provenance[item.installed].path_identity, {
+            dev: String(fs.lstatSync(active, { bigint: true }).dev), ino: String(fs.lstatSync(active, { bigint: true }).ino), type: "directory"
+          });
+        }
+        assert.deepEqual(stateAfter, previousState, "Only the proven restored directory identity may change in state.");
+        assert.equal(fs.existsSync(missing), false);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+        const repaired = installDependencies(target, preservingOptions);
+        assert.equal(repaired.complete, true);
+        assert.deepEqual(fs.readFileSync(edited), latest);
+        if (mode === "permissions") assert.equal(fs.lstatSync(edited).mode & 0o777, latestMode);
+        assert.equal(fs.existsSync(missing), true);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+      }
+    });
+    test("explicit update replacement stays separate from preserving-repair content binding", () => {
+      const target = path.join(temporary, "late-edit-explicit-update", "skills");
+      installDependencies(target, preservingOptions);
+      const edited = path.join(target, "brand-design/references/palette-recipes.md");
+      let cached = false;
+      const lateEdit = (_selected, online) => {
+        if (online && !cached) { fs.appendFileSync(edited, "Edit replaced only by explicit update.\n"); cached = true; }
+        return cached;
+      };
+      const updated = installDependencies(target, { ...preservingOptions, update: true, helperVersion: lateEdit });
+      assert.equal(updated.complete, true);
+      assert.equal(cached, true);
+      assert.doesNotMatch(fs.readFileSync(edited, "utf8"), /Edit replaced only by explicit update/);
+      assert.ok(updated.backups.some(backup => fs.existsSync(path.join(backup, "references/palette-recipes.md")) &&
+        /Edit replaced only by explicit update/.test(fs.readFileSync(path.join(backup, "references/palette-recipes.md"), "utf8"))));
+    });
+    if (typeof process.getuid === "function") test("drifted support permissions are reported and repaired by preserving replacements", () => {
+      const target = path.join(temporary, "permission-drift", "skills");
+      installDependencies(target, preservingOptions);
+      const noFetch = { ...preservingOptions, sourceProvider: () => { throw new Error("A permission repair must not download sources."); } };
+      // Safe control: a private owned tree is reused without replacement or backups.
+      const control = installDependencies(target, noFetch);
+      assert.equal(control.complete, true);
+      assert.deepEqual(control.reused, ["brand-design"]);
+      assert.deepEqual(control.backups, []);
+      const drifted = [["brand-design/references/palette-recipes.md", 0o666], ["brand-design/references", 0o777],
+        ["data/guides/security-checklist.md", 0o664], ["SKILL_ROUTER.md", 0o666], [".proofpilot-upstream/SKILL_ROUTER.md.txt", 0o646]]
+        .map(([relative, mode]) => [path.join(target, relative), mode]);
+      const bytes = new Map(drifted.filter(([file]) => fs.lstatSync(file).isFile()).map(([file]) => [file, fs.readFileSync(file)]));
+      for (const [file, mode] of drifted) fs.chmodSync(file, mode);
+      const status = getDependencyStatus(target, preservingOptions);
+      assert.equal(status.complete, false);
+      for (const item of [...status.skills, ...status.assets]) {
+        assert.equal(item.status, "incomplete", item.id ?? item.path);
+        assert.equal(item.permission_repair_required, true, item.id ?? item.path);
+      }
+      const repaired = installDependencies(target, noFetch);
+      assert.equal(repaired.complete, true);
+      assert.deepEqual(repaired.updated, ["brand-design"]);
+      assert.ok(repaired.backups.length >= 3);
+      for (const [file] of drifted) assert.equal(fs.lstatSync(file).mode & 0o022, 0, `Writable reused path: ${file}`);
+      for (const [file, value] of bytes) assert.deepEqual(fs.readFileSync(file), value);
+      const after = getDependencyStatus(target, preservingOptions);
+      assert.equal(after.complete, true);
+      assert.ok([...after.skills, ...after.assets].every(item => item.permission_repair_required === false));
+      // Entries owned by another account are never blessed or replaced automatically.
+      const foreign = [path.join(target, "brand-design/references/typography-preview.md"), path.join(target, ".proofpilot-upstream/SKILL_ROUTER.md.txt")];
+      const lstat = fs.lstatSync;
+      fs.lstatSync = (file, ...args) => {
+        const stat = lstat(file, ...args);
+        if (foreign.includes(String(file)) && !args[0]?.bigint) stat.uid = process.getuid() + 1;
+        return stat;
+      };
+      let fetched = 0;
+      try {
+        const foreignStatus = getDependencyStatus(target, preservingOptions);
+        assert.equal(foreignStatus.skills.find(item => item.id === "brand-design").status, "incompatible");
+        assert.equal(foreignStatus.assets.find(item => item.path === "SKILL_ROUTER.md").status, "incompatible");
+        assert.throws(() => installDependencies(target, { ...preservingOptions, sourceProvider: () => { fetched++; throw new Error("must not fetch"); } }),
+          /owned by another account/);
+      } finally { fs.lstatSync = lstat; }
+      assert.equal(fetched, 0);
+      assert.equal(getDependencyStatus(target, preservingOptions).complete, true);
+    });
     if (process.platform !== "win32") {
       test("nested support activation persists its destination before the bundle state commits", () => {
         const target = path.join(temporary, "durable-nested-asset", "skills");
@@ -1020,7 +1518,7 @@ export function runDependencyInstallTests() {
         try { assert.equal(installDependencies(target, { ...selectedOptions, update: true }).complete, true); }
         finally { fs.openSync = original.open; fs.closeSync = original.close; fs.fsyncSync = original.sync; fs.renameSync = original.rename; fs.linkSync = original.link; }
         const activation = events.findIndex(event => event.op === "link" && event.to === active);
-        const state = events.findIndex(event => event.op === "rename" && event.to === path.join(target, ".proofpilot-bundle.json"));
+        const state = events.findIndex(event => event.op === "link" && event.to === path.join(target, ".proofpilot-bundle.json"));
         assert.ok(activation >= 0 && state > activation);
         assert.ok(events.slice(0, activation).some(event => event.op === "sync" && event.file === events[activation].from), "Prepared asset bytes must persist before activation.");
         for (const parent of [path.dirname(active), path.dirname(events[activation].from)]) {
@@ -1334,8 +1832,8 @@ export function runDependencyInstallTests() {
           `const root=process.argv[2], destination=path.join(root,"proofpilot"), statePath=path.join(root,".proofpilot-bundle.json");\n` +
           `installPackage({destination,coreOnly:true}); fs.appendFileSync(path.join(destination,"SKILL.md"),"\\nCustomized original survives rollback state.\\n"); const state=JSON.parse(fs.readFileSync(statePath,"utf8")); state.personal_metadata={keep:"All prior state fields"}; fs.writeFileSync(statePath,JSON.stringify(state)); const rename=fs.renameSync, link=fs.linkSync, mode=${JSON.stringify(mode)};\n` +
           `const foreignBytes=()=>JSON.stringify({...state,foreign_metadata:"Late foreign state save must survive"});\n` +
-          `fs.renameSync=(from,to)=>{const capture=from===statePath && path.basename(to)==="original.json" && path.basename(path.dirname(to)).startsWith(".proofpilot-rollback-state-"); if(capture){if(mode==="beforeCapture")process.kill(process.pid,"SIGKILL"); if(mode==="inPlace")fs.writeFileSync(statePath,foreignBytes()); if(mode==="atomic"){fs.writeFileSync(statePath+".editor-save",foreignBytes());rename(statePath+".editor-save",statePath);}} const result=rename(from,to); if(capture){if(mode==="afterCapture")process.kill(process.pid,"SIGKILL");if(mode==="afterCaptureForeign"){fs.writeFileSync(to,foreignBytes());process.kill(process.pid,"SIGKILL");}} if(mode==="afterPreparedRename" && path.basename(to)==="prepared.json" && path.basename(path.dirname(to)).startsWith(".proofpilot-rollback-state-"))process.kill(process.pid,"SIGKILL"); return result;};\n` +
-          `fs.linkSync=(from,to)=>{const publish=to===statePath && path.basename(from)==="prepared.json";if(publish){if(mode==="beforePublish")process.kill(process.pid,"SIGKILL");if(mode==="competing")fs.writeFileSync(statePath,foreignBytes(),{flag:"wx"});} const result=link(from,to);if(publish && ["afterPublish","afterPublishWithIntent"].includes(mode))process.kill(process.pid,"SIGKILL");return result;};\n` +
+          `fs.renameSync=(from,to)=>{const capture=from===statePath && path.basename(to)==="original.json" && path.basename(path.dirname(to)).startsWith(".proofpilot-rollback-state-"); if(capture){if(mode==="beforeCapture")process.kill(process.pid,"SIGKILL"); if(mode==="inPlace")fs.writeFileSync(statePath,foreignBytes()); if(mode==="atomic"){fs.writeFileSync(statePath+".editor-save",foreignBytes());rename(statePath+".editor-save",statePath);}} const result=rename(from,to); if(capture){if(mode==="afterCapture")process.kill(process.pid,"SIGKILL");if(mode==="afterCaptureForeign"){fs.writeFileSync(to,foreignBytes());process.kill(process.pid,"SIGKILL");}} return result;};\n` +
+          `fs.linkSync=(from,to)=>{const publish=to===statePath && path.basename(from)==="prepared.json";if(publish){if(mode==="beforePublish")process.kill(process.pid,"SIGKILL");if(mode==="competing")fs.writeFileSync(statePath,foreignBytes(),{flag:"wx"});} const result=link(from,to);if(mode==="afterPreparedPublication" && path.basename(to)==="prepared.json" && path.basename(path.dirname(to)).startsWith(".proofpilot-rollback-state-"))process.kill(process.pid,"SIGKILL");if(publish && ["afterPublish","afterPublishWithIntent"].includes(mode))process.kill(process.pid,"SIGKILL");return result;};\n` +
           `let error;try{installPackage({destination,coreOnly:true,force:true},{afterCoreActivated:({transaction})=>{if(mode==="afterPublishWithIntent"){transaction.expected_state_hash="sha256:"+"f".repeat(64);fs.writeFileSync(path.join(root,".proofpilot-transaction.json"),JSON.stringify(transaction));}throw new Error("Injected core precommit failure");}});}catch(caught){error=caught.message;}console.log(JSON.stringify({error}));\n`);
         const child = spawnSync(process.execPath, [worker, target], { encoding: "utf8", timeout: 30000 });
         if (["inPlace", "atomic", "competing"].includes(mode)) {
@@ -1372,10 +1870,10 @@ export function runDependencyInstallTests() {
         assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), true);
       });
       test("SIGKILL before capture, after capture and before rollback-state publication retries only the captured original", () => {
-        for (const mode of ["beforeCapture", "afterCapture", "afterPreparedRename", "beforePublish"]) {
+        for (const mode of ["beforeCapture", "afterCapture", "afterPreparedPublication", "beforePublish"]) {
           const target = path.join(temporary, `rollback-state-crash-${mode}`, "skills"), journal = interruptRollbackState(target, mode);
           const stateFile = path.join(target, ".proofpilot-bundle.json"), holding = path.join(target, journal.rollback_state_capture.path);
-          assert.equal(fs.existsSync(stateFile), mode === "beforeCapture");
+          assert.equal(fs.existsSync(stateFile), ["beforeCapture", "afterPreparedPublication"].includes(mode));
           const coreBytes = fs.readFileSync(path.join(target, "proofpilot/SKILL.md"));
           assert.equal(recoverPendingInstallation(target).committed, false);
           const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
@@ -1652,6 +2150,75 @@ export function runDependencyInstallTests() {
         assert.equal(data.recovery.recovered, true);
         assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
         assert.equal(fs.existsSync(path.join(target, "proofpilot")), false);
+      });
+      const interruptStateCommit = (target, mode) => {
+        const worker = path.join(temporary, `kill-state-commit-${mode}.mjs`);
+        const moduleUrl = new URL("../skills/proofpilot/scripts/install-dependencies.js", import.meta.url).href;
+        write(worker, `import fs from "node:fs"; import path from "node:path"; import { markCoreOnly } from ${JSON.stringify(moduleUrl)};\n` +
+          `const root=process.argv[2], statePath=path.join(root,".proofpilot-bundle.json"), mode=${JSON.stringify(mode)};\n` +
+          `markCoreOnly(root); const state=JSON.parse(fs.readFileSync(statePath,"utf8")); state.personal_metadata={keep:"Prior state fields survive"}; fs.writeFileSync(statePath,JSON.stringify(state));\n` +
+          `const rename=fs.renameSync, link=fs.linkSync, held=location=>path.basename(path.dirname(location)).startsWith(".proofpilot-commit-state-");\n` +
+          `fs.renameSync=(from,to)=>{const result=rename(from,to); if(mode.startsWith("afterCapture") && from===statePath && path.basename(to)==="original.json" && held(to)){if(mode==="afterCaptureConcurrent")fs.writeFileSync(to,JSON.stringify({...state,foreign_metadata:"Save captured with the old name survives"})); process.kill(process.pid,"SIGKILL");} return result;};\n` +
+          `fs.linkSync=(from,to)=>{const result=link(from,to); if(mode==="afterPublish" && to===statePath && held(from))process.kill(process.pid,"SIGKILL"); return result;};\n` +
+          `markCoreOnly(root);\n`);
+        const child = spawnSync(process.execPath, [worker, target], { encoding: "utf8", timeout: 30000 });
+        assert.equal(child.signal, "SIGKILL", child.stderr);
+        return JSON.parse(fs.readFileSync(path.join(target, ".proofpilot-transaction.json"), "utf8"));
+      };
+      test("SIGKILL inside the state commit recovers exactly one active state and clears its holding path", () => {
+        for (const mode of ["afterCapture", "afterCaptureConcurrent", "afterPublish"]) {
+          const target = path.join(temporary, `state-commit-crash-${mode}`, "skills"), journal = interruptStateCommit(target, mode);
+          const stateFile = path.join(target, ".proofpilot-bundle.json"), holding = path.join(target, journal.commit_state_capture.path);
+          assert.equal(fs.existsSync(stateFile), mode === "afterPublish");
+          assert.equal(fs.existsSync(path.join(holding, "prepared.json")), true);
+          assert.equal(getDependencyStatus(target, options).pending_transaction, true);
+          assert.equal(recoverPendingInstallation(target).committed, mode === "afterPublish");
+          const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+          assert.deepEqual(state.personal_metadata, { keep: "Prior state fields survive" });
+          assert.equal(state.foreign_metadata, mode === "afterCaptureConcurrent" ? "Save captured with the old name survives" : undefined);
+          assert.equal(fs.existsSync(holding), false);
+          assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
+          markCoreOnly(target);
+          assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, "utf8")).personal_metadata, { keep: "Prior state fields survive" });
+        }
+      });
+      test("rollback refreshes only inode-proven legacy normalized core records to exact physical paths", () => {
+        assert.deepEqual(legacyCorePathAliases("ｐｒｏｏｆｐｉｌｏｔ"), ["ｐｒｏｏｆｐｉｌｏｔ", "proofpilot"]);
+        assert.deepEqual(legacyCorePathAliases("custom-straße"), ["custom-straße", "custom-strasse"]);
+        const target = path.join(temporary, "legacy-core-aliases", "skills"), stateFile = path.join(target, ".proofpilot-bundle.json");
+        const cores = ["ｐｒｏｏｆｐｉｌｏｔ", "custom-straße"];
+        const identity = location => { const stat = fs.lstatSync(location, { bigint: true }); return { dev: String(stat.dev), ino: String(stat.ino), type: "directory" }; };
+        for (const name of cores) write(path.join(target, name, "SKILL.md"), skillText("proofpilot") + `Physical ${name} core survives rollback.\n`);
+        const originals = Object.fromEntries(cores.map(name => [name, identity(path.join(target, name))]));
+        const bytes = Object.fromEntries(cores.map(name => [name, fs.readFileSync(path.join(target, name, "SKILL.md"))]));
+        // Same legacy key, but no pre-rollback inode proof: it must stay untouched.
+        const decoy = { path: "proofpilot", mode: "copy", path_identity: { ...originals["ｐｒｏｏｆｐｉｌｏｔ"], ino: "1" } };
+        write(stateFile, `${JSON.stringify({ bundle_id: manifest.bundle_id, mode: "core_only", personal_metadata: { keep: "Prior state fields survive" }, core_entries: {
+          proofpilot: { path: "proofpilot", mode: "copy", path_identity: originals["ｐｒｏｏｆｐｉｌｏｔ"] },
+          custom: { path: "custom-strasse", mode: "copy", path_identity: originals["custom-straße"] },
+          decoy
+        } }, null, 2)}\n`);
+        assert.throws(() => markCoreOnly(target, { afterLockAcquired: ({ transaction }) => {
+          for (const [index, name] of cores.entries()) {
+            const destination = path.join(target, name), staged = path.join(target, `.proofpilot-stage-core-${index}`);
+            write(path.join(staged, "SKILL.md"), skillText("proofpilot") + "Replacement core.\n");
+            const action = addTransactionAction(transaction, { destination, staging: staged, initialExists: true, initialIdentity: originals[name], kind: "core" });
+            startTransactionActivation(transaction, action);
+            startTransactionBackup(transaction, action);
+            backupInstalledPath(destination, target, { backupPath: action.backup, quarantinePath: path.join(target, action.backup_quarantine) });
+            fs.renameSync(staged, destination);
+          }
+          throw new Error("Injected core precommit failure");
+        } }), /Injected core precommit failure/);
+        const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+        assert.equal(state.core_entries.proofpilot.path, "ｐｒｏｏｆｐｉｌｏｔ");
+        assert.deepEqual(state.core_entries.proofpilot.path_identity, identity(path.join(target, "ｐｒｏｏｆｐｉｌｏｔ")));
+        assert.equal(state.core_entries.custom.path, "custom-straße");
+        assert.deepEqual(state.core_entries.custom.path_identity, identity(path.join(target, "custom-straße")));
+        assert.deepEqual(state.core_entries.decoy, decoy);
+        assert.deepEqual(state.personal_metadata, { keep: "Prior state fields survive" });
+        for (const name of cores) assert.deepEqual(fs.readFileSync(path.join(target, name, "SKILL.md")), bytes[name]);
+        assert.equal(fs.existsSync(path.join(target, ".proofpilot-transaction.json")), false);
       });
     }
     return { cases, supportSkills: 36 };

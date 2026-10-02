@@ -1,9 +1,7 @@
 // Official Copilot 2.0 connection helper. Tokens stay inside a private
 // helper-to-curl transfer; callers receive only sanitized response data.
-import fs from "node:fs";
-import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
-import { createHelperInvocation, helperEnvironment } from "./connection-helper.js";
+import { createHelperInvocation, helperEnvironment, trustedSystemExecutable } from "./connection-helper.js";
 
 export const COLOSSEUM_API_BASE = "https://copilot.colosseum.com/api/v2";
 export const COLOSSEUM_HELPER_PACKAGE = "@colosseum-org/copilot-connect@0.2.2";
@@ -77,8 +75,10 @@ export async function loginColosseum(options = {}) {
     } catch { finish({ status: null }); return; }
     process.once("SIGINT", interrupted);
     process.once("SIGTERM", interrupted);
+    // A prerequisite diagnostic still prints to the terminal; callers also get its code.
+    const prerequisite = invocation.helperPrerequisiteIssue ? { error: invocation.helperPrerequisiteIssue.code } : {};
     child.once("error", () => finish({ status: null }));
-    child.once("close", status => finish({ status }));
+    child.once("close", status => finish({ status, ...prerequisite }));
   }); } finally { invocation.cleanup(); }
 }
 
@@ -158,17 +158,9 @@ function allowedRequest(request) {
 
 const quote = value => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 
+// The resolved target, not only the PATH directory that names it, must be trusted.
 function trustedTransportExecutable(name, env) {
-  const executable = process.platform === "win32" ? `${name}.exe` : name;
-  for (const directory of String(env?.PATH ?? "").split(path.delimiter)) {
-    if (!directory || !path.isAbsolute(directory)) continue;
-    try {
-      const resolved = fs.realpathSync(path.join(directory, executable));
-      const stat = fs.lstatSync(resolved);
-      if (stat.isFile() && (process.platform === "win32" || (stat.mode & 0o111) !== 0)) return resolved;
-    } catch { /* Try the next trusted PATH entry. */ }
-  }
-  return null;
+  return trustedSystemExecutable(process.platform === "win32" ? `${name}.exe` : name, env?.PATH);
 }
 
 function sanitizedResponse(stdout, token) {

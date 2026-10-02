@@ -100,7 +100,7 @@ For remote environments or blocked callbacks, add `--device` to the connect comm
 
 If no trusted curl is available, live checks return `transport_missing` with `next_action: prepare_curl` before token retrieval or renewal. Prepare system curl and retry the check; this does not establish an authorization failure. ProofPilot does not install curl automatically.
 
-The [service access guide](skills/proofpilot/references/service-access.json) covers ten services and their cost boundaries. Review Colosseum account terms at sign-in: the public FAQ still describes free V1 PAT access and does not establish V2 pricing. Other connections are requested only for a concrete capability. Extra OpenAI/Claude API keys are unnecessary in an already authenticated agent; host/model usage has separate terms.
+The [service access guide](skills/proofpilot/references/service-access.json) covers ten services and their cost boundaries. On 2026-10-02 the [official Copilot page](https://colosseum.com/copilot) FAQ said Copilot is free with a Colosseum account; premium Frames data sources use your credits only after you grant permission. Recheck current terms before cost-sensitive decisions. Other connections are requested only for a concrete capability. Extra OpenAI/Claude API keys are unnecessary in an already authenticated agent; host/model usage has separate terms.
 
 ## Quick Start
 

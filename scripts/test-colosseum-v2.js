@@ -9,12 +9,20 @@ import { PassThrough } from "node:stream";
 import { getSetupStatus, checkColosseum } from "../skills/proofpilot/scripts/setup.js";
 import { readColosseum } from "../skills/proofpilot/scripts/colosseum-read.js";
 import { runColosseumRequest, parseColosseumResponse } from "../skills/proofpilot/scripts/colosseum-connection.js";
+import { helperSearchPath } from "../skills/proofpilot/scripts/connection-helper.js";
 
 export async function runColosseumTransportPreflightTests({ caseName } = {}) {
   const home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "proofpilot-curl-preflight-")));
   const originalRealpath = fs.realpathSync;
+  const originalLstat = fs.lstatSync;
+  const originalReport = process.report.getReport;
   const curlName = process.platform === "win32" ? "curl.exe" : "curl";
-  const curl = path.join(home, curlName);
+  // Native Windows accepted-flow fixtures must put their synthetic canonical
+  // transport inside the mocked loaded-module OS anchor, rather than accepting
+  // an unrelated temporary target. This is not a native ACL test.
+  const windowsSystem = path.join(home, "Windows", "System32");
+  const windowsModules = [path.join(windowsSystem, "ntdll.dll"), path.join(windowsSystem, "kernel32.dll")];
+  const curl = path.join(process.platform === "win32" ? windowsSystem : home, curlName);
   const helperCommand = path.join(home, "synthetic-helper");
   const token = "SYNTHETIC_PREFLIGHT_BEARER_NEVER_DISPLAY";
   const request = { url: "https://copilot.colosseum.com/api/v2/status", method: "GET", body: null };
@@ -26,8 +34,27 @@ export async function runColosseumTransportPreflightTests({ caseName } = {}) {
     await run();
     cases++;
   };
+  // Root-administered files cannot be created without privileges. Report the
+  // given owners for fixture paths and a root-owned prefix without group/world
+  // write above the fixture; links, file types, fixture modes and canonical
+  // paths stay real.
+  const emulateOwners = owners => {
+    fs.lstatSync = (file, ...args) => {
+      const stat = originalLstat(file, ...args);
+      if (typeof file !== "string" || typeof stat?.uid !== "number") return stat;
+      const location = path.resolve(file);
+      const toFixture = path.relative(location, home);
+      if (owners.has(location)) stat.uid = owners.get(location);
+      else if (toFixture && !toFixture.startsWith("..") && !path.isAbsolute(toFixture)) {
+        stat.uid = 0;
+        stat.mode &= ~0o022;
+      }
+      return stat;
+    };
+  };
   // Resolve only the transport candidates differently. PATH alone cannot hide
-  // helperEnvironment's built-in system directories or their default curl.
+  // helperEnvironment's built-in system directories or their default curl. An
+  // available fixture stands in for a root-owned curl in a protected tree.
   const withCurl = async (available, run) => {
     const attempted = [];
     const resolve = (native, file, ...args) => {
@@ -40,9 +67,36 @@ export async function runColosseumTransportPreflightTests({ caseName } = {}) {
     };
     fs.realpathSync = (file, ...args) => resolve(originalRealpath, file, ...args);
     fs.realpathSync.native = (file, ...args) => resolve(originalRealpath.native, file, ...args);
-    try { return await run(attempted); } finally { fs.realpathSync = originalRealpath; }
+    if (available) {
+      emulateOwners(new Map([[home, 0], [curl, 0]]));
+      if (process.platform === "win32") process.report.getReport = () => ({ sharedObjects: windowsModules });
+    }
+    try { return await run(attempted); } finally {
+      fs.realpathSync = originalRealpath; fs.lstatSync = originalLstat; process.report.getReport = originalReport;
+    }
   };
-  const fixture = ({ helperExit = 0, helperMissing = false, helperUntrusted = false, env = {} } = {}) => {
+  // A real curl link in an emulated root-owned PATH directory stands in for a
+  // pre-existing system link. Host curl candidates are hidden; the link itself
+  // resolves natively and its target is judged by real modes and given owners.
+  const protectedBin = path.join(home, "protected-bin");
+  const link = path.join(protectedBin, curlName);
+  const withLink = async (target, owners, run) => {
+    const attempted = [];
+    fs.rmSync(link, { force: true });
+    fs.symlinkSync(target, link);
+    const resolve = (native, file, ...args) => {
+      if (typeof file === "string" && path.basename(file).toLowerCase() === curlName) {
+        attempted.push(file);
+        if (path.dirname(path.resolve(file)) !== protectedBin) throw Object.assign(new Error("synthetic hidden host curl"), { code: "ENOENT" });
+      }
+      return native(file, ...args);
+    };
+    fs.realpathSync = (file, ...args) => resolve(originalRealpath, file, ...args);
+    fs.realpathSync.native = (file, ...args) => resolve(originalRealpath.native, file, ...args);
+    emulateOwners(new Map([[home, 0], [protectedBin, 0], ...owners]));
+    try { return await run(attempted); } finally { fs.realpathSync = originalRealpath; fs.lstatSync = originalLstat; }
+  };
+  const fixture = ({ helperExit = 0, helperMissing = false, helperUntrusted = false, env = {}, resolvedCurl = curl } = {}) => {
     const state = { helper_created: 0, helper_spawned: 0, curl_spawned: 0, cleanup: 0 };
     const options = { env, createHelperInvocation(args) {
       state.helper_created++;
@@ -55,7 +109,7 @@ export async function runColosseumTransportPreflightTests({ caseName } = {}) {
       if (helper) state.helper_spawned++;
       else {
         state.curl_spawned++;
-        assert.equal(command, curl, "Only the preflight's trusted resolved executable may receive the bearer");
+        assert.equal(command, resolvedCurl, "Only the preflight's trusted resolved executable may receive the bearer");
         assert.deepEqual(args, ["--disable", "--config", "-"]);
       }
       assert.equal(transport.shell, false);
@@ -85,7 +139,9 @@ export async function runColosseumTransportPreflightTests({ caseName } = {}) {
     return { options, state };
   };
   try {
+    fs.mkdirSync(path.dirname(curl), { recursive: true, mode: 0o700 });
     fs.writeFileSync(curl, "synthetic fixture, never executed\n", { mode: 0o700 });
+    if (process.platform === "win32") for (const module of windowsModules) fs.writeFileSync(module, "synthetic OS module, never loaded\n", { mode: 0o600 });
     for (const name of ["missing", "untrusted-caller"]) {
       await test(name, async () => {
         const callerBin = path.join(home, name);
@@ -160,10 +216,113 @@ export async function runColosseumTransportPreflightTests({ caseName } = {}) {
       assert.equal(result.helper_error, "helper_untrusted");
       assert.deepEqual(state, { helper_created: 1, helper_spawned: 0, curl_spawned: 0, cleanup: 1 });
     });
+    if (process.platform !== "win32") {
+      // A non-root owner is real unless the tests themselves run as root.
+      const user = process.getuid() || 4242;
+      // Native precondition, checked before any emulation: a root-owned shell in
+      // a directory chain that the real PATH policy accepts.
+      const nativeTarget = (() => {
+        try {
+          const target = originalRealpath("/bin/sh");
+          const stat = originalLstat(target);
+          const parent = path.dirname(target);
+          return stat.isFile() && stat.uid === 0 && (stat.mode & 0o022) === 0 && (stat.mode & 0o111) !== 0 &&
+            helperSearchPath(parent).split(path.delimiter).includes(parent) ? target : null;
+        } catch { return null; }
+      })();
+      fs.mkdirSync(protectedBin, { mode: 0o755 });
+      fs.chmodSync(protectedBin, 0o755);
+      const executable = (relative, mode = 0o755) => {
+        const location = path.join(home, relative);
+        fs.mkdirSync(path.dirname(location), { recursive: true, mode: 0o755 });
+        fs.writeFileSync(location, "synthetic transport target, never executed\n");
+        fs.chmodSync(location, mode);
+        return location;
+      };
+      // Owners for the target and each directory between it and the fixture root.
+      const chain = (target, uid) => {
+        const owners = [];
+        for (let current = target; current !== home; current = path.dirname(current)) owners.push([current, uid]);
+        return owners;
+      };
+      const rejects = async (target, owners) => {
+        const { options, state } = fixture({ env: { PATH: protectedBin } });
+        await withLink(target, owners, async attempted => {
+          const result = await runColosseumRequest(request, options);
+          assert.deepEqual({ code: result.transport_error, ...state },
+            { code: "transport_missing", helper_created: 0, helper_spawned: 0, curl_spawned: 0, cleanup: 0 },
+            "A protected link to an untrusted target must stop before any token is requested");
+          assert.ok(attempted.includes(link), "The protected directory's link itself must be examined");
+          assert.deepEqual(parseColosseumResponse(result), { error: "transport_missing", http_status: null });
+        });
+      };
+      const accepts = async (target, owners) => {
+        const { options, state } = fixture({ env: { PATH: protectedBin }, resolvedCurl: target });
+        await withLink(target, owners, async attempted => {
+          const result = await runColosseumRequest(request, options);
+          assert.deepEqual(parseColosseumResponse(result), { data: { value: "[redacted]" }, http_status: 200 });
+          assert.deepEqual(state, { helper_created: 1, helper_spawned: 1, curl_spawned: 1, cleanup: 1 },
+            "The resolved target, not the link path, receives the bearer over stdin");
+          assert.ok(attempted.includes(link));
+          assert.equal(JSON.stringify(result).includes(token), false);
+        });
+      };
+      await test("protected-link-user-prefix", async () => {
+        const target = executable("user-prefix/bin/curl");
+        await rejects(target, chain(target, user));
+        await accepts(target, chain(target, 0));
+      });
+      await test("protected-link-writable-user-target", async () => {
+        const target = executable("user-writable/bin/curl", 0o777);
+        await rejects(target, chain(target, user));
+      });
+      await test("protected-link-writable-root-target", async () => {
+        const target = executable("root-target/bin/curl", 0o777);
+        await rejects(target, chain(target, 0));
+        fs.chmodSync(target, 0o755);
+        await accepts(target, chain(target, 0));
+      });
+      await test("protected-link-writable-target-parent", async () => {
+        const target = executable("root-parent/curl");
+        fs.chmodSync(path.dirname(target), 0o777);
+        await rejects(target, chain(target, 0));
+        fs.chmodSync(path.dirname(target), 0o755);
+        await accepts(target, chain(target, 0));
+      });
+      await test("protected-link-writable-target-ancestor", async () => {
+        const target = executable("root-ancestor/bin/curl");
+        fs.chmodSync(path.join(home, "root-ancestor"), 0o777);
+        await rejects(target, chain(target, 0));
+        fs.chmodSync(path.join(home, "root-ancestor"), 0o755);
+        await accepts(target, chain(target, 0));
+      });
+      if (nativeTarget) await test("protected-link-native-system-target", () => accepts(nativeTarget, []));
+      await test("direct-user-prefix-path", async () => {
+        const target = executable("direct-user/bin/curl");
+        const { options, state } = fixture({ env: { PATH: path.dirname(target) } });
+        await withLink(target, chain(target, user), async attempted => {
+          const result = await runColosseumRequest(request, options);
+          assert.deepEqual({ code: result.transport_error, ...state },
+            { code: "transport_missing", helper_created: 0, helper_spawned: 0, curl_spawned: 0, cleanup: 0 });
+          assert.equal(attempted.includes(target), false, "A user-owned PATH directory must not even be searched");
+        });
+      });
+      await test("protected-link-setup-diagnostic", async () => {
+        const target = executable("setup-user/bin/curl");
+        const { options, state } = fixture({ env: { PATH: protectedBin } });
+        const status = await withLink(target, chain(target, user), () => checkColosseum({ ...options, helperRunner: local }));
+        assert.equal(status.colosseum.status, "transport_missing");
+        assert.equal(status.colosseum.next_action, "prepare_curl");
+        assert.equal(status.colosseum.live_check_performed, false);
+        assert.deepEqual(state, { helper_created: 0, helper_spawned: 0, curl_spawned: 0, cleanup: 0 });
+      });
+    }
     if (caseName && !cases) throw new Error(`Unknown transport preflight test case: ${caseName}`);
     return { cases };
   } finally {
     fs.realpathSync = originalRealpath;
+    fs.lstatSync = originalLstat;
+    process.report.getReport = originalReport;
     fs.rmSync(home, { recursive: true, force: true });
   }
 }

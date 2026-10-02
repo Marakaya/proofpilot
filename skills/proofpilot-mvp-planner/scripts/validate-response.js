@@ -9,15 +9,34 @@ const asArray = (value) => Array.isArray(value) ? value : [];
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const verifiedTypes = new Set(["user_verified", "primary_current", "primary_historical", "secondary"]);
 
-export function isDateTime(value) {
-  if (typeof value !== "string") return false;
-  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/.exec(value);
-  if (!parts || !Number.isFinite(Date.parse(value))) return false;
-  const [, year, month, day, hour, minute, second, offsetHour = "0", offsetMinute = "0"] = parts.map((part, index) => index ? Number(part ?? 0) : part);
+function parseDateTime(value) {
+  if (typeof value !== "string") return null;
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-](\d{2}):(\d{2}))$/.exec(value);
+  if (!parts) return null;
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, fraction = "", zone, offsetHourText = "0", offsetMinuteText = "0"] = parts;
+  const [year, month, day, hour, minute, second, offsetHour, offsetMinute] = [yearText, monthText, dayText, hourText, minuteText, secondText, offsetHourText, offsetMinuteText].map(Number);
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] &&
-    hour <= 23 && minute <= 59 && second <= 59 && offsetHour <= 23 && offsetMinute <= 59;
+  if (!(month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] &&
+    hour <= 23 && minute <= 59 && second <= 59 && offsetHour <= 23 && offsetMinute <= 59)) return null;
+  // Date supplies timezone normalization for whole seconds only. Keeping the
+  // original fractional digits prevents millisecond truncation at frozen cutoffs.
+  const seconds = Date.parse(`${yearText}-${monthText}-${dayText}T${hourText}:${minuteText}:${secondText}${zone}`) / 1000;
+  if (!Number.isFinite(seconds)) return null;
+  return { seconds, fraction: fraction.replace(/0+$/, "") };
+}
+
+export function isDateTime(value) {
+  return parseDateTime(value) !== null;
+}
+
+function isAfterDateTime(value, boundary) {
+  const left = parseDateTime(value);
+  const right = parseDateTime(boundary);
+  if (!left || !right) return false; // Invalid inputs receive their own diagnostic.
+  if (left.seconds !== right.seconds) return left.seconds > right.seconds;
+  const length = Math.max(left.fraction.length, right.fraction.length);
+  return left.fraction.padEnd(length, "0") > right.fraction.padEnd(length, "0");
 }
 
 function isHttps(value) {
@@ -197,7 +216,7 @@ export function validateResponseSemantics(response, { rubrics, sources, tools, c
     for (const id of allowedSources) knownSource(id, "Evaluation snapshot");
     if (new Set(asArray(snapshot.allowed_source_ids)).size !== asArray(snapshot.allowed_source_ids).length) errors.push("Evaluation snapshot has duplicate allowed_source_ids");
     if (!isDateTime(snapshot.evidence_cutoff)) errors.push("Evaluation snapshot has an invalid evidence_cutoff");
-    if (Date.parse(snapshot.evidence_cutoff) > Date.parse(response.run?.generated_at)) errors.push("Evaluation evidence_cutoff is after generated_at");
+    if (isAfterDateTime(snapshot.evidence_cutoff, response.run?.generated_at)) errors.push("Evaluation evidence_cutoff is after generated_at");
   }
   if (!isDateTime(response.run?.generated_at)) errors.push("Run has an invalid generated_at");
   for (const item of evidence) {
@@ -205,9 +224,9 @@ export function validateResponseSemantics(response, { rubrics, sources, tools, c
     if (sourceStatus.get(item?.source_id) !== "checked") errors.push(`Evidence ${item?.id} requires source ${item?.source_id} to have checked status`);
     if (["primary_current", "primary_historical", "secondary"].includes(item?.evidence_type) && !isHttps(item?.source_url)) errors.push(`Evidence ${item?.id} requires an HTTPS source_url`);
     if (!isDateTime(item?.retrieved_at)) errors.push(`Evidence ${item?.id} has an invalid retrieved_at`);
-    if (Date.parse(item?.retrieved_at) > Date.parse(response.run?.generated_at)) errors.push(`Evidence ${item?.id} was retrieved after generated_at`);
+    if (isAfterDateTime(item?.retrieved_at, response.run?.generated_at)) errors.push(`Evidence ${item?.id} was retrieved after generated_at`);
     if (evaluator && !allowedSources.has(item?.source_id)) errors.push(`Evidence ${item?.id} uses a source outside evaluation_snapshot.allowed_source_ids`);
-    if (evaluator && Date.parse(item?.retrieved_at) > Date.parse(snapshot?.evidence_cutoff)) errors.push(`Evidence ${item?.id} was retrieved after evidence_cutoff`);
+    if (evaluator && isAfterDateTime(item?.retrieved_at, snapshot?.evidence_cutoff)) errors.push(`Evidence ${item?.id} was retrieved after evidence_cutoff`);
     if (evaluator && item?.evidence_type === "user_verified" && !item.artifact_ref) errors.push(`Evaluator user_verified evidence ${item.id} requires artifact_ref in the evaluation snapshot`);
     if (snapshot && item?.artifact_ref && !artifactIds.has(item.artifact_ref)) errors.push(`Evidence ${item.id} has unknown artifact_ref ${item.artifact_ref}`);
   }

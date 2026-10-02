@@ -32,6 +32,12 @@ const claudeHome = process.env.CLAUDE_CONFIG_DIR || process.env.CLAUDE_HOME || p
 if (claudeHome.startsWith("~") || !path.isAbsolute(claudeHome)) {
   console.error("CLAUDE_CONFIG_DIR / CLAUDE_HOME must be an absolute path."); process.exit(1);
 }
+// A relative or shell-style ~ value would name a different root for every caller working directory.
+const codexHome = process.env.CODEX_HOME || path.join(home, ".codex");
+if (codexHome.startsWith("~") || !path.isAbsolute(codexHome)) {
+  console.error("CODEX_HOME must be an absolute path; shell-style ~ and relative paths are not accepted. Set it to an absolute Codex home directory or unset it to use the default.");
+  process.exit(1);
+}
 
 // Keep the invoked location as well as the module location: profile helpers may
 // be symlinks, and their adjacent skills live beside the installed profile.
@@ -40,7 +46,7 @@ const skillRoots = [...new Set([
   ...(explicitRoot ? [explicitRoot] : []),
   ...[".agents", ".codex", ".claude"].map(directory => path.join(process.cwd(), directory, "skills")),
   ...helperLocations.map(file => path.resolve(path.dirname(file), "../..")),
-  process.env.CODEX_HOME ? path.join(process.env.CODEX_HOME, "skills") : path.join(home, ".codex", "skills"),
+  path.join(codexHome, "skills"),
   path.join(home, ".agents", "skills"),
   path.join(claudeHome, "skills")
 ])];
@@ -246,9 +252,21 @@ function kaggleConfigured() {
     nonemptyString(process.env.KAGGLE_KEY ?? legacy.key);
 }
 
+// setup.js remains the primary status. Presence is definite only when the helper
+// reported stored credentials or a not-logged-in state; helper trust/availability
+// failures and unparsed replies stay unknown (null) with setup's status and reason.
+function colosseumConnectionStatus() {
+  const { configured, status, reason } = getSetupStatus().colosseum;
+  return {
+    colosseum_copilot_connection_stored: configured === true ? true : status === "missing" ? false : null,
+    colosseum_copilot_connection_status: status,
+    colosseum_copilot_connection_reason: reason
+  };
+}
+
 function readCredentialStatus() {
   return {
-    colosseum_copilot_connection_stored: getSetupStatus().colosseum.configured,
+    ...colosseumConnectionStatus(),
     github_token_configured: nonemptyString(process.env.GITHUB_TOKEN) || nonemptyString(process.env.GH_TOKEN),
     kaggle_configured: kaggleConfigured(),
     hugging_face_token_configured: nonemptyString(process.env.HF_TOKEN) || nonemptyString(process.env.HUGGINGFACE_TOKEN),

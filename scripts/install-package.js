@@ -94,11 +94,21 @@ function entryRootMatchesMode(entry, mode) {
   const stat = fs.lstatSync(entry.path);
   const rootModeMatches = mode === "copy" ? stat.isDirectory() && !stat.isSymbolicLink() :
     entry.parts.length === 1 ? stat.isSymbolicLink() : stat.isDirectory() && !stat.isSymbolicLink();
-  if (stat.isDirectory() && typeof process.getuid === "function" && (stat.mode & 0o022) !== 0) return false;
+  if (stat.isDirectory() && typeof process.getuid === "function" &&
+      (stat.uid !== process.getuid() || (stat.mode & 0o022) !== 0)) return false;
+  if (mode === "copy" && rootModeMatches && !physicalTreeHasSafePermissions(entry.path)) return false;
   if (!rootModeMatches || entry.parts.length === 1) return rootModeMatches;
   const expected = entry.parts.map(([, relative]) => relative.split(path.sep)[0]).sort();
   const actual = fs.readdirSync(entry.path).filter(name => !isInstallMetadata(path.join(entry.path, name))).sort();
   return JSON.stringify(actual) === JSON.stringify(expected);
+}
+function physicalTreeHasSafePermissions(location) {
+  try {
+    const stat = fs.lstatSync(location);
+    if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) return false;
+    if (typeof process.getuid === "function" && (stat.uid !== process.getuid() || (stat.mode & 0o022) !== 0)) return false;
+    return !stat.isDirectory() || fs.readdirSync(location).every(name => physicalTreeHasSafePermissions(path.join(location, name)));
+  } catch { return false; }
 }
 function installedSkillName(destination) {
   try {
@@ -117,11 +127,28 @@ function emptyPhysicalDirectory(destination) {
     return stat.isDirectory() && !stat.isSymbolicLink() && fs.readdirSync(destination).length === 0;
   } catch { return false; }
 }
-function destinationKey(root, destination) {
+function destinationPath(root, destination) {
   const relative = path.relative(path.resolve(root), path.resolve(destination));
   if (!relative || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return null;
-  const normalized = relative.split(path.sep).join("/").normalize("NFKC");
+  return relative.split(path.sep).join("/");
+}
+function sameInstallDestination(left, right) {
+  if (path.resolve(left) === path.resolve(right)) return true;
+  try {
+    const a = pathIdentity(left), b = pathIdentity(right);
+    if (a.ino !== "0" || b.ino !== "0") return a.dev === b.dev && a.ino === b.ino && a.type === b.type;
+    // Do not equate separate development links merely because they target the
+    // same checkout. A canonical parent alias still names the same entry.
+    return canonicalInstallPath(left, { replaceFinalLink: true }) === canonicalInstallPath(right, { replaceFinalLink: true });
+  } catch { return false; }
+}
+function foldedLegacyPath(value) {
+  const normalized = value.normalize("NFKC");
   return ["darwin", "win32"].includes(process.platform) ? normalized.toLowerCase().replaceAll("ß", "ss") : normalized;
+}
+function validRecordedCorePath(value) {
+  return typeof value === "string" && value.length > 0 && !value.includes("\\") && !path.posix.isAbsolute(value) &&
+    value.split("/").every(part => part && ![".", ".."].includes(part));
 }
 function rootHasProofPilotState(root, manifest, entry, allowLegacy = false) {
   try {
@@ -129,9 +156,14 @@ function rootHasProofPilotState(root, manifest, entry, allowLegacy = false) {
     if (!fs.lstatSync(file).isFile()) return false;
     const state = JSON.parse(fs.readFileSync(file, "utf8"));
     const record = state.core_entries?.[entry.name];
-    if (record?.path === destinationKey(root, entry.path) && hasIdentity(entry.path, record.path_identity)) return true;
+    const relative = destinationPath(root, entry.path);
+    const validPath = validRecordedCorePath(record?.path);
+    // Earlier releases persisted a comparison key. Only an inode-bound record
+    // may be migrated when its folded spelling differs from the physical path.
+    if (validPath && hasIdentity(entry.path, record.path_identity) &&
+        (sameInstallDestination(path.join(root, record.path), entry.path) || foldedLegacyPath(record.path) === foldedLegacyPath(relative))) return true;
     return allowLegacy && typeof state.bundle_id === "string" && state.bundle_id.startsWith("proofpilot-support-") &&
-      (!record || record.path === destinationKey(root, entry.path)) && ["full", "core_only"].includes(state.mode);
+      (!record || (validPath && sameInstallDestination(path.join(root, record.path), entry.path))) && ["full", "core_only"].includes(state.mode);
   } catch { return false; }
 }
 function replaceableOwnedCore(root, manifest, entry, allowLegacy) {
@@ -202,9 +234,9 @@ export function installPackage(args, options = {}) {
     if (!stateStat.isFile() || stateStat.size > 1024 * 1024) throw new Error("incompatible state");
     recordedState = JSON.parse(fs.readFileSync(stateFile, "utf8"));
     const recorded = recordedState.core_entries?.proofpilot?.path;
-    if (typeof recorded === "string") {
+    if (validRecordedCorePath(recorded)) {
       const prior = path.join(skillRoot, recorded);
-      if (destinationKey(skillRoot, mainDestination) !== destinationKey(skillRoot, prior) && exists(prior) && installedSkillName(prior) === "proofpilot") {
+      if (!sameInstallDestination(mainDestination, prior) && exists(prior) && installedSkillName(prior) === "proofpilot") {
         throw new Error(`This skill root already has a recorded ProofPilot core at ${prior}; choose that destination or a different skill root.`);
       }
     }
@@ -222,7 +254,7 @@ export function installPackage(args, options = {}) {
       const candidate = path.join(skillRoot, name);
       const declared = installedSkillName(candidate);
       const expected = expectedByName.get(declared);
-      if (expected && destinationKey(skillRoot, candidate) !== destinationKey(skillRoot, expected)) {
+      if (expected && !sameInstallDestination(candidate, expected)) {
         throw new Error(`This skill root already contains another entry declaring name: ${declared}; move it aside before installing.`);
       }
     }
@@ -349,12 +381,13 @@ export function installPackage(args, options = {}) {
         installed: pending.map(entry => entry.name), backups: [...backups],
         removed_core_entries: profileNames.filter(name => !selectedProfileNames.includes(name)),
         core_entries: Object.fromEntries(destinations.map(entry => [entry.name, {
-          path: destinationKey(skillRoot, entry.path), mode, path_identity: pathIdentity(entry.path)
+          path: destinationPath(skillRoot, entry.path), mode, path_identity: pathIdentity(entry.path)
         }]))
       };
     };
     if (args.coreOnly) {
-      markCoreOnly(skillRoot, { manifest, afterLockAcquired: activateCore });
+      const coreResult = markCoreOnly(skillRoot, { manifest, afterLockAcquired: activateCore });
+      for (const backup of coreResult.backups) if (!backups.includes(backup)) backups.push(backup);
     } else {
       dependencies = installDependencies(skillRoot, {
         ...options, manifest, update: args.updateDependencies, offline: args.offline,

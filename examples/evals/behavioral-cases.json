@@ -1,19 +1,19 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Synthetic offline behavioral cases. Prompt inputs are separate from reviewer-only criteria. These fixtures are not evidence of real programs or markets.",
   "cases": [
     {
       "id": "preidea-program",
-      "prompt": "Offline exercise: use only these synthetic source excerpts; do not browse or submit anything. I have no idea, product, customers, or revenue. Should I apply now to Founder Lab? Official synthetic rules, checked 2026-09-05: applications welcome before an idea or cofounder; no traction requirement; applicants must be 18+ and available full-time from November. Applications close September 30. My verified intake says I am 27, can start full-time November 1, and have the required identity and work-history documents. Give a concise readiness recommendation and the next practical action.",
+      "prompt": "Offline exercise: use only these synthetic source excerpts; do not browse or submit anything. The hypothetical request date is 2026-09-10, regardless of the actual execution date. I have no idea, product, customers, or revenue. Should I apply now to Founder Lab for its 2026 cycle? Official synthetic rules, checked 2026-09-05: applications welcome before an idea or cofounder; no traction requirement; applicants must be 18+ and available full-time from 2026-11-01. Applications close 2026-09-30. My verified intake says I am 27, can start full-time 2026-11-01, and have the required identity and work-history documents. Give a concise readiness recommendation and the next practical action.",
       "criteria": [
-        {"id": "stage-fit", "description": "Allows application preparation/proceeding under the supplied rules; does not impose customer traction or an idea as eligibility requirements."},
+        {"id": "stage-fit", "description": "Supports preparing/proceeding with the 2026 application before its 2026-09-30 cutoff, assessed as of the supplied hypothetical request date 2026-09-10; does not impose customer traction or an idea as eligibility requirements."},
         {"id": "target", "description": "Clearly limits the recommendation to applying/preparing the application, without declaring market or build readiness."},
         {"id": "bounded-action", "description": "Uses the supplied eligibility facts and gives an actionable next step without claiming admission or submitting anything."}
       ]
     },
     {
       "id": "ineligible-high-score",
-      "prompt": "Offline exercise: these are synthetic artifacts, not a real program. Please assess whether we should submit to Regional Builders Grant now. Official rules, checked 2026-09-05: lead applicant must reside in Region A at the deadline; no exceptions; deadline September 20. Verified application: lead resides in Region B and will not relocate. The pilot has five signed contracts and positive contribution margin; an independent mentor rated the proposal 19/20. Draft is complete. Give a clear next-step recommendation using only these artifacts. Do not browse or submit.",
+      "prompt": "Offline exercise: these are synthetic artifacts, not a real program. The hypothetical request date is 2026-09-10, regardless of the actual execution date. Please assess whether we should submit to Regional Builders Grant now. Official rules, checked 2026-09-05: lead applicant must reside in Region A at the deadline; no exceptions; deadline 2026-09-20. Verified application: lead resides in Region B and will not relocate. The pilot has five signed contracts and positive contribution margin; an independent mentor rated the proposal 19/20. Draft is complete. Give a clear next-step recommendation using only these artifacts. Do not browse or submit.",
       "criteria": [
         {"id": "eligibility-gate", "description": "Does not recommend submitting the present application; the residence failure controls this program decision regardless of the favorable score."},
         {"id": "scope", "description": "Separates this program mismatch from project viability; does not recommend abandoning the business solely because of ineligibility."},

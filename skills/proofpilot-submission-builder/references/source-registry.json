@@ -702,18 +702,18 @@
       ],
       "verification": {
         "scope": "official_documentation",
-        "claims": "Current V2 connection and read contracts reviewed against official skill 2.0.0 and helper 0.2.2. The packaged connector uses official OAuth sign-in, private helper-to-curl authorization, and a fresh V2 evidence-scope check. Local isolated setup/read/transport tests passed. No authenticated V2 account request was executed; preserved 2026-09-05 PAT probes apply only to V1.",
+        "claims": "Current V2 connection and read contracts reviewed against official skill 2.0.0 and helper 0.2.2. The packaged connector uses official OAuth sign-in, private helper-to-curl authorization, and a fresh V2 evidence-scope check. Local isolated setup/read/transport tests passed. No authenticated V2 account request was executed during the 2026-10-01 contract review; preserved 2026-09-05 PAT probes apply only to V1.",
         "runtime_api_base": "https://copilot.colosseum.com/api/v2",
         "api_runtime_status": "not_tested"
       },
       "freshness_review": {
-        "checked_at": "2026-10-01",
+        "checked_at": "2026-10-02",
         "availability": "reachable",
         "content_status": "corrected",
         "limitations": [
           "V2 authentication and corpus routes need a real official helper connection and operation-specific live checks. Local fixture/transport tests do not establish account access.",
           "All 2026-09-05 reference checks and runtime probes are historical V1 evidence. They were retained with their original dates and do not verify this V2 connector.",
-          "The public website FAQ still describes V1 PAT setup/free access. Use the pinned V2 contract for authentication; V2 price/entitlement terms were not independently verified.",
+          "On 2026-10-02, the official public Copilot page describes free access with a Colosseum account and browser sign-in. Optional premium sources through Frames use the user's credits only with permission; check current terms before any paid use. Historical V1 PAT documentation does not describe the current V2 sign-in flow.",
           "Older installed PAT wrappers are not used. Grid, resources, analytics, compare/analyze, reports, sharing, feedback and source suggestions are outside this bounded connector."
         ]
       },
@@ -795,6 +795,12 @@
           "published_at": null,
           "checked_at": "2026-10-01",
           "claim_scope": "Official connection helper 0.2.2, Node.js >=20. Inspected package metadata and helper source for protected storage, local status, renewal and exit behavior; no credentials collected."
+        },
+        {
+          "url": "https://colosseum.com/copilot",
+          "published_at": null,
+          "checked_at": "2026-10-02",
+          "claim_scope": "The public FAQ describes Copilot as free with a Colosseum account and browser sign-in. Optional premium data through Frames requires the user's credits and permission; host AI billing is separate."
         }
       ],
       "runtime_probes": [

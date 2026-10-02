@@ -100,7 +100,12 @@ export function runSolanaDiscoveryTests() {
     assert.equal(developmentSkill(defaultOutput, "review-and-iterate").skill_file, globalSkill);
     assert.equal(defaultOutput.solana_new.installed_skills["review-and-iterate"].skill_file, globalSkill,
       "Legacy discovery consumers must retain the installed journey skill map");
-    assert.ok(Object.values(defaultOutput.credentials).every(value => typeof value === "boolean"));
+    const { colosseum_copilot_connection_stored: connectionStored, colosseum_copilot_connection_status: connectionStatus,
+      colosseum_copilot_connection_reason: connectionReason, ...optionalCredentials } = defaultOutput.credentials;
+    assert.equal(connectionStored, null, "A home without a prepared helper cannot establish connection presence");
+    assert.equal(connectionStatus, "helper_missing");
+    assert.equal(typeof connectionReason, "string");
+    assert.ok(Object.values(optionalCredentials).every(value => typeof value === "boolean"));
     cases++;
 
     const relocatedClaude = path.join(temporaryRoot, "relocated Claude config");
@@ -119,6 +124,44 @@ export function runSolanaDiscoveryTests() {
     delete env.CLAUDE_CONFIG_DIR;
     assert.equal(developmentSkill(discovery(destination), "debug-program").skill_file, legacySkill);
     delete env.CLAUDE_HOME;
+    cases++;
+
+    // CODEX_HOME follows the same absolute-override rule: a relative or ~ value
+    // would otherwise select a different inventory root for each caller directory.
+    const otherProject = path.join(temporaryRoot, "other project");
+    fs.mkdirSync(otherProject);
+    const relocatedCodex = path.join(temporaryRoot, "relocated Codex home");
+    const relocatedCodexSkill = addSkill(path.join(relocatedCodex, "skills"), "deploy-to-mainnet");
+    env.CODEX_HOME = relocatedCodex;
+    for (const cwd of [project, otherProject]) {
+      const relocatedOutput = JSON.parse(run(path.join(destination, "scripts", "discover-sources.js"), ["--capabilities"], 0, cwd).stdout);
+      assert.equal(developmentSkill(relocatedOutput, "deploy-to-mainnet").skill_file, relocatedCodexSkill,
+        "An absolute CODEX_HOME must select the same skill root from every working directory");
+      assert.ok(relocatedOutput.skill_roots_checked.includes(path.join(relocatedCodex, "skills")));
+      assert.equal(relocatedOutput.skill_roots_checked.includes(globalRoot), false, "An explicit CODEX_HOME replaces the default Codex root");
+      assert.ok(relocatedOutput.skill_roots_checked.every(entry => path.isAbsolute(entry)), "Inventory roots must be absolute");
+    }
+    cases++;
+    for (const value of ["relative-codex", "~/.codex", "~"]) {
+      env.CODEX_HOME = value;
+      for (const cwd of [project, otherProject]) {
+        // A same-named directory beside the caller must not become an inventory root.
+        addSkill(path.join(cwd, value, "skills"), "deploy-to-mainnet");
+        for (const args of [["--capabilities"], []]) {
+          const refused = run(path.join(destination, "scripts", "discover-sources.js"), args, 1, cwd);
+          assert.match(refused.stderr, /CODEX_HOME must be an absolute path/);
+          assert.equal(refused.stdout, "", "A rejected CODEX_HOME must not produce a partial inventory");
+        }
+      }
+      assert.match(run(cli, ["capabilities"], 1).stderr, /CODEX_HOME must be an absolute path/);
+      cases++;
+    }
+    env.CODEX_HOME = "";
+    const defaultCodex = discovery(destination);
+    assert.equal(developmentSkill(defaultCodex, "review-and-iterate").skill_file, globalSkill,
+      "An empty CODEX_HOME keeps the documented ~/.codex/skills default");
+    assert.ok(defaultCodex.skill_roots_checked.includes(globalRoot));
+    env.CODEX_HOME = path.join(isolatedHome, ".codex");
     cases++;
 
     const cliOutput = JSON.parse(run(cli, ["capabilities"]).stdout);
