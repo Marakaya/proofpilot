@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { requireNodeRuntime } from "../skills/proofpilot/scripts/node-runtime.js";
 import { isInstallMetadata, readSkillName } from "../skills/proofpilot/scripts/install-metadata.js";
 import { installDependencies, markCoreOnly, backupInstalledPath, restoreInstalledBackup, loadDependencyManifest, canonicalInstallPath, pathsOverlap, assertInstallDestination, recoverPendingInstallation, addTransactionAction, addTransactionCleanup, startTransactionBackup, startTransactionActivation, recordTransactionPublication, hardenPreparedTree, syncPreparedTree, publishInstalledPath } from "../skills/proofpilot/scripts/install-dependencies.js";
 
@@ -228,6 +229,7 @@ function profileParts(name) {
   ];
 }
 export function installPackage(args, options = {}) {
+  requireNodeRuntime();
   const requestedMainDestination = path.resolve(requireAbsoluteInstallPath(args.destination, "The main skill destination"));
   if (process.platform !== "win32" && path.basename(requestedMainDestination).includes("\\")) {
     throw new Error("The main skill destination name must be journal-safe and cannot contain a backslash.");
@@ -465,6 +467,7 @@ export function installPackage(args, options = {}) {
 export function printInstallNotice(result) {
   const setupPath = path.join(result.destination, "scripts", "setup.js");
   const quote = value => process.platform === "win32" ? `'${value.replace(/['\u2018\u2019]/g, mark => mark + mark)}'` : `'${value.replaceAll("'", "'\\''")}'`;
+  const nodeCommand = `${process.platform === "win32" ? "& " : ""}${quote(process.execPath)}`;
   console.log(`Installed ProofPilot${result.profiles ? ` and ${result.profiles} profiles` : ""}: ${result.destination}`);
   if (result.dependencies) {
     console.log(`Full support bundle ready: ${result.dependencies.skills.length} skills and shared guidance. New: ${result.dependencies.installed.length}; updated: ${result.dependencies.updated.length}; reused: ${result.dependencies.reused.length}.`);
@@ -487,10 +490,10 @@ export function printInstallNotice(result) {
   console.log("Reuse an existing official Copilot Connect connection when available, or sign in through the official browser/device helper when research needs it. Manage access at https://colosseum.com/arena/copilot/connections. No PAT input.");
   console.log("Other service connections are optional. Review account terms and paid usage before enabling a service.");
   if (process.platform === "win32") console.log("Run the following commands in PowerShell:");
-  console.log(`Offline setup status: node ${quote(setupPath)} --status`);
-  console.log(`Connect Colosseum V2: node ${quote(setupPath)} --connect-colosseum`);
-  console.log(`Offline support inventory: node ${quote(path.join(result.destination, "scripts", "install-dependencies.js"))} --status`);
-  console.log(`Offline capability inventory: node ${quote(path.join(result.destination, "scripts", "discover-sources.js"))} --root ${quote(path.dirname(result.destination))} --capabilities`);
+  console.log(`Offline setup status: ${nodeCommand} ${quote(setupPath)} --status`);
+  console.log(`Connect Colosseum V2: ${nodeCommand} ${quote(setupPath)} --connect-colosseum`);
+  console.log(`Offline support inventory: ${nodeCommand} ${quote(path.join(result.destination, "scripts", "install-dependencies.js"))} --status`);
+  console.log(`Offline capability inventory: ${nodeCommand} ${quote(path.join(result.destination, "scripts", "discover-sources.js"))} --root ${quote(path.dirname(result.destination))} --capabilities`);
   console.log("Local capability lookup and implementation from an existing specification do not require Colosseum account setup.");
   console.log("Skill installation does not log in, start an agent conversation, run telemetry or install agent software/toolchains.");
 }

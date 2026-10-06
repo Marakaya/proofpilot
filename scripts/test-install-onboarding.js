@@ -27,6 +27,7 @@ export function runInstallOnboardingTests() {
     const configDir = path.join(temporaryRoot, "config");
     const binDir = path.join(temporaryRoot, "bin");
     const curlMarker = path.join(temporaryRoot, "network-attempt");
+    const wrongNodeMarker = path.join(temporaryRoot, "wrong-node-attempt");
     fs.mkdirSync(isolatedHome);
     fs.mkdirSync(binDir);
     const preload = path.join(temporaryRoot, "isolate.cjs");
@@ -41,6 +42,7 @@ export function runInstallOnboardingTests() {
       'require("node:net").Socket.prototype.connect = denied;'
     ].join("\n"));
     fs.writeFileSync(path.join(binDir, "curl"), `#!/bin/sh\n: > '${curlMarker.replaceAll("'", "'\\''")}'\nexit 95\n`, { mode: 0o700 });
+    fs.writeFileSync(path.join(binDir, "node"), `#!/bin/sh\n: > '${wrongNodeMarker.replaceAll("'", "'\\''")}'\nexit 96\n`, { mode: 0o700 });
     const env = {
       PATH: binDir,
       HOME: isolatedHome,
@@ -104,6 +106,16 @@ export function runInstallOnboardingTests() {
     const destination = path.join(temporaryRoot, "standalone skill");
     const install = run(cli, ["install", "--target", "codex", "--dir", destination, "--core-only"]);
     assertNotice(install, destination);
+    if (process.platform !== "win32") {
+      const command = install.stdout.split("\n").find(line => line.startsWith("Offline setup status: "))?.slice("Offline setup status: ".length);
+      assert.ok(command);
+      const noticeRun = spawnSync("/bin/sh", ["-c", command], { cwd: temporaryRoot, env, encoding: "utf8", timeout: 15000 });
+      assert.ifError(noticeRun.error);
+      assert.equal(noticeRun.status, 0, noticeRun.stderr || noticeRun.stdout);
+      assertPending(noticeRun);
+      assert.equal(fs.existsSync(wrongNodeMarker), false, "Printed setup command must retain the installing Node executable instead of selecting node from PATH");
+      cases++;
+    }
     assertPending(run(path.join(destination, "scripts", "setup.js"), ["--status", "--json"]));
     run(cli, ["install", "--target", "codex", "--dir", destination, "--core-only"]);
     cases += 1;

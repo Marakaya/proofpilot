@@ -2,6 +2,7 @@
 
 // Offline by default. Copilot Connect owns OAuth storage and token renewal.
 import fs from "node:fs";
+import { nodeRuntimeDiagnostic } from "./node-runtime.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDateTime } from "./validate-response.js";
@@ -64,6 +65,8 @@ function isoDate(value) {
 
 /** Storage-only diagnostic: no refresh, account request, PAT read or own cache. */
 export function getSetupStatus(options = {}) {
+  const diagnostic = nodeRuntimeDiagnostic();
+  if (diagnostic) return summary("unavailable", { reason: "node_runtime_unsupported", next_action: "select_node_runtime", diagnostic });
   let result;
   try { result = (options.helperRunner ?? runConnectionHelper)(["status", "--local"], options); }
   catch (error) { return summary("unavailable", { configured: false, reason: "helper_environment_unavailable",
@@ -143,6 +146,8 @@ export async function runSetupCli(args = process.argv.slice(2), options = {}) {
     return 1;
   }
   const action = actions[0] ?? "--status";
+  const diagnostic = nodeRuntimeDiagnostic();
+  if (diagnostic && action !== "--status") { errors.write(`${diagnostic}\n`); return 1; }
   if (action === "--prepare-colosseum-helper") {
     const prepared = await (options.prepareRunner ?? prepareColosseumHelper)(options);
     if (prepared.status !== 0) {

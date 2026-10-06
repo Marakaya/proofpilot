@@ -21,6 +21,7 @@ import { runEventScoreTests } from "./test-event-score.js";
 import { runSupportPolicyTests } from "./test-support-policy.js";
 import { runInstallSafetyTests } from "./test-install-safety.js";
 import { runHelperExportRegressionTests } from "./test-helper-export-regressions.js";
+import { runNodeRuntimeTests } from "./test-node-runtime.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, "scripts", "cli.js");
@@ -57,6 +58,7 @@ const eventScoreTests = runEventScoreTests();
 const supportPolicyTests = runSupportPolicyTests();
 const installSafetyTests = runInstallSafetyTests();
 const helperExportRegressionTests = runHelperExportRegressionTests();
+const nodeRuntimeTests = runNodeRuntimeTests();
 runCli(["event", "list"]);
 runCli(["event", "check"], 1);
 runCli(["validate-response", "examples/responses/evaluator-partial-evidence.json"]);
@@ -107,5 +109,5 @@ if (profileResult.status !== 0) {
 
 console.log(
   `ProofPilot tests passed: ${summary.tools} tools, ${summary.capabilities} capabilities, ` +
-    `${dependencyInstallTests.cases} dependency installation tests, ${summary.rubrics} rubrics, ${summary.evalCases} routing contracts, ${responseTests.cases} response tests, ${behaviorCliTests.cases} eval CLI tests, ${discoveryCredentialTests.scenarios} credential scenarios, ${solanaDiscoveryTests.cases} Solana discovery scenarios, ${freshnessTests.cases} freshness tests, ${setupTests.cases} setup tests, ${installOnboardingTests.cases} onboarding install scenarios, ${colosseumReadTests.cases} Colosseum read tests, ${colosseumV2Tests.cases} V2 migration tests, ${serviceAccessTests.cases} service-access tests, ${qualityTests.cases} quality workflow tests, ${eventScoreTests.cases} event score tests, ${supportPolicyTests.cases} support policy tests, ${installSafetyTests.cases} installation safety tests, ${helperExportRegressionTests.cases} helper/export regression tests.`
+    `${dependencyInstallTests.cases} dependency installation tests, ${summary.rubrics} rubrics, ${summary.evalCases} routing contracts, ${responseTests.cases} response tests, ${behaviorCliTests.cases} eval CLI tests, ${discoveryCredentialTests.scenarios} credential scenarios, ${solanaDiscoveryTests.cases} Solana discovery scenarios, ${freshnessTests.cases} freshness tests, ${setupTests.cases} setup tests, ${installOnboardingTests.cases} onboarding install scenarios, ${colosseumReadTests.cases} Colosseum read tests, ${colosseumV2Tests.cases} V2 migration tests, ${serviceAccessTests.cases} service-access tests, ${qualityTests.cases} quality workflow tests, ${eventScoreTests.cases} event score tests, ${supportPolicyTests.cases} support policy tests, ${installSafetyTests.cases} installation safety tests, ${helperExportRegressionTests.cases} helper/export regression tests, ${nodeRuntimeTests.cases} Node runtime tests.`
 );

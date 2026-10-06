@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { createHelperInvocation, helperEnvironmentDiagnostic } from "./connection-helper.js";
 import { adaptSupportBundle, inspectSupportPolicy, stageExistingSupportBundle, supportPolicySidecarPath } from "./support-policy.js";
 import { readSkillName } from "./install-metadata.js";
+import { requireNodeRuntime } from "./node-runtime.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const stateName = ".proofpilot-bundle.json";
@@ -2083,6 +2084,7 @@ function withCoreActivation(state, activation) {
 
 /** Add missing files; back up required version upgrades and explicit replacements. */
 export function installDependencies(root, options = {}) {
+  requireNodeRuntime();
   root = canonicalInstallPath(root);
   if (options.offline && options.update) throw new Error("--offline and --update-dependencies / --update are mutually exclusive.");
   assertDependencyRoot(root);
@@ -2473,6 +2475,7 @@ function writeBundleState(transaction, bytes) {
 }
 
 export function markCoreOnly(root, options = {}) {
+  requireNodeRuntime();
   root = canonicalInstallPath(root);
   assertDependencyRoot(root);
   const manifest = options.manifest ? validateDependencyManifest(options.manifest) : loadDependencyManifest();
@@ -2538,6 +2541,7 @@ export function runDependencyCli(args = process.argv.slice(2), options = {}) {
       else if (["--status", "--update", "--offline"].includes(args[index]) && action === "install") action = args[index].slice(2);
       else throw new Error("Unsupported bundle arguments. Use --help.");
     }
+    requireNodeRuntime();
     // Load the manifest before rollback can remove this installed entrypoint.
     const manifest = options.manifest ?? loadDependencyManifest();
     const pendingTransaction = action !== "status" ? readPendingTransaction(root) : null;

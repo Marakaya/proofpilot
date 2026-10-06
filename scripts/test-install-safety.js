@@ -107,6 +107,7 @@ export function runInstallSafetyTests({ testNamePattern } = {}) {
         printInstallNotice({ destination: "C:\\Users\\O'Neil\\My ‘Skills’ $literal`\\proofpilot", profiles: 0, backups: [], dependencies: null });
       } finally { console.log = log; Object.defineProperty(process, "platform", { value: platform, configurable: true }); }
       assert.ok(lines.some(line => line === "Run the following commands in PowerShell:"));
+      assert.ok(lines.find(line => line.startsWith("Offline setup status:")).startsWith("Offline setup status: & '"));
       assert.ok(lines.find(line => line.startsWith("Offline setup status:")).includes("O''Neil"));
       assert.ok(lines.find(line => line.startsWith("Offline setup status:")).includes("‘‘Skills’’ $literal`"));
       assert.ok(!lines.join("\n").includes("'\\''"));

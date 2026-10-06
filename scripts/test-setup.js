@@ -65,6 +65,7 @@ async function acceptingValidatorSeam(directory, digest) {
   fs.writeFileSync(path.join(directory, "package.json"), "{\"private\":true,\"type\":\"module\"}\n");
   fs.writeFileSync(path.join(directory, "connection-helper.js"), source.replace(pinned, `export const CONNECTION_HELPER_TREE_SHA256 = "${digest}";`));
   fs.copyFileSync(new URL("colosseum-connection.js", scripts), path.join(directory, "colosseum-connection.js"));
+  fs.copyFileSync(new URL("node-runtime.js", scripts), path.join(directory, "node-runtime.js"));
   return {
     helper: await import(pathToFileURL(path.join(directory, "connection-helper.js")).href),
     connection: await import(pathToFileURL(path.join(directory, "colosseum-connection.js")).href)

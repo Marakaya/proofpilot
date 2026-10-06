@@ -51,6 +51,53 @@ Explicit session export selects the newest session whose first valid metadata wo
 
 Installation locks are stored under the verified account home in `.proofpilot/install-locks`. Errors include the lock path, PID, hostname and start time. A recorded boot identity allows recovery after a reboot on macOS and Linux. A live-PID lock without that proof, or a lock from another hostname, stays protected: remove it only after verifying that its owner is no longer installing. If recovery cannot prove ownership, preserve the reported paths and choose a new empty skill root rather than deleting active files.
 
+## macOS Catalina (Intel) With Node 18
+
+Node.js 18.20.7 does not meet ProofPilot's or the pinned `@colosseum-org/copilot-connect@0.2.2` helper's Node.js 20+ requirement. The official [Node.js 20 platform table](https://github.com/nodejs/node/blob/v20.x/BUILDING.md#platform-list) lists macOS x64 10.15 as its minimum; [Node.js 22 requires macOS 11](https://github.com/nodejs/node/blob/v22.x/BUILDING.md#platform-list). Node.js 20 is now [end-of-life](https://nodejs.org/en/about/previous-releases), so this is a Catalina compatibility workaround, not a supported LTS setup.
+
+Keep Node.js 18 installed. The following commands create a new private directory in your home, download the official Node.js 20.20.2 Intel archive and verify its [published SHA-256 checksum](https://nodejs.org/dist/v20.20.2/SHASUMS256.txt) **before extraction or execution**. They require no sudo, Homebrew, shell-profile edits or replacement of existing paths. The `&&` chain stops at the first failed step.
+
+```bash
+proofpilot_node_dir="$(mktemp -d "$HOME/proofpilot-node20.XXXXXX")" &&
+curl --fail --location --proto '=https' --tlsv1.2 \
+  'https://nodejs.org/dist/v20.20.2/node-v20.20.2-darwin-x64.tar.gz' \
+  --output "$proofpilot_node_dir/node-v20.20.2-darwin-x64.tar.gz" &&
+printf '%s  %s\n' \
+  '8be6f5e4bb128c82774f8a0b8d7a1cc1365a7977d9657cece0ca647b3fe04e61' \
+  "$proofpilot_node_dir/node-v20.20.2-darwin-x64.tar.gz" |
+  shasum -a 256 -c - &&
+tar -xzf "$proofpilot_node_dir/node-v20.20.2-darwin-x64.tar.gz" \
+  -C "$proofpilot_node_dir" &&
+proofpilot_node_bin="$proofpilot_node_dir/node-v20.20.2-darwin-x64/bin" &&
+"$proofpilot_node_bin/node" --version &&
+"$proofpilot_node_bin/node" \
+  "$proofpilot_node_bin/../lib/node_modules/npm/bin/npm-cli.js" --version &&
+printf 'Node binary: %s\n' "$proofpilot_node_bin/node"
+```
+
+Continue only when the checksum reports `OK`, Node prints `v20.20.2` and npm's version command succeeds. Select this runtime for the **current terminal only**:
+
+```bash
+export PATH="$proofpilot_node_bin:$PATH"
+node --version
+npm --version
+```
+
+The full Node path and the explicit npm CLI command above also work without changing `PATH`. An agent started elsewhere may still resolve the old Node.js 18; configure its runtime to the printed Node binary or invoke ProofPilot's scripts with that absolute binary path. Verify the Node version from the agent's own environment before retrying.
+
+For an already copied skill, replace both placeholders with its actual absolute paths and install the 36 supporting skills through its portable helper. The skill root is the parent containing `proofpilot` and its sibling skills; choose the intended runtime's root explicitly.
+
+```bash
+"$proofpilot_node_bin/node" \
+  "<absolute ProofPilot skill directory>/scripts/install-dependencies.js" \
+  --root "<absolute skill root>"
+"$proofpilot_node_bin/node" \
+  "<absolute ProofPilot skill directory>/scripts/install-dependencies.js" \
+  --root "<absolute skill root>" --status
+```
+
+An overall `complete` verifies the local support bundle and cached helper, not a Colosseum account connection. Colosseum sign-in is a separate step requiring the user's authorization; follow [onboarding.md](onboarding.md) after installation.
+
 ## Standalone Skill Copy Or Skill Manager
 
 A generic skill manager copies `SKILL.md`, references and scripts but does not run dependency hooks. On first use for actual venture/development work, resolve this installed skill's absolute directory and check:

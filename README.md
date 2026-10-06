@@ -43,6 +43,8 @@ The response should include evidence and unknowns, three to five distinct direct
 
 Installation requirements: Node.js 20 or later, npm and Git. First full installation needs network access and prepares the Colosseum connection helper. Live Colosseum access then needs Node.js and curl in a trusted system location; npm is needed again only if that helper must be prepared (see [onboarding](skills/proofpilot/references/onboarding.md)).
 
+On an Intel Mac running macOS Catalina 10.15.x with Node.js 18, follow the [Catalina runtime workaround](skills/proofpilot/references/installation.md#macos-catalina-intel-with-node-18) before installation.
+
 Clone the repository and install dependencies:
 
 ```bash

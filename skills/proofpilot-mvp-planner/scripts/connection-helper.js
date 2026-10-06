@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { requireNodeRuntime } from "./node-runtime.js";
 
 export const CONNECTION_HELPER_PACKAGE = "@colosseum-org/copilot-connect@0.2.2";
 export const CONNECTION_HELPER_VERSION = "0.2.2";
@@ -40,6 +41,7 @@ class HelperEnvironmentError extends Error {
 }
 
 export function helperEnvironmentDiagnostic(error) {
+  if (error?.code === "ENODERUNTIME") return error.message;
   return error instanceof HelperEnvironmentError ? error.message :
     "The connection-helper environment could not be prepared. Check the account home and helper/config directory ownership and permissions, then retry setup.js --status. Saved credentials were not inspected or changed; do not reconnect on this failure.";
 }
@@ -549,6 +551,7 @@ export function helperEnvironment(env = process.env) {
  * and the command only prints the recovery diagnostic, online or offline.
  */
 export function createHelperInvocation(args, { online = false, env = process.env, cache } = {}) {
+  requireNodeRuntime();
   if (!Array.isArray(args) || args.length > 8 || args.some(arg => typeof arg !== "string" || !safeArgument.test(arg))) {
     throw new Error("Unsupported helper arguments.");
   }
